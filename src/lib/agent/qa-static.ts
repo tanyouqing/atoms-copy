@@ -1,6 +1,6 @@
 import "server-only";
 import vm from "node:vm";
-import { ALLOWED_SCRIPT_SRCS } from "@/lib/vendor";
+import { ALLOWED_SCRIPT_SRCS, ALLOWED_STYLE_HREFS } from "@/lib/vendor";
 import type { RuntimeError } from "@/types/runtime";
 
 export const MAX_HTML_LENGTH = 80_000;
@@ -26,7 +26,7 @@ export function staticCheck(html: string): RuntimeError[] {
   for (let m; (m = linkRe.exec(html)); ) {
     const rel = attr(m[0], "rel")?.toLowerCase();
     const href = attr(m[0], "href") ?? "";
-    if (rel === "stylesheet" && /^(https?:)?\/\//i.test(href)) add(`不允许引用外部样式表：${href}`, lineAt(html, m.index));
+    if (rel === "stylesheet" && /^(https?:)?\/\//i.test(href) && !ALLOWED_STYLE_HREFS.includes(href)) add(`不允许引用外部样式表：${href}`, lineAt(html, m.index));
   }
 
   const scriptRe = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;

@@ -13,6 +13,7 @@ import { buildFixSystem, buildFixUser } from "./prompts/fix";
 import { buildContinueUser, buildFreeSystem, buildFreeUserNew, buildFreeUserRewrite } from "./prompts/free";
 import { buildPatchRetrySuffix, buildPatchSystem, buildPatchUser } from "./prompts/patch";
 import type { PmOutput } from "./schemas";
+import { applyStyle, type StylePick } from "./style";
 
 /** 工程师（Leo）的各个步骤（docs/07 §5–§8）。只负责调用模型与处理输出，不写库。 */
 
@@ -28,7 +29,7 @@ const LANG = (l: string) => (l === "en" ? "English" : "简体中文");
 
 // ---------- 模板配置 ----------
 
-export async function generateConfig(env: StepEnv, a: { templateId: TemplateId; pm: PmOutput; prompt: string; currentConfig: unknown | null }) {
+export async function generateConfig(env: StepEnv, a: { templateId: TemplateId; pm: PmOutput; prompt: string; currentConfig: unknown | null; style: StylePick }) {
   const meta = getTemplateMeta(a.templateId);
   const system = buildConfigSystem({ templateName: meta.name, contract: loadContract(a.templateId), example: loadExampleText(a.templateId), language: LANG(a.pm.language), themeColor: a.pm.themeColor });
   const prompt = a.currentConfig !== null ? buildConfigUserEdit({ currentConfig: a.currentConfig, changes: a.pm.changes, prompt: a.prompt }) : buildConfigUserNew({ appName: a.pm.appName, prompt: a.prompt, features: a.pm.features });
@@ -45,17 +46,24 @@ export async function generateConfig(env: StepEnv, a: { templateId: TemplateId; 
     mock: { kind: "config", templateId: a.templateId, themeColor: a.pm.themeColor, currentConfig: a.currentConfig, prompt: a.prompt },
   });
   // 新建应用不带示例数据（从空白状态开始）；修改时保留用户已有的配置
-  const config = a.currentConfig === null ? stripSeedData(a.templateId, raw) : raw;
+  // 风格由服务端写入，不依赖模型照抄
+  const config = applyStyle(a.currentConfig === null ? stripSeedData(a.templateId, raw) : raw, a.style);
   return { config, html: renderTemplate(a.templateId, config) };
+}
+
+/** 只换风格：不调用模型，把当前配置的 theme 换掉后重新渲染（"换成像素风"瞬间生效）。 */
+export function restyleConfig(templateId: TemplateId, currentConfig: unknown, style: StylePick) {
+  const config = applyStyle(currentConfig, style);
+  return { config, html: renderTemplate(templateId, config) };
 }
 
 // ---------- 自由生成（含截断续写） ----------
 
-export async function generateFreeHtml(env: StepEnv, a: { pm: PmOutput; prompt: string; currentHtml?: string }): Promise<string> {
+export async function generateFreeHtml(env: StepEnv, a: { pm: PmOutput; prompt: string; currentHtml?: string; style: StylePick }): Promise<string> {
   const system = buildFreeSystem();
   const prompt = a.currentHtml
     ? buildFreeUserRewrite({ currentHtml: a.currentHtml, changes: a.pm.changes, prompt: a.prompt })
-    : buildFreeUserNew({ appName: a.pm.appName, language: LANG(a.pm.language), themeColor: a.pm.themeColor, prompt: a.prompt, features: a.pm.features });
+    : buildFreeUserNew({ appName: a.pm.appName, language: LANG(a.pm.language), themeColor: a.pm.themeColor, prompt: a.prompt, features: a.pm.features, style: a.style });
   const common = { step: "free" as const, system, temperature: 0.5, maxOutputTokens: 16000, timeoutMs: TIMEOUTS.free, signal: env.signal, ctx: env.ctx, mock: { kind: "free" as const, prompt: a.prompt }, onDelta: env.onDelta };
   const first = await streamCode({ ...common, prompt });
   let buffer = first.text;
@@ -111,10 +119,10 @@ export interface PatchOutcome {
 }
 
 /** code_patch：补丁失败重试 1 次，仍失败则整页重写（docs/07 §7.5）。 */
-export async function patchWithRetry(env: StepEnv, a: { html: string; pm: PmOutput; prompt: string }): Promise<PatchOutcome> {
+export async function patchWithRetry(env: StepEnv, a: { html: string; pm: PmOutput; prompt: string; style: StylePick }): Promise<PatchOutcome> {
   const r = await patchTwice(env, { step: "patch", system: buildPatchSystem(), prompt: buildPatchUser({ currentHtml: a.html, changes: a.pm.changes, prompt: a.prompt }), html: a.html, mock: { kind: "patch", prompt: a.prompt } });
   if (r) return { ...r, rewritten: false };
-  const html = await generateFreeHtml(env, { pm: a.pm, prompt: a.prompt, currentHtml: a.html });
+  const html = await generateFreeHtml(env, { pm: a.pm, prompt: a.prompt, currentHtml: a.html, style: a.style });
   return { html, patches: [], rewritten: true };
 }
 

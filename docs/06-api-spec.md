@@ -170,6 +170,8 @@ type SseEvent =
   projectId: string;
   prompt: string;          // 1–2000 字
   isInitial?: boolean;     // 首页带过来的首次生成。服务端用 initial_prompt 校验，防止重复（若项目已有版本或已有 user 消息则忽略 isInitial，按普通追问处理）
+  style?: "paper" | "pixel" | "bright";   // 风格卡片的选择（首页带到工作台的 ?style=，或工作台的风格按钮）
+  styleOnly?: boolean;     // 工作台"换风格"按钮：当前是模板应用时不调用模型、不计入限流，直接换 theme 重新渲染（见 07 §2.1）
 }
 ```
 

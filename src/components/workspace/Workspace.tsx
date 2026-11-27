@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { useAutoFix } from "@/hooks/useAutoFix";
 import { useGeneration, type RunResult } from "@/hooks/useGeneration";
 import type { AgentRole } from "@/lib/agents";
+import { styleName, styleOfVersion } from "@/lib/agent/style";
 import { api, ApiError } from "@/lib/api-client";
+import { STYLE_META, isThemeStyle, type ThemeStyle } from "@/lib/templates/themes";
 import { cn } from "@/lib/utils";
 import type { ProjectDetail, QaMeta, VersionFull } from "@/types/api";
 import type { RuntimeError } from "@/types/runtime";
@@ -99,10 +101,10 @@ export function Workspace({ initial }: { initial: ProjectDetail }) {
   );
 
   const send = useCallback(
-    async (prompt: string, isInitial = false) => {
+    async (prompt: string, isInitial = false, extra: { style?: ThemeStyle; styleOnly?: boolean } = {}) => {
       setRuntimeErrors([]);
       if (!desktop) setMobileTab("chat");
-      const r = await gen.start("/api/generate", { projectId, prompt, isInitial }, { kind: "generate", prompt });
+      const r = await gen.start("/api/generate", { projectId, prompt, isInitial, ...extra }, { kind: "generate", prompt });
       handleTurn(r);
     },
     [gen, projectId, handleTurn, desktop],
@@ -121,7 +123,8 @@ export function Workspace({ initial }: { initial: ProjectDetail }) {
     if (search.get("start") === "1") {
       router.replace(`/p/${projectId}`, { scroll: false });
       if (!initial.busy && initial.messages.length === 0 && !initial.currentVersion) {
-        void send(initial.project.initialPrompt, true);
+        const style = search.get("style");
+        void send(initial.project.initialPrompt, true, isThemeStyle(style) ? { style } : {});
         return;
       }
     }
@@ -233,6 +236,10 @@ export function Workspace({ initial }: { initial: ProjectDetail }) {
     document.title = `${s.project.title} · Atoms Demo`;
   }, [s.project.title]);
 
+  // 风格切换：模板应用瞬间切换（不调用模型），其他应用交给团队按新风格改样式
+  const currentStyle = s.currentVersion ? styleOfVersion(s.currentVersion.config, s.currentVersion.plan) : null;
+  const restyle = (style: ThemeStyle) => void send(`整体风格换成${STYLE_META[style].name}`, false, { style, styleOnly: true });
+
   const lastUserPrompt = [...s.messages].reverse().find((m) => m.role === "user")?.content ?? s.project.initialPrompt;
   const retry = () => void send(s.lastPrompt ?? lastUserPrompt);
 
@@ -284,7 +291,9 @@ export function Workspace({ initial }: { initial: ProjectDetail }) {
   const chat = (
     <div className="flex h-full min-h-0 flex-col bg-[var(--bg)]">
       <ChatPanel messages={s.messages} versions={s.versions} currentVersionId={s.currentVersion?.id ?? null} viewingId={s.viewing?.id ?? null} busy={busy} onSelectVersion={(id) => void selectVersion(id)} onRetry={retry} />
-      <Composer busy={busy} notice={s.notice} onSend={(t) => void send(t)} onStop={stop} showRegenerate={noVersionYet && !lastIsError && s.messages.length > 0} onRegenerate={retry} />
+      <Composer busy={busy} notice={s.notice} onSend={(t) => void send(t)} onStop={stop} showRegenerate={noVersionYet && !lastIsError && s.messages.length > 0} onRegenerate={retry}
+        styleBar={s.currentVersion && !s.viewing ? { current: currentStyle?.custom ? null : (currentStyle?.style ?? null), customName: currentStyle?.custom ? styleName(currentStyle) : null, onPick: restyle } : null}
+      />
     </div>
   );
 

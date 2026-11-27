@@ -1,5 +1,6 @@
 import { z } from "zod";
 import type { TemplateId } from "./registry";
+import { CustomThemeSchema, DEFAULT_STYLE, THEME_STYLES, resolveTheme } from "./themes";
 
 /**
  * 每个模板 APP_CONFIG 的 zod schema，与 templates/<id>/contract.ts.txt（docs/08 §4）的限制一一对应。
@@ -27,7 +28,21 @@ const baseShape = {
   subtitle: optStr(60),
   emoji,
   locale: z.enum(["zh-CN", "en"]),
-  theme: z.object({ primary: ThemeColor, mode: z.enum(["light", "dark"]).default("light") }),
+  theme: z
+    .object({
+      primary: ThemeColor,
+      mode: z.enum(["light", "dark"]).default("light"),
+      // 风格主题（docs/08 §2.3）；缺省为暖纸墨色。非法值回退到默认，而不是让整份配置失败
+      style: z.enum(THEME_STYLES).default(DEFAULT_STYLE).catch(DEFAULT_STYLE),
+      // 自定义风格的颜色变量；不合法时丢弃，回退到 style
+      custom: CustomThemeSchema.optional().catch(undefined),
+    })
+    .transform((t) => {
+      if (!t.custom) return t;
+      // 自定义颜色决定明暗与结构基底，保证模板的 dark 变体和颜色一致
+      const r = resolveTheme(t);
+      return { ...t, style: r.style, mode: r.mode };
+    }),
 };
 
 export const FIELD_TYPES = ["text", "textarea", "number", "date", "select", "checkbox", "email", "tel", "url", "rating"] as const;

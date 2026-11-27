@@ -1,3 +1,6 @@
+import type { StylePick } from "@/lib/agent/style";
+import { PIXEL_FONT_CSS } from "@/lib/vendor";
+
 /** 自由生成提示词中的设计规范与组件片段，原文见 docs/08 §2。 */
 export const DESIGN_SPEC = `- 整体风格：简洁现代，浅色背景 bg-slate-50，内容放在白色卡片 bg-white 中，卡片 rounded-2xl border border-slate-200 shadow-sm p-5 或 p-6。
 - 主色：用指定主色色系。主按钮 bg-{c}-600 hover:bg-{c}-700 text-white；选中态和标签 bg-{c}-50 text-{c}-700；强调文字 text-{c}-600。其余用 slate 灰阶。
@@ -39,3 +42,30 @@ function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t
 function load(key,fallback){try{const v=localStorage.getItem(key);return v?JSON.parse(v):fallback;}catch(e){return fallback;}}
 function save(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(e){}}
 </script>`;
+
+/**
+ * 自由生成时的风格说明（docs/08 §2.3），拼在用户提示词里，覆盖上面设计规范中与之冲突的部分。
+ * 和模板主题用同一套颜色与形状，让自由生成的应用和模板应用看起来是一个系列。
+ */
+export function styleSpec(pick: StylePick): string {
+  const font = pick.custom?.font;
+  const pixelFont = `像素字体：在 <head> 里加 <link rel="stylesheet" href="${PIXEL_FONT_CSS}">（这是唯一允许的外部样式表），body 设置 font-family: "Fusion Pixel 12px Proportional Simplified Chinese", monospace；正文 12px、小标题 18px、大标题 24px（12 的整数倍或 1.5 倍最清晰），不要用加粗。`;
+  if (pick.custom) {
+    const c = pick.custom;
+    const shape = { paper: "圆角 rounded-2xl、柔和阴影", pixel: "无圆角（rounded-none）、2px 实线描边、4px 4px 0 的硬投影、按钮按下时位移 2px", bright: "大圆角 rounded-3xl、按钮用 rounded-full、卡片无边框只用柔和大阴影" }[c.base];
+    const fontLine = font === "pixel" ? pixelFont : font === "serif" ? "标题用衬线字体 Georgia, \"Songti SC\", serif。" : font === "mono" ? "字体用等宽 ui-monospace, Menlo, monospace。" : "字体用系统无衬线字体。";
+    return `- 风格「${c.name}」：页面背景 ${c.bg}，卡片背景 ${c.surface}，主要文字 ${c.text}${c.accent ? `，强调色（主按钮、选中态、进度条）${c.accent}` : ""}。用 Tailwind 任意值写颜色，例如 bg-[${c.bg}]，次要文字用文字色加透明度（如 text-[${c.text}]/60）。
+- 形状：${shape}。
+- ${fontLine}`;
+  }
+  if (pick.style === "pixel")
+    return `- 像素风：背景 #eef1f6 上加 24px 的浅色网格线（background-image 两条 linear-gradient），卡片白色、无圆角、2px 实线深色描边（#181c28）、4px 4px 0 的硬投影；按钮同样描边加 3px 硬投影，按下时 translate(2px,2px) 并缩小投影；标签、进度条也都是直角。
+- ${pixelFont}
+- 动效用 steps() 分步过渡，尊重 prefers-reduced-motion。`;
+  if (pick.style === "bright")
+    return `- 明亮卡片：背景 #f5f7fb，加两团主色浅色径向渐变光晕（radial-gradient，透明度低）；内容放在白色卡片里，卡片 rounded-3xl、无边框、阴影 0 10px 30px -12px rgb(15 23 42/.16)。
+- 主按钮 rounded-full，主色 500→700 的线性渐变背景，带同色柔和投影；分段切换和标签也用 rounded-full。
+- 字体用系统无衬线，标题 font-bold tracking-tight；灰阶用 Tailwind 原生 slate。`;
+  return `- 暖纸墨色：背景 #f6f3ec（暖白纸张），卡片 #fffdf9、rounded-2xl、1px 暖灰描边 #e4ded2、柔和阴影；文字用暖墨色 #1f1c17 / #5f584c / #7b7364，不要用冷灰。
+- 标题用衬线字体 Georgia, "Songti SC", serif，正文用系统无衬线字体。`;
+}

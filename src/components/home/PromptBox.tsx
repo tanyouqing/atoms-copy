@@ -6,6 +6,7 @@ import { AgentAvatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PROMPT_MAX } from "@/lib/examples";
 import { cn } from "@/lib/utils";
+import { StylePicker, useRememberedStyle } from "@/components/style/StylePicker";
 import { FILL_EVENT } from "./prompt-bus";
 import { useCreateProject } from "./useCreateProject";
 
@@ -18,6 +19,7 @@ export function PromptBox() {
   const ref = useRef<HTMLTextAreaElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
   const { create, pending } = useCreateProject();
+  const [style, setStyle] = useRememberedStyle();
   const tooLong = value.length > PROMPT_MAX;
   const canSubmit = value.trim().length > 0 && !tooLong && !pending;
 
@@ -50,7 +52,20 @@ export function PromptBox() {
     return () => window.removeEventListener(FILL_EVENT, on);
   }, []);
 
-  const submit = () => canSubmit && void create(value.trim());
+  const submit = () => canSubmit && void create(value.trim(), style);
+
+  // "其他风格"：把"整体风格："接在需求后面，光标放到末尾让用户直接写
+  const addCustomStyle = () => {
+    const base = value.trimEnd();
+    const next = /整体风格：$/.test(base) ? base : `${base}${base ? "，" : ""}整体风格：`;
+    setValue(next);
+    requestAnimationFrame(() => {
+      const el = ref.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(next.length, next.length);
+    });
+  };
 
   return (
     <div className="mt-8" ref={boxRef}>
@@ -101,6 +116,7 @@ export function PromptBox() {
           </Button>
         </div>
       </div>
+      <StylePicker value={style} onChange={setStyle} onCustom={addCustomStyle} disabled={pending} />
     </div>
   );
 }

@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { TEMPLATE_IDS } from "@/lib/templates/registry";
 import { THEME_COLORS } from "@/lib/templates/schemas";
+import { CustomThemeSchema, THEME_STYLES } from "@/lib/templates/themes";
+
+export const PM_STYLES = [...THEME_STYLES, "custom"] as const;
 
 /** 产品经理输出（docs/07 §3.1）。 */
 export const INTENTS = ["new_app", "config_edit", "code_patch", "regenerate"] as const;
@@ -18,6 +21,11 @@ export const PmOutputSchema = z.object({
   unsupported: z.array(z.string().max(60)).max(8).default([]),
   language: z.enum(["zh-CN", "en"]),
   themeColor: z.enum(THEME_COLORS),
+  // 风格主题（docs/07 §3.1）。都是可选的：模型漏写或写错时由服务端按"用户选择 → 当前风格 → 默认"补齐
+  style: z.enum(PM_STYLES).optional().catch(undefined),
+  customTheme: CustomThemeSchema.optional().catch(undefined),
+  // 这次修改只换风格（不改内容），模板应用可以直接换主题、不必重新生成配置
+  styleOnly: z.boolean().optional().catch(undefined),
 });
 export type PmOutput = z.infer<typeof PmOutputSchema>;
 
