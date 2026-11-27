@@ -130,7 +130,7 @@ Docker：`mkdir -p data && sudo chown 1001:1001 data && docker compose up -d --b
 - **自动修复轮次中补丁应用失败**不插入系统错误消息（前端会继续下一轮或回退），手动修复失败才提示。
 - **停止**：前端断开 SSE，服务端把运行中的卡片标记为"已停止"并写系统消息；前端随后拉取一次项目详情与服务端对齐。
 - **UI 组件**：构建环境无法访问 shadcn 组件仓库，`src/components/ui/` 下按 shadcn 的样式手写了 Button、Dialog、Menu、Switch 等少量组件，没有引入 Radix；Toast 用 `sonner`。
-- **视觉风格**：主站改用暖白纸面 + 墨色 + 朱红点缀，角色头像为内联 SVG 插画，取代原规范的 indigo 主色和字母头像，避免常见 AI 产品的紫色渐变外观；仍不加载任何外部字体或 CDN 资源。生成出来的应用的设计规范（docs/08）不变。见 docs/02 §2。
+- **视觉风格**：首屏和模板区为深色科技风（网格、彩色光晕、粒子连线画布、流动渐变描边、终端元素），内容区明亮中性色 + 橙红点缀；角色头像为内联 SVG 插画，取代原规范的 indigo 主色和字母头像，避开常见 AI 产品的紫色渐变外观；所有动效在"减弱动态效果"下关闭，仍不加载任何外部字体或 CDN 资源。生成出来的应用的设计规范（docs/08）不变。见 docs/02 §2。
 - **代码 Tab 在手机上隐藏**（docs/02 §5.2），手机只保留预览。
 - **下载文件名**由 `Content-Disposition` 决定（`<标题>-v<seq>.html`，同时给出 ASCII 回退名）；E2E 中无头 Chromium 的 `suggestedFilename` 取 URL 末段，所以用例直接校验响应头。
 - **DeepSeek 的缓存命中 token** 字段（`prompt_cache_hit_tokens`）不在 OpenAI 兼容格式里，`llm_calls.cached_input_tokens` 可能为空，费用估算按未命中计，偏保守。

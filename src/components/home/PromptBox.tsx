@@ -56,8 +56,8 @@ export function PromptBox() {
     <div className="mt-8" ref={boxRef}>
       <div
         className={cn(
-          "rounded-2xl border bg-[var(--panel)] p-3 shadow-[0_1px_0_rgba(31,28,23,0.04),0_12px_32px_-18px_rgba(31,28,23,0.35)] transition-[border-color,box-shadow] duration-200 focus-within:border-zinc-800",
-          flash ? "border-[var(--brand)] ring-4 ring-[var(--brand-soft)]" : "border-[var(--border)]",
+          "flow-border rounded-2xl bg-[#10141b]/90 p-3 shadow-[0_20px_60px_-20px_rgba(255,90,31,0.35)] backdrop-blur transition-shadow duration-200 focus-within:shadow-[0_20px_70px_-15px_rgba(255,90,31,0.55)]",
+          flash && "ring-4 ring-[var(--brand)]/40",
         )}
       >
         <textarea
@@ -73,16 +73,16 @@ export function PromptBox() {
           rows={3}
           aria-label="描述你想要的应用"
           placeholder={`比如：${PLACEHOLDERS[hint]}`}
-          className="w-full resize-none bg-transparent px-1 text-[15px] leading-6 outline-none placeholder:text-zinc-400"
+          className="w-full resize-none bg-transparent px-1 text-[15px] leading-6 text-zinc-100 caret-[var(--brand)] outline-none placeholder:text-zinc-500"
         />
-        <div className="flex items-center justify-between gap-2 border-t border-dashed border-[var(--border)] pt-2.5">
+        <div className="flex items-center justify-between gap-2 border-t border-white/10 pt-2.5">
           <div className="flex min-w-0 items-center gap-2">
             <span className="flex -space-x-1.5">
               {(["pm", "engineer", "qa"] as const).map((r) => (
-                <AgentAvatar key={r} role={r} className="h-6 w-6 ring-2 ring-[var(--panel)]" active={pending} />
+                <AgentAvatar key={r} role={r} className="h-6 w-6 ring-2 ring-[#10141b]" active={pending} />
               ))}
             </span>
-            <span className={cn("truncate text-xs", tooLong ? "text-[var(--danger)]" : "text-zinc-500")}>
+            <span className={cn("truncate text-xs", tooLong ? "text-[#ff8a7a]" : "text-zinc-400")}>
               {tooLong ? (
                 "需求描述请控制在 2000 字以内"
               ) : pending ? (
@@ -94,7 +94,7 @@ export function PromptBox() {
               )}
             </span>
           </div>
-          <Button variant="primary" disabled={!canSubmit} onClick={submit} className="h-9 rounded-xl px-4">
+          <Button variant="primary" disabled={!canSubmit} onClick={submit} className="h-9 rounded-xl bg-gradient-to-r from-[#ff6a2b] to-[#ff3d3d] px-4 shadow-[0_8px_24px_-8px_rgba(255,90,31,0.8)] hover:from-[#ff7a40] hover:to-[#ff5050] disabled:from-zinc-700 disabled:to-zinc-700 disabled:text-zinc-400 disabled:shadow-none">
             {pending ? <Loader2 size={16} className="animate-spin" /> : null}
             开始生成
             {!pending && <ArrowRight size={16} />}

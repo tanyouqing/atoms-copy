@@ -9,7 +9,7 @@ import { api, ApiError } from "@/lib/api-client";
 import { copyText } from "@/lib/clipboard";
 
 /** 恢复码菜单（E6，docs/02 §4.3）。 */
-export function RecoveryMenu() {
+export function RecoveryMenu({ dark }: { dark?: boolean } = {}) {
   const [code, setCode] = useState<string | null>(null);
   const [other, setOther] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,6 +38,7 @@ export function RecoveryMenu() {
       trigger={(open, toggle) => (
         <Button
           variant="ghost"
+          className={dark ? "text-zinc-300! hover:bg-white/10! hover:text-white!" : undefined}
           size="sm"
           aria-expanded={open}
           onClick={() => {

@@ -102,7 +102,8 @@ export function TopBar(props: {
 }) {
   const [confirm, setConfirm] = useState(false);
   return (
-    <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-[var(--border)] bg-[var(--panel)] px-2 sm:px-3">
+    <header className="relative flex h-14 shrink-0 items-center gap-1.5 border-b border-[var(--border)] bg-[var(--panel)] px-2 sm:px-3">
+      <span aria-hidden className="pointer-events-none absolute inset-x-0 -bottom-px h-0.5 bg-gradient-to-r from-[#ff5a1f] via-[#f5a524] via-60% to-[#27d3c3] opacity-80" />
       <Link href="/" aria-label="返回首页" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-100">
         <ArrowLeft size={16} />
       </Link>
