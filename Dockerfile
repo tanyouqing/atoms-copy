@@ -1,10 +1,14 @@
 # ---------- deps ----------
 FROM node:22-bookworm-slim AS deps
 WORKDIR /app
-RUN apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
+# 国内服务器可在 .env 里设置 APT_MIRROR / NPM_REGISTRY 加速构建（留空则用官方源）
+ARG APT_MIRROR=""
+ARG NPM_REGISTRY=""
+RUN if [ -n "$APT_MIRROR" ]; then sed -i "s#deb.debian.org#$APT_MIRROR#g" /etc/apt/sources.list.d/debian.sources; fi \
+  && apt-get update && apt-get install -y --no-install-recommends python3 make g++ && rm -rf /var/lib/apt/lists/*
 COPY package.json package-lock.json ./
 ENV PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1
-RUN npm ci
+RUN if [ -n "$NPM_REGISTRY" ]; then npm config set registry "$NPM_REGISTRY"; fi && npm ci
 
 # ---------- build ----------
 FROM node:22-bookworm-slim AS build

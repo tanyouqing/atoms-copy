@@ -257,3 +257,4 @@ ssh user@<IP> 'cd atoms-demo && git pull && docker compose up -d --no-build'
 | `SQLITE_CANTOPEN` / 权限错误 | `data/` 目录属主需为 1001 |
 | 模型报 401 | `.env` 中 Key；修改 `.env` 后需 `docker compose up -d`（重建容器） |
 | 预览样式丢失 | `public/vendor/` 文件是否存在；`vendor.ts` 中 CDN 地址是否与模板一致 |
+| 构建卡在 `apt-get update` 或 `npm ci` 很久（国内服务器） | 在 `.env` 里设置 `APT_MIRROR=mirrors.aliyun.com`、`NPM_REGISTRY=https://registry.npmmirror.com`，再 `docker compose up -d --build`。Docker Hub 拉镜像慢时另配 Docker 镜像加速 |
