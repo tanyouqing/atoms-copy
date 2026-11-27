@@ -197,11 +197,11 @@ type SseEvent =
 }
 ```
 
-流程：校验 → 限流（`kind=fix`）→ 加锁 → 开流（`turn` 事件，`userMessage` 在非手动修复时为 null）→ 把该版本对应的 qa 消息（`version_id = versionId` 且 role=qa）更新为 status=done、content "发现 N 个问题，正在修复（第 k/2 轮）"、meta `{phase:"runtime", errors, round, outcome:"fixing"}`，同时把版本 status 置为 `error` → 插入 engineer 消息（kind `engineer_patch`，"正在修复问题…"）→ 修复（见 07 §8）→ 静态检查（不通过则本轮失败）→ 写入版本（`source=fix`，label "修复：<原 label>"，config_json = null）→ `version` → 为新版本插入 qa running 消息"正在检查运行情况…" → `done`（`fixRoundsUsed = round`）。
+流程：校验 → 限流（`kind=fix`）→ 加锁 → 开流（`turn` 事件，`userMessage` 在非手动修复时为 null）→ 把该版本对应的 qa 消息（`version_id = versionId` 且 role=qa）更新为 status=done、content "发现 N 个问题，正在修复（第 k/4 轮）"、meta `{phase:"runtime", errors, round, outcome:"fixing"}`，同时把版本 status 置为 `error` → 插入 engineer 消息（kind `engineer_patch`，"正在修复问题…"）→ 修复（见 07 §8）→ 静态检查（不通过则本轮失败）→ 写入版本（`source=fix`，label "修复：<原 label>"，config_json = null）→ `version` → 为新版本插入 qa running 消息"正在检查运行情况…" → `done`（`fixRoundsUsed = round`）。
 
 （`turn` 事件类型中 `userMessage` 因此为 `MessageDTO | null`。）
 
-手动修复（`manual=true`）：新建一个 turn，先插入一条 user 消息"请修复预览中的报错"，其余相同，预算重新计 2 轮。
+手动修复（`manual=true`）：新建一个 turn，先插入一条 user 消息"请修复预览中的报错"，其余相同，预算重新计 4 轮。
 
 ## 6. 限流规则（`src/lib/rate-limit.ts`）
 

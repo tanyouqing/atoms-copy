@@ -12,6 +12,7 @@ import type { ThemeStyle } from "@/lib/templates/themes";
 import { styleSpec } from "./design-spec";
 import { TIMEOUTS, fixOnce, generateConfig, generateFreeHtml, patchWithRetry, restyleConfig, type StepEnv } from "./engineer";
 import { normalizeIntent, templateRejection } from "./intent";
+import { FIX_BUDGET } from "@/lib/qa-limits";
 import { fmtK, type Messenger } from "./messages";
 import { buildPmSystem, buildPmUser } from "./prompts/pm";
 import { applyQaResult } from "./qa-result";
@@ -21,7 +22,7 @@ import { decideStyle, sameStyle, styleName, styleOfVersion, type StylePick } fro
 
 /** 服务端 turn 编排（docs/07 §10）。所有步骤写 messages 表并发 SSE，刷新后 UI 可原样恢复。 */
 
-export const FIX_BUDGET = 2;
+export { FIX_BUDGET };
 
 export interface TurnResult {
   versionId: string | null;
@@ -112,7 +113,7 @@ export function deliverVersion(d: DeliverInput, emit: Emit, msg: Messenger): Tur
   return { versionId: null, fixRoundsUsed: d.fixRoundsUsed };
 }
 
-/** 静态检查 + 服务端修复（共享 2 轮预算）。返回最终 html、剩余错误与已用轮数。 */
+/** 静态检查 + 服务端修复（共享 FIX_BUDGET 轮预算）。返回最终 html、剩余错误与已用轮数。 */
 async function staticQa(env: StepEnv, html: string, rounds: number, msg: Messenger, emit: Emit) {
   let errors = staticCheck(html);
   let fixed = false;

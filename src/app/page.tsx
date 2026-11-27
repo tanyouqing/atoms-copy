@@ -13,7 +13,7 @@ export const dynamic = "force-dynamic";
 const STATS = [
   { k: "8", v: "个调好的模板" },
   { k: "≈30s", v: "从需求到可用" },
-  { k: "2 轮", v: "报错自动修复" },
+  { k: "4 轮", v: "报错自动修复" },
   { k: "0", v: "注册步骤" },
 ];
 

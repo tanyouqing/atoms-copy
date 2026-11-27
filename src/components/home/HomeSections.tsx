@@ -39,7 +39,7 @@ const TEAM: { role: AgentRole; does: string; says: React.ReactNode }[] = [
   },
   {
     role: "qa",
-    does: "把应用放进沙箱里跑一遍，抓到报错就带着行号退回给 Leo。最多修两轮，修不好就退回上一个能用的版本。",
+    does: "把应用放进沙箱里跑一遍，抓到报错就带着行号退回给 Leo。最多修四轮，修不好就退回上一个能用的版本。",
     says: "第 42 行读到了 undefined，Leo 麻烦看一下。",
   },
 ];
@@ -101,7 +101,7 @@ function FixLog() {
         <span className="text-[#ff7a5c]">✕</span> L42 TypeError: items is undefined
       </div>
       <div>
-        <span className="text-[#7cb3ff]">→</span> Leo 修复中（第 1/2 轮）
+        <span className="text-[#7cb3ff]">→</span> Leo 修复中（第 1/4 轮）
       </div>
       <div>
         <span className="text-[#5ee08f]">✓</span> 重新运行，0 个报错
@@ -134,7 +134,7 @@ const DETAILS = [
   {
     icon: Wrench,
     title: "坏了会自己修",
-    desc: "预览里一出报错，Iris 就把错误和行号交给 Leo。两轮修不好，自动退回上一个能用的版本，不会留给你一个白屏。",
+    desc: "预览里一出报错，Iris 就把错误和行号交给 Leo。四轮修不好，自动退回上一个能用的版本，不会留给你一个白屏。",
     extra: <FixLog />,
     wide: true,
   },

@@ -5,6 +5,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { AgentAvatar } from "@/components/ui/avatar";
 import { useMounted } from "@/hooks/useMounted";
 import { AGENTS, type AgentRole } from "@/lib/agents";
+import { FIX_BUDGET } from "@/lib/qa-limits";
 import { TEMPLATES } from "@/lib/templates/registry";
 import { STYLE_META, isThemeStyle } from "@/lib/templates/themes";
 import { cn, fmtDuration } from "@/lib/utils";
@@ -126,7 +127,7 @@ function QaBody({ m }: { m: MessageDTO }) {
           {errors.length > 3 && <li className="text-[11px] text-zinc-400">还有 {errors.length - 3} 条…</li>}
         </ul>
       )}
-      {(meta.round ?? 0) > 0 && <p className="mt-1 text-xs text-[var(--muted)]">已修复 {meta.round}/2 轮</p>}
+      {(meta.round ?? 0) > 0 && <p className="mt-1 text-xs text-[var(--muted)]">已修复 {meta.round}/{FIX_BUDGET} 轮</p>}
     </>
   );
 }

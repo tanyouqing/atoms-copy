@@ -531,7 +531,7 @@ export async function runTurn(ctx: TurnCtx, emit: Emit) {
   // 3. 静态检查（Iris）
   let errors = staticCheck(html);
   while (errors.length && fixRoundsUsed < 2) {
-    const qa = msg.start("qa", "qa_report", `发现 ${errors.length} 个问题，正在修复（第 ${fixRoundsUsed + 1}/2 轮）`,
+    const qa = msg.start("qa", "qa_report", `发现 ${errors.length} 个问题，正在修复（第 ${fixRoundsUsed + 1}/${FIX_BUDGET} 轮）`,
                          { phase: "static", errors, round: fixRoundsUsed + 1, outcome: "fixing" });
     html = await fixOnce(html, errors);      // 失败抛错 → 本轮记为已用并跳出
     fixRoundsUsed++; msg.done(qa);
@@ -559,7 +559,7 @@ export async function runTurn(ctx: TurnCtx, emit: Emit) {
 状态：`{ turnId, versionId, roundsUsed, phase: "idle" | "checking" | "fixing" | "done" }`。
 
 1. 收到 `done` 事件且 `versionId` 非空：`roundsUsed = fixRoundsUsed`，`phase = "checking"`，预览切换到新版本。
-2. 等待 iframe 的 `atoms:ready` 消息（[09-preview-runtime.md](09-preview-runtime.md) §4），最长 8 秒。超时视为一条错误 `{type:"error", message:"页面加载超时（8 秒内没有完成渲染）"}`。
+2. 等待 iframe 的 `atoms:ready` 消息（[09-preview-runtime.md](09-preview-runtime.md) §4），最长 25 秒。超时视为一条错误 `{type:"error", message:"页面加载超时（25 秒内没有完成渲染）"}`。
 3. 合并 ready 中带的 `errors` 和此前收到的 `atoms:error`，过滤噪声（message 包含 `ResizeObserver loop`、`Script error.` 且无行号的条目丢弃）。
 4. ready 中 `blank === true`（页面几乎为空）也算一条错误 "页面渲染后内容为空"。
 5. 无错误 → `POST /api/versions/:id/status { status: "ok", qa: { turnId, outcome: "pass", round: roundsUsed } }` → `phase="done"`。
