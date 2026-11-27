@@ -17,7 +17,8 @@
     "test:e2e": "playwright test --trace off",
     "db:generate": "drizzle-kit generate",
     "usage": "tsx scripts/usage-report.ts",
-    "smoke:llm": "tsx --conditions=react-server scripts/smoke-llm.ts"
+    "smoke:llm": "tsx --conditions=react-server scripts/smoke-llm.ts",
+    "postbuild": "node scripts/copy-standalone.mjs"
   },
   "dependencies": {
     "@ai-sdk/openai-compatible": "^1.0.65",

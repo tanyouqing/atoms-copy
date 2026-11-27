@@ -1,5 +1,44 @@
 @import "tailwindcss";
 
+:root {
+  --brand: #4f46e5;
+  --brand-soft: #eef2ff;
+  --bg: #fafafa;
+  --panel: #ffffff;
+  --border: #e4e4e7;
+  --text: #18181b;
+  --muted: #71717a;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--text);
+}
+
 body {
   font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-size: 14px;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+@keyframes atoms-bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+.atoms-bounce {
+  animation: atoms-bounce 1.2s ease-in-out infinite;
 }
