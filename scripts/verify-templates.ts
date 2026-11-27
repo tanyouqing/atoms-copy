@@ -97,6 +97,12 @@ const INTERACTIONS: Record<string, (ctx: Ctx) => Promise<string>> = {
   todo: async ({ app }) => {
     await app.locator("#new-title").fill("自检条目 42");
     await app.locator("#new-title").press("Enter");
+    // 打卡详情：5 周热力图里补打昨天的卡
+    await app.locator("[data-act=habit]").last().click();
+    const cells = app.locator("#modal [data-act=checkin]:not([disabled])");
+    await cells.nth((await cells.count()) - 2).click();
+    if (!(await app.locator("#modal").innerText()).includes("1 次")) throw new Error("todo: 热力图补打卡失败");
+    await app.locator("#modal [data-act=modal-close]").last().click();
     return "自检条目 42";
   },
   ledger: async ({ app }) => {
@@ -134,6 +140,7 @@ const INTERACTIONS: Record<string, (ctx: Ctx) => Promise<string>> = {
   landing: async ({ app }) => {
     await app.locator("#email").fill("selfcheck@example.com");
     await app.locator("#email").press("Enter");
+    await app.locator("[data-act=again]").click();
     await app.locator("#email").fill("SelfCheck@example.com");
     await app.locator("#email").press("Enter");
     const text = await app.locator("body").innerText();
@@ -145,6 +152,16 @@ const INTERACTIONS: Record<string, (ctx: Ctx) => Promise<string>> = {
     const first = await app.locator("tbody tr").first().innerText();
     if (!first.includes("国贸店")) throw new Error("dashboard: 表格排序失败");
     await app.locator("[data-act=edit-data]").click();
+    // 表格编辑器：改一个指标值，非法输入要报错
+    await app.locator("[data-act=g-add]").first().click();
+    await app.locator("[data-input=g][data-m='0'][data-f=value]").fill("abc");
+    await app.locator("#modal button[type=submit]").click();
+    if (!(await app.locator("#grid-err").isVisible())) throw new Error("dashboard: 表格编辑器非法数值未报错");
+    await app.locator("[data-input=g][data-m='0'][data-f=value]").fill("123456");
+    await app.locator("#modal button[type=submit]").click();
+    if (!(await app.locator("body").innerText()).includes("123,456")) throw new Error("dashboard: 表格编辑器保存失败");
+    await app.locator("[data-act=edit-data]").click();
+    await app.locator("[data-act=edit-json]").click();
     const text = await app.locator("#json").inputValue();
     await app.locator("#json").fill("{ bad json");
     await app.locator("#modal button[type=submit]").click();
@@ -181,14 +198,46 @@ const INTERACTIONS: Record<string, (ctx: Ctx) => Promise<string>> = {
     if ((await app.locator("[data-act=open]").count()) !== 1) throw new Error("crud: 搜索结果不对");
     await app.locator("#q").fill("");
     await app.locator("[data-act=view][data-v=table]").click();
-    await app.locator("#filter").selectOption("读完");
+    await app.locator("[data-act=chip][data-v=读完]").click();
     if ((await app.locator("tbody tr").count()) !== 3) throw new Error("crud: 筛选结果不对");
-    await app.locator("#filter").selectOption("");
+    await app.locator("[data-act=chip][data-v='']").click();
     // 导入 CSV：两条有效、一条缺必填
     await app.locator("#csv-file").setInputFiles({ name: "b.csv", mimeType: "text/csv", buffer: Buffer.from("书名,作者,阅读状态,评分\n导入之书,某人,想读,★★★\n\"带,逗号\",某人,读完,4\n,缺书名,读完,\n") });
     const text = await app.locator("body").innerText();
     if (!text.includes("导入之书") || !text.includes("带,逗号")) throw new Error("crud: CSV 导入失败");
     return "自检之书";
+  },
+  "form-stepped": async ({ app }) => {
+    // 一题一页：必填拦截 → 逐题前进 → 上一题保留答案 → 提交 → 统计页
+    await app.locator("#main-form button[type=submit]").click();
+    if (!(await app.locator("[data-err=score]").isVisible())) throw new Error("form-stepped: 必填未拦截");
+    await app.locator("[data-act=rate][data-v='4']").click();
+    await app.locator("#main-form button[type=submit]").click();
+    await app.locator("#f-pace").selectOption("刚好");
+    await app.locator("[data-act=step-back]").click();
+    if ((await app.locator("#f-score").inputValue()) !== "4") throw new Error("form-stepped: 上一题答案丢失");
+    await app.locator("#main-form button[type=submit]").click();
+    if ((await app.locator("#f-pace").inputValue()) !== "刚好") throw new Error("form-stepped: 草稿未保留");
+    for (let i = 0; i < 4; i++) await app.locator("#main-form button[type=submit]").click();
+    await app.locator("h2", { hasText: "感谢你的反馈" }).waitFor({ timeout: 3000 });
+    await app.locator("[data-act=view][data-v=admin]").click();
+    await app.locator("[data-act=tab][data-v=stats]").click();
+    const text = await app.locator("body").innerText();
+    if (!text.includes("4 人作答") || !text.includes("最近 7 天提交")) throw new Error("form-stepped: 统计页不对");
+    return "4 人作答";
+  },
+  "todo-task-en-dark": async ({ app }) => {
+    // 搜索、详情编辑、撤销删除
+    await app.locator("#q").fill("dentist");
+    if ((await app.locator("[data-act=toggle]").count()) !== 1) throw new Error("todo: 搜索结果不对");
+    await app.locator("[data-act=open]").first().click();
+    await app.locator("#d-note").fill("Bring insurance card");
+    await app.locator("#modal button[type=submit]").click();
+    await app.locator("#q").fill("");
+    await app.locator("[data-act=del]").first().click();
+    await app.locator("#toast-undo").click();
+    if ((await app.locator("[data-act=toggle]").count()) !== 4) throw new Error("todo: 撤销删除失败");
+    return "Bring insurance card";
   },
   "game-guess-en-dark": async ({ app }) => {
     await app.locator("[data-act=start]").click();

@@ -7,8 +7,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
 <style type="text/tailwindcss">
 @custom-variant dark (&:where(.dark, .dark *));
-@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
-@utility surface { @apply bg-white dark:bg-slate-900; }
+@theme {
+  --color-slate-50: #f6f3ec; --color-slate-100: #efeae0; --color-slate-200: #e4ded2; --color-slate-300: #d0c8b8; --color-slate-400: #a59c8a; --color-slate-500: #7b7364;
+  --color-slate-600: #5f584c; --color-slate-700: #474137; --color-slate-800: #2f2b24; --color-slate-900: #1f1c17; --color-slate-950: #15130f;
+  --font-display: Georgia, "Times New Roman", "Songti SC", "STSong", serif;
+}
+@utility kbd { @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-b-2 border-slate-300 bg-slate-50 px-1 font-mono text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400; }
+@utility num { @apply font-display tabular-nums; }
+@utility rise { animation: rise .28s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .rise { animation: none; } }
+@utility card { @apply rounded-2xl border border-slate-200 bg-[#fffdf9] p-5 shadow-[0_1px_0_rgb(31_28_23/0.03),0_10px_30px_-20px_rgb(31_28_23/0.35)] md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-[#fffdf9] dark:bg-slate-900; }
 @utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
 @utility line { @apply border-slate-200 dark:border-slate-800; }
 @utility t-strong { @apply text-slate-900 dark:text-white; }
@@ -36,8 +46,8 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
 <div id="app" class="mx-auto max-w-6xl space-y-6 px-4 py-8 md:px-8"></div>
-<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
-<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#fffdf9] p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-slate-100 dark:text-slate-900"><span id="toast-msg"></span><button type="button" id="toast-undo" class="hidden shrink-0 cursor-pointer font-semibold text-[var(--p-200)] hover:underline dark:text-[var(--p-700)]"></button></div>
 <script id="app-config" type="application/json">__APP_CONFIG__</script>
 <script>
 (function () {
@@ -48,11 +58,15 @@
       add: "新增{e}", searchPh: "搜索{e}…", allFilter: "全部{f}", sortBy: "排序", table: "表格", cards: "卡片", count: "共 {n} 条", matched: "找到 {n} 条",
       editTitle: "编辑{e}", newTitle: "新增{e}", delConfirm: "确定删除「{t}」吗？此操作无法撤销。", exportCsv: "导出 CSV", importCsv: "导入 CSV", exported: "已导出 {n} 条",
       imported: "已导入 {n} 条", importSkip: "，跳过 {m} 条无效记录", importErr: "没有识别到可导入的记录，请确认第一行是表头", noMatch: "没有找到匹配的{e}", empty: "还没有{e}，点击「新增」添加第一条", newest: "最新添加",
+      statTotal: "全部{e}", statSum: "{f}合计", statAvg: "平均{f}", selected: "已选 {n} 条", bulkConfirm: "确定删除选中的 {n} 条{e}吗？", deletedN: "已删除 {n} 条", showMore: "再显示更多（还有 {n} 条）",
+      duplicate: "复制一份", copySuffix: "（副本）", createdAt: "添加于 {d}", resetView: "清除筛选", emptyCsv: "也可以用「导入 CSV」一次导入已有表格", keySearch: "搜索", keyView: "切换表格 / 卡片",
     },
     en: {
       add: "New {e}", searchPh: "Search {e}…", allFilter: "All {f}", sortBy: "Sort", table: "Table", cards: "Cards", count: "{n} records", matched: "{n} found",
       editTitle: "Edit {e}", newTitle: "New {e}", delConfirm: "Delete \"{t}\"? This cannot be undone.", exportCsv: "Export CSV", importCsv: "Import CSV", exported: "Exported {n} records",
       imported: "Imported {n} records", importSkip: ", skipped {m} invalid", importErr: "No records found. Make sure the first row is a header", noMatch: "No matching {e}", empty: "No {e} yet. Click New to add one", newest: "Newest",
+      statTotal: "All {e}", statSum: "Total {f}", statAvg: "Avg {f}", selected: "{n} selected", bulkConfirm: "Delete {n} selected {e}(s)?", deletedN: "Deleted {n}", showMore: "Show more ({n} left)",
+      duplicate: "Duplicate", copySuffix: "(copy)", createdAt: "Added {d}", resetView: "Clear filters", emptyCsv: "Or bring an existing sheet in with Import CSV", keySearch: "Search", keyView: "Toggle table / cards",
     },
   };
   const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
@@ -69,7 +83,7 @@
     orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
     rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
     violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
-    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+    slate: ["#f8fafc", "#f1f5f9", "#e4ded2", "#7b7364", "#475569", "#334155"],
   };
   const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
   const pal = (name) => PALETTE[name] || PALETTE.indigo;
@@ -78,8 +92,8 @@
   document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
   if (DARK) document.documentElement.classList.add("dark");
   const BASE_I18N = {
-    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
-    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+    "zh-CN": { undo: "撤销", undone: "已撤销", shortcuts: "键盘快捷键", confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { undo: "Undo", undone: "Undone", shortcuts: "Keyboard shortcuts", confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
   };
   const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
   const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
@@ -109,7 +123,21 @@
   const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
   const saveMeta = (m) => save(META_KEY, m);
 
-  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+  let undoFn = null;
+  const hideToast = () => { const el = $("#toast"); el.style.opacity = "0"; el.classList.add("pointer-events-none"); undoFn = null; };
+  /** 轻提示；传 onUndo 时显示「撤销」按钮，5 秒内可撤销。 */
+  const toast = (msg, onUndo) => {
+    const el = $("#toast");
+    $("#toast-msg").textContent = msg;
+    undoFn = onUndo || null;
+    $("#toast-undo").textContent = t("undo");
+    $("#toast-undo").classList.toggle("hidden", !undoFn);
+    el.classList.toggle("pointer-events-none", !undoFn);
+    el.style.opacity = "1";
+    clearTimeout(el._h);
+    el._h = setTimeout(hideToast, undoFn ? 5000 : 2000);
+  };
+  $("#toast-undo").addEventListener("click", () => { const fn = undoFn; hideToast(); if (fn) { fn(); toast(t("undone")); } });
 
   let modalClose = null;
   const openModal = (html, onClose) => {
@@ -141,6 +169,21 @@
   };
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+  /** 单键快捷键（docs/08 §5.2）：焦点在输入框或弹窗打开时不触发；按 ? 查看全部。 */
+  const KEYS = [];
+  const shortcut = (key, label, fn) => KEYS.push({ key, label, fn });
+  const showKeys = () => openModal('<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("shortcuts")) + '</div><ul class="space-y-2 text-sm t-body">' +
+    KEYS.concat([{ key: "?", label: t("shortcuts") }, { key: "Esc", label: t("close") }]).map((k) => '<li class="flex items-center justify-between gap-4"><span>' + esc(k.label) + '</span><span class="kbd">' + esc(({ " ": "Space", ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓", Enter: "Enter" })[k.key] || k.key.toUpperCase()) + "</span></li>").join("") +
+    '</ul><div class="flex justify-end"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + "</button></div></div>");
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || !$("#modal").classList.contains("hidden")) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
+    if (e.key === "?" && KEYS.length) { e.preventDefault(); showKeys(); return; }
+    const k = KEYS.find((x) => x.key === e.key);
+    if (k) { e.preventDefault(); k.fn(e); }
+  });
+  const keysHint = () => KEYS.length ? '<footer class="pt-2 text-center text-xs t-faint"><button type="button" data-act="keys" class="cursor-pointer hover:text-[var(--p-600)]"><span class="kbd">?</span> ' + esc(t("shortcuts")) + "</button></footer>" : "";
 
   /** 整体重绘时保留输入框焦点与光标位置。 */
   const keepFocus = (fn) => {
@@ -157,7 +200,7 @@
   };
 
   /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
-  const ACTIONS = { "modal-close": () => closeModal() };
+  const ACTIONS = { "modal-close": () => closeModal(), keys: () => showKeys() };
   const delegate = (type) => document.addEventListener(type, (e) => {
     const el = e.target.closest && e.target.closest("[data-" + type + "]");
     if (!el) return;
@@ -175,7 +218,7 @@
   const header = (extra) =>
     '<header class="flex flex-wrap items-start justify-between gap-4">' +
     '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
-    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    '<div class="min-w-0"><h1 class="font-display text-[1.65rem] leading-tight font-semibold tracking-tight t-strong">' + esc(CONFIG.title) + "</h1>" +
     (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
     (extra || "") + "</header>";
   const emptyState = (emoji, text, btn) =>
@@ -306,14 +349,17 @@
   const data = loadData(seed);
   const meta = loadMeta();
   const persist = () => save(KEY, data);
-  const state = { q: "", filter: "", sort: Math.min(Number(meta.sort) || 0, SORTS.length - 1), view: meta.view === "cards" || meta.view === "table" ? meta.view : CONFIG.defaultView === "cards" ? "cards" : "table" };
+  const PAGE = 30;
+  const state = { q: "", filter: "", sort: Math.min(Number(meta.sort) || 0, SORTS.length - 1), col: null, view: meta.view === "cards" || meta.view === "table" ? meta.view : CONFIG.defaultView === "cards" ? "cards" : "table", sel: new Set(), limit: PAGE };
   const find = (id) => data.items.find((r) => r.id === id);
   const titleOf = (r) => String(r.values[TITLE.key] ?? "");
+  const SUM_F = FIELDS.find((f) => f.type === "number");
+  const AVG_F = FIELDS.find((f) => f.type === "rating");
 
   const visible = () => {
     const q = state.q.trim().toLowerCase();
     let list = data.items.filter((r) => (!q || SEARCH.some((f) => String(r.values[f.key] ?? "").toLowerCase().includes(q))) && (!state.filter || r.values[FILTER.key] === state.filter));
-    const s = SORTS[state.sort];
+    const s = state.col || SORTS[state.sort];
     const f = F(s.key);
     const numeric = !f || f.type === "number" || f.type === "rating";
     const val = (r) => (s.key === "createdAt" && !f ? r.createdAt : r.values[s.key]);
@@ -337,54 +383,108 @@
     return esc(text);
   };
 
+  /** 概览：总数、按筛选字段分组计数（可点）、第一个数字字段合计、第一个评分字段均值。 */
+  const summary = (list) => {
+    if (!data.items.length) return "";
+    const fmtN = (n) => (Math.round(n * 100) / 100).toLocaleString(LOC);
+    const box = (label, value) => '<div class="min-w-[6.5rem] rounded-xl surface-2 px-3 py-2"><div class="num text-xl font-semibold t-strong">' + esc(value) + '</div><div class="truncate text-xs t-muted">' + esc(label) + "</div></div>";
+    const parts = [box(t("statTotal", { e: ENT.plural }), data.items.length)];
+    if (SUM_F) parts.push(box(t("statSum", { f: SUM_F.label }), fmtN(list.reduce((s, r) => s + (Number(r.values[SUM_F.key]) || 0), 0))));
+    if (AVG_F) { const rs = list.map((r) => Number(r.values[AVG_F.key]) || 0).filter(Boolean); parts.push(box(t("statAvg", { f: AVG_F.label }), rs.length ? (rs.reduce((s, v) => s + v, 0) / rs.length).toFixed(1) + " ★" : "—")); }
+    const chips = FILTER ? '<div class="flex flex-wrap items-center gap-1.5">' + [""].concat(FILTER.options || []).map((o) => {
+      const n = o ? data.items.filter((r) => r.values[FILTER.key] === o).length : data.items.length;
+      return '<button type="button" data-act="chip" data-v="' + esc(o) + '" class="tag cursor-pointer border transition ' + (state.filter === o ? "border-[var(--p-500)] tag-primary" : "line t-muted hover:border-slate-300") + '">' +
+        esc(o || t("allFilter", { f: FILTER.label })) + ' <span class="num opacity-70">' + n + "</span></button>";
+    }).join("") + "</div>" : "";
+    return '<div class="space-y-3"><div class="flex flex-wrap gap-2">' + parts.join("") + "</div>" + chips + "</div>";
+  };
+
   const toolbar = () =>
-    '<div class="flex flex-col gap-3 md:flex-row md:items-center"><div class="relative flex-1"><span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm t-faint">🔍</span>' +
-    '<input id="q" data-input="search" class="input pl-9" placeholder="' + esc(t("searchPh", { e: ENT.singular })) + '" value="' + esc(state.q) + '"></div>' +
-    '<div class="flex flex-wrap gap-2">' + (FILTER ? '<select id="filter" data-change="filter" class="input w-auto">' + '<option value="">' + esc(t("allFilter", { f: FILTER.label })) + "</option>" +
-      (FILTER.options || []).map((o) => '<option value="' + esc(o) + '"' + (o === state.filter ? " selected" : "") + ">" + esc(o) + "</option>").join("") + "</select>" : "") +
-    '<select id="sort" data-change="sort" class="input w-auto" aria-label="' + esc(t("sortBy")) + '">' + SORTS.map((s, i) => '<option value="' + i + '"' + (i === state.sort ? " selected" : "") + ">↕ " + esc(s.label) + "</option>").join("") + "</select>" +
+    '<div class="flex flex-col gap-3 md:flex-row md:items-center"><div class="relative flex-1"><span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm t-faint">⌕</span>' +
+    '<input id="q" data-input="search" class="input pl-8" autocomplete="off" placeholder="' + esc(t("searchPh", { e: ENT.singular })) + '" value="' + esc(state.q) + '"></div>' +
+    '<div class="flex flex-wrap gap-2">' +
+    '<select id="sort" data-change="sort" class="input w-auto" aria-label="' + esc(t("sortBy")) + '">' + (state.col ? '<option value="-1" selected>↕ ' + esc(F(state.col.key).label) + (state.col.dir === "asc" ? " ↑" : " ↓") + "</option>" : "") +
+      SORTS.map((s, i) => '<option value="' + i + '"' + (!state.col && i === state.sort ? " selected" : "") + ">↕ " + esc(s.label) + "</option>").join("") + "</select>" +
     '<div class="seg">' + [["table", "☰ " + t("table")], ["cards", "▦ " + t("cards")]].map(([v, l]) => '<button type="button" data-act="view" data-v="' + v + '" class="' + (state.view === v ? "seg-on" : "seg-btn") + '">' + esc(l) + "</button>").join("") + "</div></div></div>";
 
-  const tableView = (list) => '<div class="-mx-5 overflow-x-auto px-5 md:-mx-6 md:px-6"><table class="w-full min-w-max text-sm"><thead class="text-left text-xs t-faint"><tr>' +
-    FIELDS.map((f) => '<th class="py-2 pr-4 font-medium">' + esc(f.label) + "</th>").join("") + '<th class="py-2"></th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">' +
-    list.map((r) => '<tr data-act="open" data-id="' + r.id + '" class="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-800/50">' + FIELDS.map((f) =>
-      '<td class="max-w-64 truncate py-2.5 pr-4 ' + (f === TITLE ? "font-medium t-strong" : "t-body") + '">' + cellHtml(f, r.values[f.key]) + "</td>").join("") +
-      '<td class="py-2.5 text-right"><button type="button" data-act="del" data-id="' + r.id + '" class="icon-btn" aria-label="' + esc(t("delete")) + '">🗑</button></td></tr>').join("") + "</tbody></table></div>";
+  const bulkBar = () => !state.sel.size ? "" : '<div class="flex flex-wrap items-center gap-2 rounded-xl bg-[var(--p-50)] px-3 py-2 text-sm text-[var(--p-700)] dark:bg-[var(--p-700)]/25 dark:text-[var(--p-200)]"><span class="font-medium">' + esc(t("selected", { n: state.sel.size })) + '</span><span class="flex-1"></span>' +
+    '<button type="button" data-act="bulk-export" class="btn btn-ghost py-1">↓ ' + esc(t("exportCsv")) + '</button><button type="button" data-act="bulk-del" class="btn btn-ghost py-1 !text-rose-600">🗑 ' + esc(t("delete")) + '</button><button type="button" data-act="bulk-clear" class="btn btn-ghost py-1">' + esc(t("cancel")) + "</button></div>";
+
+  const tableView = (list) => {
+    const allOn = list.length && list.every((r) => state.sel.has(r.id));
+    const arrow = (f) => (state.col && state.col.key === f.key ? (state.col.dir === "asc" ? " ↑" : " ↓") : "");
+    return '<div class="-mx-5 overflow-x-auto px-5 md:-mx-6 md:px-6"><table class="w-full min-w-max text-sm"><thead class="text-left text-xs t-faint"><tr><th class="w-8 py-2"><input type="checkbox" data-change="sel-all" aria-label="select all" class="h-4 w-4 cursor-pointer accent-[var(--p-600)]"' + (allOn ? " checked" : "") + "></th>" +
+      FIELDS.map((f) => '<th class="py-2 pr-4 font-medium"><button type="button" data-act="col-sort" data-k="' + esc(f.key) + '" class="cursor-pointer hover:text-[var(--p-600)]">' + esc(f.label) + arrow(f) + "</button></th>").join("") + '<th class="py-2"></th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">' +
+      list.map((r) => '<tr data-act="open" data-id="' + r.id + '" class="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-800/50' + (state.sel.has(r.id) ? " bg-[var(--p-50)]/60 dark:bg-[var(--p-700)]/10" : "") + '">' +
+        '<td class="py-2.5"><input type="checkbox" data-change="sel" data-id="' + r.id + '" aria-label="select" class="h-4 w-4 cursor-pointer accent-[var(--p-600)]"' + (state.sel.has(r.id) ? " checked" : "") + "></td>" + FIELDS.map((f) =>
+        '<td class="max-w-64 truncate py-2.5 pr-4 ' + (f === TITLE ? "font-medium t-strong" : "t-body") + '">' + cellHtml(f, r.values[f.key]) + "</td>").join("") +
+        '<td class="py-2.5 text-right"><button type="button" data-act="del" data-id="' + r.id + '" class="icon-btn" aria-label="' + esc(t("delete")) + '">🗑</button></td></tr>').join("") + "</tbody></table></div>";
+  };
 
   const cardsView = (list) => '<div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">' + list.map((r) => {
     const rest = FIELDS.filter((f) => f !== TITLE && f !== SUB && !isEmpty(r.values[f.key]) && f.type !== "textarea").slice(0, 4);
-    return '<div data-act="open" data-id="' + r.id + '" class="group cursor-pointer rounded-2xl border line surface p-4 transition hover:border-[var(--p-200)] hover:shadow-md"><div class="flex items-start gap-3">' +
-      '<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--p-50)] font-bold text-[var(--p-700)] dark:bg-[var(--p-700)]/30 dark:text-[var(--p-200)]">' + esc(titleOf(r).slice(0, 1) || CONFIG.emoji) + "</div>" +
+    return '<div data-act="open" data-id="' + r.id + '" class="group rise cursor-pointer rounded-2xl border line surface p-4 transition hover:-translate-y-0.5 hover:border-[var(--p-200)] hover:shadow-md"><div class="flex items-start gap-3">' +
+      '<div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[var(--p-50)] font-display text-lg font-semibold text-[var(--p-700)] dark:bg-[var(--p-700)]/30 dark:text-[var(--p-200)]">' + esc(titleOf(r).slice(0, 1) || CONFIG.emoji) + "</div>" +
       '<div class="min-w-0 flex-1"><div class="truncate font-semibold t-strong">' + esc(titleOf(r)) + "</div>" + (SUB && !isEmpty(r.values[SUB.key]) ? '<div class="truncate text-xs t-muted">' + esc(fmtValue(SUB, r.values[SUB.key])) + "</div>" : "") + "</div>" +
       '<button type="button" data-act="del" data-id="' + r.id + '" class="icon-btn opacity-60 group-hover:opacity-100" aria-label="' + esc(t("delete")) + '">🗑</button></div>' +
       (rest.length ? '<dl class="mt-3 space-y-1 border-t line pt-3 text-xs">' + rest.map((f) => '<div class="flex gap-2"><dt class="w-20 shrink-0 truncate t-faint">' + esc(f.label) + '</dt><dd class="min-w-0 truncate t-body">' + cellHtml(f, r.values[f.key]) + "</dd></div>").join("") + "</dl>" : "") + "</div>";
   }).join("") + "</div>";
 
   const render = () => keepFocus(() => {
-    const list = visible();
+    const all = visible();
+    const list = all.slice(0, state.limit);
     const filtered = state.q || state.filter;
-    const actions = '<div class="flex flex-wrap gap-2"><button type="button" data-act="import" class="btn btn-secondary">⬆️ <span class="hidden sm:inline">' + esc(t("importCsv")) + "</span></button>" +
-      '<button type="button" data-act="export" class="btn btn-secondary">⬇️ <span class="hidden sm:inline">' + esc(t("exportCsv")) + "</span></button>" +
-      '<button type="button" data-act="new" class="btn btn-primary">➕ ' + esc(t("add", { e: ENT.singular })) + '</button><input id="csv-file" type="file" accept=".csv,text/csv" class="hidden" data-change="csv"></div>';
-    $("#app").innerHTML = header(actions) + '<section class="card min-w-0 space-y-4">' + toolbar() +
-      '<div class="text-xs t-faint">' + esc(filtered ? t("matched", { n: list.length }) + " · " + t("count", { n: data.items.length }) : t("count", { n: data.items.length })) + "</div>" +
-      (!data.items.length ? emptyState(CONFIG.emoji, t("empty", { e: ENT.singular }), '<button type="button" data-act="new" class="btn btn-primary mt-4">➕ ' + esc(t("add", { e: ENT.singular })) + "</button>")
-        : !list.length ? emptyState("🔍", t("noMatch", { e: ENT.singular })) : state.view === "cards" ? cardsView(list) : tableView(list)) + "</section>";
+    const actions = '<div class="flex flex-wrap gap-2"><button type="button" data-act="import" class="btn btn-secondary">↑ <span class="hidden sm:inline">' + esc(t("importCsv")) + "</span></button>" +
+      '<button type="button" data-act="export" class="btn btn-secondary">↓ <span class="hidden sm:inline">' + esc(t("exportCsv")) + "</span></button>" +
+      '<button type="button" data-act="new" class="btn btn-primary">＋ ' + esc(t("add", { e: ENT.singular })) + '</button><input id="csv-file" type="file" accept=".csv,text/csv" class="hidden" data-change="csv"></div>';
+    const more = all.length > list.length ? '<div class="text-center"><button type="button" data-act="more" class="btn btn-secondary">' + esc(t("showMore", { n: all.length - list.length })) + "</button></div>" : "";
+    $("#app").innerHTML = header(actions) + '<section class="card min-w-0 space-y-4">' + summary(all) + toolbar() + bulkBar() +
+      '<div class="text-xs t-faint">' + esc(filtered ? t("matched", { n: all.length }) + " · " + t("count", { n: data.items.length }) : t("count", { n: data.items.length })) + "</div>" +
+      (!data.items.length ? emptyState(CONFIG.emoji, t("empty", { e: ENT.singular }), '<button type="button" data-act="new" class="btn btn-primary mt-4">＋ ' + esc(t("add", { e: ENT.singular })) + '</button><p class="mt-3 text-xs t-faint">' + esc(t("emptyCsv")) + "</p>")
+        : !list.length ? emptyState("🔍", t("noMatch", { e: ENT.singular }), '<button type="button" data-act="reset" class="btn btn-secondary mt-4">' + esc(t("resetView")) + "</button>") : (state.view === "cards" ? cardsView(list) : tableView(list)) + more) + "</section>" + keysHint();
   });
 
-  const openEditor = (r) => {
+  /** 详情：只读查看全部字段，可编辑、复制、删除。 */
+  const openDetail = (r) => {
+    openModal('<div class="space-y-4"><div class="flex items-start gap-3"><div class="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[var(--p-50)] font-display text-xl font-semibold text-[var(--p-700)] dark:bg-[var(--p-700)]/30 dark:text-[var(--p-200)]">' + esc(titleOf(r).slice(0, 1) || CONFIG.emoji) + "</div>" +
+      '<div class="min-w-0"><h3 class="text-lg font-semibold break-words t-strong">' + esc(titleOf(r)) + '</h3><div class="text-xs t-faint">' + esc(t("createdAt", { d: fmtDate(new Date(r.createdAt)) })) + "</div></div></div>" +
+      '<dl class="divide-y divide-slate-100 text-sm dark:divide-slate-800">' + FIELDS.filter((f) => f !== TITLE).map((f) => '<div class="grid grid-cols-3 gap-3 py-2"><dt class="t-faint">' + esc(f.label) + '</dt><dd class="col-span-2 break-words whitespace-pre-line t-body">' + cellHtml(f, r.values[f.key]) + "</dd></div>").join("") + "</dl>" +
+      '<div class="flex flex-wrap items-center gap-2"><button type="button" data-act="del" data-id="' + r.id + '" class="btn btn-ghost !text-rose-600">🗑 ' + esc(t("delete")) + '</button><button type="button" data-act="dup" data-id="' + r.id + '" class="btn btn-ghost">⧉ ' + esc(t("duplicate")) + "</button>" +
+      '<div class="ml-auto flex gap-2"><button type="button" data-act="modal-close" class="btn btn-secondary">' + esc(t("close")) + '</button><button type="button" data-act="edit" data-id="' + r.id + '" class="btn btn-primary">✎ ' + esc(t("edit")) + "</button></div></div></div>");
+  };
+  const openEditor = (r, init) => {
     openModal('<form data-submit="save" data-id="' + (r ? r.id : "") + '" class="space-y-4" novalidate><h3 class="text-lg font-semibold t-strong">' + esc(t(r ? "editTitle" : "newTitle", { e: ENT.singular })) + "</h3>" +
-      FIELDS.map((f) => fieldBlock(f, r ? r.values[f.key] : "", "e-")).join("") +
+      FIELDS.map((f) => fieldBlock(f, r ? r.values[f.key] : init ? init[f.key] : "", "e-")).join("") +
       '<div class="flex items-center gap-2 pt-2">' + (r ? '<button type="button" data-act="del" data-id="' + r.id + '" class="btn btn-ghost text-rose-600">🗑 ' + esc(t("delete")) + "</button>" : "") +
       '<div class="ml-auto flex gap-2"><button type="button" data-act="modal-close" class="btn btn-secondary">' + esc(t("cancel")) + '</button><button type="submit" class="btn btn-primary">' + esc(t("save")) + "</button></div></div></form>");
   };
 
-  ACTIONS.search = (el) => { state.q = el.value; render(); };
-  ACTIONS.filter = (el) => { state.filter = el.value; render(); };
-  ACTIONS.sort = (el) => { state.sort = Number(el.value) || 0; meta.sort = state.sort; saveMeta(meta); render(); };
+  const removeMany = (ids) => {
+    const before = data.items.slice();
+    data.items = data.items.filter((x) => !ids.includes(x.id));
+    ids.forEach((id) => state.sel.delete(id));
+    persist();
+    if (!$("#modal").classList.contains("hidden")) closeModal();
+    render();
+    toast(t("deletedN", { n: ids.length }), () => { data.items = before; persist(); render(); });
+  };
+
+  ACTIONS.search = (el) => { state.q = el.value; state.limit = PAGE; render(); };
+  ACTIONS.chip = (el) => { state.filter = el.getAttribute("data-v"); state.limit = PAGE; render(); };
+  ACTIONS.reset = () => { state.q = ""; state.filter = ""; render(); };
+  ACTIONS.more = () => { state.limit += PAGE; render(); };
+  ACTIONS.sort = (el) => { const v = Number(el.value); if (v < 0) return; state.col = null; state.sort = v || 0; meta.sort = state.sort; saveMeta(meta); render(); };
+  ACTIONS["col-sort"] = (el, e) => { e.stopPropagation(); const k = el.getAttribute("data-k"); state.col = { key: k, dir: state.col && state.col.key === k && state.col.dir === "asc" ? "desc" : "asc" }; render(); };
   ACTIONS.view = (el) => { state.view = el.getAttribute("data-v"); meta.view = state.view; saveMeta(meta); render(); };
+  ACTIONS.sel = (el) => { const id = el.getAttribute("data-id"); if (el.checked) state.sel.add(id); else state.sel.delete(id); render(); };
+  ACTIONS["sel-all"] = (el) => { visible().slice(0, state.limit).forEach((r) => (el.checked ? state.sel.add(r.id) : state.sel.delete(r.id))); render(); };
+  ACTIONS["bulk-clear"] = () => { state.sel.clear(); render(); };
+  ACTIONS["bulk-del"] = () => { const ids = Array.from(state.sel); confirmBox(t("bulkConfirm", { n: ids.length, e: ENT.singular }), () => removeMany(ids)); };
+  ACTIONS["bulk-export"] = () => exportRows(data.items.filter((r) => state.sel.has(r.id)));
   ACTIONS.new = () => openEditor(null);
-  ACTIONS.open = (el, e) => { if (e.target.closest("a, [data-act=del]")) return; const r = find(el.getAttribute("data-id")); if (r) openEditor(r); };
+  ACTIONS.open = (el, e) => { if (e.target.closest("a, input, [data-act=del], [data-act=col-sort]")) return; const r = find(el.getAttribute("data-id")); if (r) openDetail(r); };
+  ACTIONS.edit = (el) => { const r = find(el.getAttribute("data-id")); if (r) openEditor(r); };
+  ACTIONS.dup = (el) => { const r = find(el.getAttribute("data-id")); if (!r) return; const v = Object.assign({}, r.values); v[TITLE.key] = (titleOf(r) + " " + t("copySuffix")).slice(0, 60); openEditor(null, v); };
   ACTIONS.save = (form, e) => {
     e.preventDefault();
     const vals = validateForm(FIELDS, form);
@@ -401,19 +501,14 @@
   ACTIONS.del = (el, e) => {
     e.stopPropagation();
     const r = find(el.getAttribute("data-id"));
-    if (!r) return;
-    confirmBox(t("delConfirm", { t: titleOf(r) }), () => {
-      data.items = data.items.filter((x) => x.id !== r.id);
-      persist();
-      render();
-      toast(t("deleted"));
-    });
+    if (r) removeMany([r.id]);
   };
-  ACTIONS.export = () => {
-    const rows = [FIELDS.map((f) => f.label)].concat(visible().map((r) => FIELDS.map((f) => (f.type === "checkbox" ? (r.values[f.key] ? t("yes") : t("no")) : r.values[f.key] ?? ""))));
+  const exportRows = (list) => {
+    const rows = [FIELDS.map((f) => f.label)].concat(list.map((r) => FIELDS.map((f) => (f.type === "checkbox" ? (r.values[f.key] ? t("yes") : t("no")) : r.values[f.key] ?? ""))));
     downloadFile((ENT.plural || CONFIG.title || "records") + ".csv", toCsv(rows));
     toast(t("exported", { n: rows.length - 1 }));
   };
+  ACTIONS.export = () => exportRows(visible());
   ACTIONS.import = () => $("#csv-file").click();
   /** 第一行为表头，按 label 或 key 匹配字段；类型转换后按 form 的规则校验，不通过的行跳过。 */
   const importCsv = (text) => {
@@ -446,6 +541,9 @@
     el.value = "";
   };
 
+  shortcut("n", t("add", { e: ENT.singular }), () => openEditor(null));
+  shortcut("/", t("keySearch"), () => $("#q").focus());
+  shortcut("v", t("keyView"), () => { state.view = state.view === "table" ? "cards" : "table"; meta.view = state.view; saveMeta(meta); render(); });
   render();
 })();
 </script>

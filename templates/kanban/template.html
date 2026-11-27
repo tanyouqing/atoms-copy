@@ -7,8 +7,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
 <style type="text/tailwindcss">
 @custom-variant dark (&:where(.dark, .dark *));
-@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
-@utility surface { @apply bg-white dark:bg-slate-900; }
+@theme {
+  --color-slate-50: #f6f3ec; --color-slate-100: #efeae0; --color-slate-200: #e4ded2; --color-slate-300: #d0c8b8; --color-slate-400: #a59c8a; --color-slate-500: #7b7364;
+  --color-slate-600: #5f584c; --color-slate-700: #474137; --color-slate-800: #2f2b24; --color-slate-900: #1f1c17; --color-slate-950: #15130f;
+  --font-display: Georgia, "Times New Roman", "Songti SC", "STSong", serif;
+}
+@utility kbd { @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-b-2 border-slate-300 bg-slate-50 px-1 font-mono text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400; }
+@utility num { @apply font-display tabular-nums; }
+@utility rise { animation: rise .28s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .rise { animation: none; } }
+@utility card { @apply rounded-2xl border border-slate-200 bg-[#fffdf9] p-5 shadow-[0_1px_0_rgb(31_28_23/0.03),0_10px_30px_-20px_rgb(31_28_23/0.35)] md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-[#fffdf9] dark:bg-slate-900; }
 @utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
 @utility line { @apply border-slate-200 dark:border-slate-800; }
 @utility t-strong { @apply text-slate-900 dark:text-white; }
@@ -36,8 +46,8 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
 <div id="app" class="mx-auto max-w-6xl space-y-6 px-4 py-8 md:px-8"></div>
-<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
-<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#fffdf9] p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-slate-100 dark:text-slate-900"><span id="toast-msg"></span><button type="button" id="toast-undo" class="hidden shrink-0 cursor-pointer font-semibold text-[var(--p-200)] hover:underline dark:text-[var(--p-700)]"></button></div>
 <script id="app-config" type="application/json">__APP_CONFIG__</script>
 <script>
 (function () {
@@ -47,12 +57,14 @@
     "zh-CN": {
       addCard: "添加{noun}", addPh: "{noun}标题，回车添加", moveTo: "移到", menu: "更多操作", title: "标题", column: "所在列",
       editCard: "编辑{noun}", newCard: "新建{noun}", delConfirm: "确定删除{noun}「{title}」吗？", moved: "已移到「{col}」", wip: "超出上限 {n}",
-      emptyCol: "拖动卡片到这里", total: "共 {n} 张卡片", hint: "拖动卡片可换列和排序，手机上用 ⋯ 菜单移动",
+      emptyCol: "拖动卡片到这里", noMatchCol: "这一列没有匹配的卡片", searchPh: "搜索{noun}…", allTags: "全部{f}", progress: "已到「{col}」{done}/{total}", lateN: "{n} 张已逾期",
+      overdue: "已逾期", dueToday: "今天到期", dueSoon: "明天到期", stale: "在这一列停留 {n} 天", staleHint: "长时间没有移动的卡片", deletedOne: "已删除「{title}」", keySearch: "搜索卡片", total: "共 {n} 张卡片", hint: "拖动卡片可换列和排序，手机上用 ⋯ 菜单移动",
     },
     en: {
       addCard: "Add {noun}", addPh: "{noun} title, press Enter", moveTo: "Move to", menu: "More actions", title: "Title", column: "Column",
       editCard: "Edit {noun}", newCard: "New {noun}", delConfirm: "Delete {noun} \"{title}\"?", moved: "Moved to \"{col}\"", wip: "Over limit of {n}",
-      emptyCol: "Drop cards here", total: "{n} cards", hint: "Drag cards between columns, or use the ⋯ menu on mobile",
+      emptyCol: "Drop cards here", noMatchCol: "No matching cards here", searchPh: "Search {noun}s…", allTags: "All {f}", progress: "{done}/{total} in {col}", lateN: "{n} overdue",
+      overdue: "Overdue", dueToday: "Due today", dueSoon: "Due tomorrow", stale: "{n} days in this column", staleHint: "Cards that haven't moved for a while", deletedOne: "Deleted \"{title}\"", keySearch: "Search cards", total: "{n} cards", hint: "Drag cards between columns, or use the ⋯ menu on mobile",
     },
   };
   const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
@@ -69,7 +81,7 @@
     orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
     rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
     violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
-    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+    slate: ["#f8fafc", "#f1f5f9", "#e4ded2", "#7b7364", "#475569", "#334155"],
   };
   const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
   const pal = (name) => PALETTE[name] || PALETTE.indigo;
@@ -78,8 +90,8 @@
   document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
   if (DARK) document.documentElement.classList.add("dark");
   const BASE_I18N = {
-    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
-    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+    "zh-CN": { undo: "撤销", undone: "已撤销", shortcuts: "键盘快捷键", confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { undo: "Undo", undone: "Undone", shortcuts: "Keyboard shortcuts", confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
   };
   const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
   const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
@@ -109,7 +121,21 @@
   const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
   const saveMeta = (m) => save(META_KEY, m);
 
-  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+  let undoFn = null;
+  const hideToast = () => { const el = $("#toast"); el.style.opacity = "0"; el.classList.add("pointer-events-none"); undoFn = null; };
+  /** 轻提示；传 onUndo 时显示「撤销」按钮，5 秒内可撤销。 */
+  const toast = (msg, onUndo) => {
+    const el = $("#toast");
+    $("#toast-msg").textContent = msg;
+    undoFn = onUndo || null;
+    $("#toast-undo").textContent = t("undo");
+    $("#toast-undo").classList.toggle("hidden", !undoFn);
+    el.classList.toggle("pointer-events-none", !undoFn);
+    el.style.opacity = "1";
+    clearTimeout(el._h);
+    el._h = setTimeout(hideToast, undoFn ? 5000 : 2000);
+  };
+  $("#toast-undo").addEventListener("click", () => { const fn = undoFn; hideToast(); if (fn) { fn(); toast(t("undone")); } });
 
   let modalClose = null;
   const openModal = (html, onClose) => {
@@ -141,6 +167,21 @@
   };
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+  /** 单键快捷键（docs/08 §5.2）：焦点在输入框或弹窗打开时不触发；按 ? 查看全部。 */
+  const KEYS = [];
+  const shortcut = (key, label, fn) => KEYS.push({ key, label, fn });
+  const showKeys = () => openModal('<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("shortcuts")) + '</div><ul class="space-y-2 text-sm t-body">' +
+    KEYS.concat([{ key: "?", label: t("shortcuts") }, { key: "Esc", label: t("close") }]).map((k) => '<li class="flex items-center justify-between gap-4"><span>' + esc(k.label) + '</span><span class="kbd">' + esc(({ " ": "Space", ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓", Enter: "Enter" })[k.key] || k.key.toUpperCase()) + "</span></li>").join("") +
+    '</ul><div class="flex justify-end"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + "</button></div></div>");
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || !$("#modal").classList.contains("hidden")) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
+    if (e.key === "?" && KEYS.length) { e.preventDefault(); showKeys(); return; }
+    const k = KEYS.find((x) => x.key === e.key);
+    if (k) { e.preventDefault(); k.fn(e); }
+  });
+  const keysHint = () => KEYS.length ? '<footer class="pt-2 text-center text-xs t-faint"><button type="button" data-act="keys" class="cursor-pointer hover:text-[var(--p-600)]"><span class="kbd">?</span> ' + esc(t("shortcuts")) + "</button></footer>" : "";
 
   /** 整体重绘时保留输入框焦点与光标位置。 */
   const keepFocus = (fn) => {
@@ -157,7 +198,7 @@
   };
 
   /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
-  const ACTIONS = { "modal-close": () => closeModal() };
+  const ACTIONS = { "modal-close": () => closeModal(), keys: () => showKeys() };
   const delegate = (type) => document.addEventListener(type, (e) => {
     const el = e.target.closest && e.target.closest("[data-" + type + "]");
     if (!el) return;
@@ -175,7 +216,7 @@
   const header = (extra) =>
     '<header class="flex flex-wrap items-start justify-between gap-4">' +
     '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
-    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    '<div class="min-w-0"><h1 class="font-display text-[1.65rem] leading-tight font-semibold tracking-tight t-strong">' + esc(CONFIG.title) + "</h1>" +
     (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
     (extra || "") + "</header>";
   const emptyState = (emoji, text, btn) =>
@@ -298,10 +339,18 @@
   const NOUN = CONFIG.cardNoun || "";
   const colOf = (id) => COLS.find((c) => c.id === id);
 
-  const seed = () => (CONFIG.seedCards || []).map((c, i) => ({ id: uid() + i, column: c.column, title: c.title, fields: c.fields || {} }));
+  const seed = () => (CONFIG.seedCards || []).map((c, i) => ({ id: uid() + i, column: c.column, title: c.title, fields: c.fields || {}, movedAt: Date.now() }));
+  const FILTER_F = FIELDS.find((f) => f.type === "select");
+  const DATE_FS = FIELDS.filter((f) => f.type === "date");
+  const TAG_COLORS = ["rose", "amber", "sky", "emerald", "violet", "teal", "orange", "blue", "indigo", "slate"];
+  const optColor = (f, v) => TAG_COLORS[Math.max(0, (f.options || []).indexOf(String(v))) % TAG_COLORS.length];
+  const LAST = COLS[COLS.length - 1];
+  const daysSince = (ts) => (ts ? Math.floor((Date.now() - ts) / 86400000) : 0);
   const data = loadData(seed);
   const persist = () => save(KEY, data);
-  const state = { menu: null, adding: null, dragId: null };
+  const state = { menu: null, adding: null, dragId: null, q: "", tag: "" };
+  const textOf = (c) => (c.title + " " + FIELDS.map((f) => fmtValue(f, c.fields && c.fields[f.key])).join(" ")).toLowerCase();
+  const visibleCard = (c) => (!state.q.trim() || textOf(c).includes(state.q.trim().toLowerCase())) && (!state.tag || (c.fields && String(c.fields[FILTER_F.key]) === state.tag));
   // 配置改动删掉了某列时，把孤儿卡片放到第一列
   data.items.forEach((c) => { if (!colOf(c.column)) c.column = COLS[0].id; });
   const find = (id) => data.items.find((c) => c.id === id);
@@ -310,7 +359,8 @@
     const vals = SHOW.map((f) => {
       const v = fmtValue(f, c.fields && c.fields[f.key]);
       if (!v) return "";
-      if (f.type === "select") return '<span class="tag tag-muted">' + esc(v) + "</span>";
+      if (f.type === "select") return '<span class="tag" style="' + chip(optColor(f, v)) + '">' + esc(v) + "</span>";
+      if (f.type === "date" && c.column !== LAST.id && v <= addDays(today(), 1)) return '<span class="text-xs font-medium ' + (v < today() ? "text-rose-600 dark:text-rose-400" : "text-amber-600") + '">📅 ' + esc(v) + " · " + esc(t(v < today() ? "overdue" : v === today() ? "dueToday" : "dueSoon")) + "</span>";
       return '<span class="text-xs t-muted">' + (f.type === "rating" ? '<span class="text-amber-400">' + esc(v) + "</span>" : esc(f.label) + esc(t("colon")) + esc(v)) + "</span>";
     }).filter(Boolean);
     const menu = state.menu === c.id
@@ -322,18 +372,20 @@
     return '<li draggable="true" data-card="' + c.id + '" class="group relative cursor-grab rounded-xl border line surface p-3 shadow-sm transition hover:border-[var(--p-200)] hover:shadow active:cursor-grabbing' + (state.dragId === c.id ? " opacity-40" : "") + '">' +
       '<div class="flex items-start gap-2"><button type="button" data-act="open" data-id="' + c.id + '" class="min-w-0 flex-1 cursor-pointer text-left text-sm font-medium break-words t-strong">' + esc(c.title) + "</button>" +
       '<button type="button" data-act="menu" data-id="' + c.id + '" class="icon-btn -mt-1 -mr-1 h-7 w-7 shrink-0" aria-label="' + esc(t("menu")) + '">⋯</button></div>' +
-      (vals.length ? '<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">' + vals.join("") + "</div>" : "") + menu + "</li>";
+      (vals.length ? '<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">' + vals.join("") + "</div>" : "") +
+      (daysSince(c.movedAt) >= 3 && c.column !== LAST.id ? '<div class="mt-2 text-[11px] t-faint" title="' + esc(t("staleHint")) + '">⏳ ' + esc(t("stale", { n: daysSince(c.movedAt) })) + "</div>" : "") + menu + "</li>";
   };
 
   const columnHtml = (col) => {
-    const cards = data.items.filter((c) => c.column === col.id);
-    const over = col.wipLimit && cards.length > col.wipLimit;
+    const all = data.items.filter((c) => c.column === col.id);
+    const cards = all.filter(visibleCard);
+    const over = col.wipLimit && all.length > col.wipLimit;
     const adding = state.adding === col.id;
     return '<section data-col="' + esc(col.id) + '" class="flex w-72 shrink-0 flex-col rounded-2xl border line bg-slate-100/70 p-3 dark:bg-slate-900/60">' +
       '<div class="mb-3 flex items-center gap-2 px-1"><span class="h-2.5 w-2.5 rounded-full" style="background:' + pal(col.color)[3] + '"></span><h2 class="text-sm font-semibold t-strong">' + esc(col.label) + "</h2>" +
       '<span class="ml-auto rounded-full px-2 py-0.5 text-xs font-medium ' + (over ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300" : "bg-white t-muted dark:bg-slate-800") + '"' + (over ? ' title="' + esc(t("wip", { n: col.wipLimit })) + '"' : "") + ">" +
-      cards.length + (col.wipLimit ? " / " + col.wipLimit : "") + "</span></div>" +
-      '<ul data-drop="' + esc(col.id) + '" class="flex min-h-24 flex-1 flex-col gap-2 rounded-xl transition">' + (cards.length ? cards.map(cardHtml).join("") : '<li class="flex flex-1 items-center justify-center rounded-xl border-2 border-dashed line py-6 text-xs t-faint">' + esc(t("emptyCol")) + "</li>") + "</ul>" +
+      (cards.length !== all.length ? cards.length + "/" : "") + all.length + (col.wipLimit ? " / " + col.wipLimit : "") + "</span></div>" +
+      '<ul data-drop="' + esc(col.id) + '" class="flex min-h-24 flex-1 flex-col gap-2 rounded-xl transition">' + (cards.length ? cards.map(cardHtml).join("") : '<li class="flex flex-1 items-center justify-center rounded-xl border-2 border-dashed line py-6 text-xs t-faint">' + esc(t(all.length ? "noMatchCol" : "emptyCol")) + "</li>") + "</ul>" +
       (adding
         ? '<form data-submit="quick-add" data-col="' + esc(col.id) + '" class="mt-2 space-y-2"><input id="quick-' + esc(col.id) + '" data-keydown="quick-key" class="input" maxlength="40" placeholder="' + esc(t("addPh", { noun: NOUN })) + '">' +
           '<div class="flex gap-2"><button type="submit" class="btn btn-primary flex-1 py-1.5">' + esc(t("add")) + '</button><button type="button" data-act="cancel-add" class="btn btn-secondary py-1.5">' + esc(t("cancel")) + "</button></div></form>"
@@ -341,10 +393,28 @@
       "</section>";
   };
 
+  const summary = () => {
+    const total = data.items.length;
+    if (!total) return "";
+    const done = data.items.filter((c) => c.column === LAST.id).length;
+    const pct = Math.round((done / total) * 100);
+    const late = data.items.filter((c) => c.column !== LAST.id && DATE_FS.some((f) => { const v = c.fields && c.fields[f.key]; return v && v < today(); })).length;
+    return '<div class="flex min-w-[12rem] flex-1 items-center gap-3"><div class="min-w-0 flex-1"><div class="flex justify-between text-xs t-faint"><span>' + esc(t("progress", { col: LAST.label, done, total })) + '</span><span class="num">' + pct + "%</span></div>" +
+      '<div class="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-200/70 dark:bg-slate-800"><div class="h-full rounded-full bg-[var(--p-500)] transition-all duration-500" style="width:' + pct + '%"></div></div></div>' +
+      (late ? '<span class="tag bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300">' + esc(t("lateN", { n: late })) + "</span>" : "") + "</div>";
+  };
+  const toolbar = () => {
+    if (!data.items.length) return "";
+    const search = '<div class="relative w-full sm:w-64"><span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm t-faint">⌕</span><input id="q" data-input="q" class="input pl-8" autocomplete="off" placeholder="' + esc(t("searchPh", { noun: NOUN })) + '" value="' + esc(state.q) + '"></div>';
+    const tags = FILTER_F ? '<div class="flex flex-wrap gap-1.5">' + [""].concat(FILTER_F.options || []).map((o) => '<button type="button" data-act="tag" data-v="' + esc(o) + '" class="tag cursor-pointer border transition ' +
+      (state.tag === o ? "border-[var(--p-500)] tag-primary" : "line t-muted hover:border-slate-300") + '"' + (o && state.tag !== o ? ' style="' + chip(optColor(FILTER_F, o)) + '"' : "") + ">" + esc(o || t("allTags", { f: FILTER_F.label })) + "</button>").join("") + "</div>" : "";
+    return '<div class="flex flex-wrap items-center gap-3">' + search + tags + summary() + "</div>";
+  };
+
   const render = () => keepFocus(() => {
-    $("#app").innerHTML = header('<span class="self-center text-xs t-faint">' + esc(t("total", { n: data.items.length })) + "</span>") +
+    $("#app").innerHTML = header('<span class="self-center text-xs t-faint">' + esc(t("total", { n: data.items.length })) + "</span>") + toolbar() +
       '<p class="hidden text-xs t-faint sm:block">💡 ' + esc(t("hint")) + "</p>" +
-      '<div class="-mx-4 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8"><div class="flex items-start gap-4">' + COLS.map(columnHtml).join("") + "</div></div>";
+      '<div class="-mx-4 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8"><div class="flex items-start gap-4">' + COLS.map(columnHtml).join("") + "</div></div>" + keysHint();
     if (state.adding) { const q = document.getElementById("quick-" + state.adding); if (q) q.focus(); }
   });
 
@@ -352,6 +422,7 @@
     const card = find(id);
     if (!card || !colOf(colId)) return;
     data.items = data.items.filter((c) => c.id !== id);
+    if (card.column !== colId) card.movedAt = Date.now();
     card.column = colId;
     const idx = beforeId ? data.items.findIndex((c) => c.id === beforeId) : -1;
     if (idx >= 0) data.items.splice(idx, 0, card);
@@ -387,7 +458,7 @@
     const input = $("input", form);
     const title = input.value.trim();
     if (!title) { input.focus(); return; }
-    data.items.push({ id: uid(), column: form.getAttribute("data-col"), title, fields: {} });
+    data.items.push({ id: uid(), column: form.getAttribute("data-col"), title, fields: {}, movedAt: Date.now() });
     persist();
     render();
     toast(t("added"));
@@ -405,7 +476,7 @@
     if (id) {
       const c = find(id);
       if (c) { c.title = title; c.fields = vals; if (c.column !== col) moveCard(c.id, col); }
-    } else data.items.push({ id: uid(), column: col, title, fields: vals });
+    } else data.items.push({ id: uid(), column: col, title, fields: vals, movedAt: Date.now() });
     persist();
     closeModal();
     render();
@@ -415,13 +486,17 @@
     const c = find(el.getAttribute("data-id"));
     if (!c) return;
     state.menu = null;
-    confirmBox(t("delConfirm", { noun: NOUN, title: c.title }), () => {
-      data.items = data.items.filter((x) => x.id !== c.id);
-      persist();
-      render();
-      toast(t("deleted"));
-    });
+    if (!$("#modal").classList.contains("hidden")) closeModal();
+    const idx = data.items.indexOf(c);
+    data.items.splice(idx, 1);
+    persist();
+    render();
+    toast(t("deletedOne", { title: c.title.length > 12 ? c.title.slice(0, 12) + "…" : c.title }), () => { data.items.splice(Math.min(idx, data.items.length), 0, c); persist(); render(); });
   };
+  ACTIONS.q = (el) => { state.q = el.value; render(); };
+  ACTIONS.tag = (el) => { state.tag = el.getAttribute("data-v"); render(); };
+  shortcut("n", t("addCard", { noun: NOUN }), () => { state.adding = COLS[0].id; render(); });
+  shortcut("/", t("keySearch"), () => { const q = $("#q"); if (q) q.focus(); });
   document.addEventListener("click", (e) => {
     if (state.menu && !e.target.closest("[data-act=menu]") && !e.target.closest("[data-menu]")) { state.menu = null; render(); }
   });
