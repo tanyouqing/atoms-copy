@@ -348,17 +348,17 @@ __APP_THEME__
       if (!c.format || c.format === "text") return "<td></td>";
       const vs = rows.map((r) => r[c.key]).filter((v) => typeof v === "number");
       const v = c.format === "percent" ? vs.reduce((s2, x) => s2 + x, 0) / (vs.length || 1) : vs.reduce((s2, x) => s2 + x, 0);
-      return '<td class="num py-2.5 pr-4 text-right font-semibold whitespace-nowrap t-strong">' + esc(fmtCell(c, Math.round(v * 100) / 100)) + "</td>";
+      return '<td class="num py-2.5 pr-2 text-right font-semibold sm:pr-4 sm:whitespace-nowrap t-strong">' + esc(fmtCell(c, Math.round(v * 100) / 100)) + "</td>";
     }).join("") + "</tr></tfoot>" : "";
     return '<section class="card min-w-0"><div class="mb-3 flex flex-wrap items-center gap-2"><h2 class="min-w-0 flex-1 text-sm font-semibold t-strong">' + esc(TABLE.title) + "</h2>" +
       '<div class="relative w-full sm:w-52"><span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm t-faint">⌕</span><input id="q" data-input="q" class="input py-1.5 pl-8" autocomplete="off" placeholder="' + esc(t("searchPh")) + '" value="' + esc(state.q) + '"></div>' +
-      '<button type="button" data-act="table-csv" class="btn btn-secondary py-1.5">↓ CSV</button></div><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="text-left text-xs t-faint"><tr>' +
+      '<button type="button" data-act="table-csv" class="btn btn-secondary py-1.5">↓ CSV</button></div><div class="min-w-0"><table class="w-full text-xs sm:text-sm"><thead class="text-left text-xs t-faint"><tr>' +
       TABLE.columns.map((c) => {
         const numeric = c.format && c.format !== "text";
         const arrow = state.sortKey === c.key ? (state.sortDir > 0 ? " ▲" : " ▼") : "";
-        return '<th class="py-2 pr-4 font-medium whitespace-nowrap ' + (numeric ? "text-right" : "") + '"><button type="button" data-act="sort" data-key="' + esc(c.key) + '" class="cursor-pointer hover:text-[var(--p-600)]">' + esc(c.label) + arrow + "</button></th>";
+        return '<th class="py-2 pr-2 font-medium break-words sm:pr-4 sm:whitespace-nowrap ' + (numeric ? "text-right" : "") + '"><button type="button" data-act="sort" data-key="' + esc(c.key) + '" class="cursor-pointer hover:text-[var(--p-600)]">' + esc(c.label) + arrow + "</button></th>";
       }).join("") + '</tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">' +
-      rows.map((r) => "<tr>" + TABLE.columns.map((c, i) => '<td class="py-2.5 pr-4 whitespace-nowrap ' + (c.format && c.format !== "text" ? "text-right tabular-nums " : "") + (i === 0 ? "font-medium t-strong" : "t-body") + '">' + esc(fmtCell(c, r[c.key])) + "</td>").join("") + "</tr>").join("") +
+      rows.map((r) => "<tr>" + TABLE.columns.map((c, i) => '<td class="py-2.5 pr-2 break-words sm:pr-4 sm:whitespace-nowrap ' + (c.format && c.format !== "text" ? "text-right tabular-nums " : "") + (i === 0 ? "font-medium t-strong" : "t-body") + '">' + esc(fmtCell(c, r[c.key])) + "</td>").join("") + "</tr>").join("") +
       "</tbody>" + total + "</table></div>" + (rows.length ? "" : emptyState("🔍", t("noMatch"))) + "</section>";
   };
 

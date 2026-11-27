@@ -447,11 +447,19 @@ __APP_THEME__
     if (!all.length) return '<section class="card space-y-4">' + head + emptyState("📭", t("noResponses"), '<button type="button" data-act="view" data-v="form" class="btn btn-primary mt-4">' + esc(t("backToForm")) + "</button>") + "</section>";
     if (state.tab === "stats") return '<section class="card">' + head + '</section><div class="space-y-4">' + trend() + '<div class="grid gap-4 md:grid-cols-2">' + FIELDS.map(fieldStats).join("") + "</div></div>";
     const search = '<div class="relative"><span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm t-faint">⌕</span><input id="q" data-input="q" class="input pl-8" autocomplete="off" placeholder="' + esc(t("searchPh")) + '" value="' + esc(state.q) + '"></div>';
-    const table = !rows.length ? emptyState("🔍", t("noMatch")) : '<div class="-mx-5 overflow-x-auto px-5 md:-mx-6 md:px-6"><table class="w-full min-w-max text-sm"><thead class="text-left text-xs t-faint"><tr>' +
-      FIELDS.map((f) => '<th class="py-2 pr-4 font-medium">' + esc(f.label) + "</th>").join("") + '<th class="py-2 pr-4 font-medium">' + esc(t("submittedAt")) + '</th><th class="py-2"></th></tr></thead>' +
+    const cell = (f, r) => esc(fmtValue(f, r.values[f.key])) || '<span class="t-faint">—</span>';
+    const del = (r) => '<button type="button" data-act="del" data-id="' + r.id + '" class="icon-btn shrink-0" aria-label="' + esc(t("delete")) + '">🗑</button>';
+    const w = document.documentElement.clientWidth || window.innerWidth;
+    const fits = w >= 640 && w - 160 >= (FIELDS.length + 1) * 120;
+    const table = !rows.length ? emptyState("🔍", t("noMatch")) : !fits ? '<ul class="space-y-2">' + rows.map((r) =>
+        '<li data-act="detail" data-id="' + r.id + '" class="flex cursor-pointer items-start gap-3 rounded-xl border line p-3 transition hover:bg-slate-50 dark:hover:bg-slate-800/50"><div class="min-w-0 flex-1 space-y-1 text-sm">' +
+        FIELDS.slice(0, 3).map((f, i) => '<div class="flex gap-2"><span class="w-20 shrink-0 truncate text-xs t-faint">' + esc(f.label) + '</span><span class="min-w-0 truncate ' + (i ? "t-body" : "font-medium t-strong") + '">' + cell(f, r) + "</span></div>").join("") +
+        '<div class="text-xs t-faint">' + esc(fmtTime(r.submittedAt)) + "</div></div>" + del(r) + "</li>").join("") + "</ul>"
+      : '<div class="min-w-0"><table class="w-full table-fixed text-sm"><thead class="text-left text-xs t-faint"><tr>' +
+      FIELDS.map((f) => '<th class="truncate py-2 pr-4 font-medium">' + esc(f.label) + "</th>").join("") + '<th class="w-36 py-2 pr-4 font-medium">' + esc(t("submittedAt")) + '</th><th class="w-10 py-2"></th></tr></thead>' +
       '<tbody class="divide-y divide-slate-100 dark:divide-slate-800">' + rows.map((r) =>
-        '<tr data-act="detail" data-id="' + r.id + '" class="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-800/50">' + FIELDS.map((f) => '<td class="max-w-64 truncate py-2.5 pr-4 t-body" title="' + esc(fmtValue(f, r.values[f.key])) + '">' + (esc(fmtValue(f, r.values[f.key])) || '<span class="t-faint">—</span>') + "</td>").join("") +
-        '<td class="py-2.5 pr-4 text-xs whitespace-nowrap t-faint">' + esc(fmtTime(r.submittedAt)) + '</td><td class="py-2.5 text-right"><button type="button" data-act="del" data-id="' + r.id + '" class="icon-btn" aria-label="' + esc(t("delete")) + '">🗑</button></td></tr>').join("") +
+        '<tr data-act="detail" data-id="' + r.id + '" class="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-800/50">' + FIELDS.map((f) => '<td class="truncate py-2.5 pr-4 t-body" title="' + esc(fmtValue(f, r.values[f.key])) + '">' + (esc(fmtValue(f, r.values[f.key])) || '<span class="t-faint">—</span>') + "</td>").join("") +
+        '<td class="truncate py-2.5 pr-4 text-xs t-faint">' + esc(fmtTime(r.submittedAt)) + '</td><td class="py-2.5 text-right"><button type="button" data-act="del" data-id="' + r.id + '" class="icon-btn" aria-label="' + esc(t("delete")) + '">🗑</button></td></tr>').join("") +
       "</tbody></table></div>";
     return '<section class="card min-w-0 space-y-4">' + head + search + table + "</section>";
   };
@@ -534,6 +542,9 @@ __APP_THEME__
     shortcut("/", t("searchPh"), () => { if (state.view !== "admin") { state.view = "admin"; state.tab = "list"; render(); } const q = $("#q"); if (q) q.focus(); });
   }
   render();
+  const fitKey = () => (document.documentElement.clientWidth || window.innerWidth) >= Math.max(640, (FIELDS.length + 1) * 120 + 160);
+  let lastFit = fitKey();
+  window.addEventListener("resize", () => { if (fitKey() !== lastFit) { lastFit = fitKey(); if (state.view === "admin") render(); } });
 })();
 </script>
 </body>

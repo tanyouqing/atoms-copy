@@ -435,6 +435,6 @@ export function renderTemplate(id: TemplateId, config: unknown): string;
 - `example.json` 能通过 schema；`/dev/templates?id=<id>` 中渲染正常，控制台无报错。
 - 手动走一遍 §4 的"功能要求"每一条。
 - 刷新后数据仍在；清空 localStorage 后回到 seed 数据。
-- 375px 宽度无横向溢出（kanban 列区域除外）。
+- 375 / 760 / 1024 / 1280px 宽度均无横向溢出（kanban 列用 grid auto-fit 自动换行，不靠横向滚动）。
 - 三种风格和自定义风格都过一遍：`VERIFY_STYLE=pixel|bright|paper|custom npm run verify:templates`（截图在 `.verify/<style>/`）；E2E `13-styles.spec.ts` 在 375px 下逐个模板切换三种风格检查横向溢出。
 - 单元测试：`tests/unit/templates.test.ts` 遍历 8 个模板，校验 example、渲染、`staticCheck(html)` 返回空数组；`tests/unit/themes.test.ts` 遍历 8 个模板 × 4 种风格，校验渲染、静态检查、主题只占一行（行数不变），以及自定义颜色的对比度修正和回退。

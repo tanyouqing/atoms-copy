@@ -151,6 +151,7 @@ Docker：`mkdir -p data && sudo chown 1001:1001 data && docker compose up -d --b
 - **预览 iframe 增加 `allow-downloads`**：表单和记录管理模板的"导出 CSV"需要；不涉及同源权限，`allow-same-origin` 仍然禁止。
 - **仪表盘的存储结构**与其他模板不同：值为 `{ version, base, edited, metrics, charts }`，`base` 是配置数据的哈希，配置被追问修改后以新配置为准（docs/08 §5.2）。
 - **结构化输出用 `generateText` + `response_format: json_object` + 自己提取与 zod 校验**，没有用 `generateObject`：模板 schema 里有 refine / default，转换成 JSON Schema 不可靠；自己处理也便于把校验错误喂回模型重试。`deepseekFetch` 对每个请求注入 `thinking: {type: "disabled"}`，非流式请求补 `response_format`，见 `tests/unit/llm-call.test.ts`。
+- **生成的应用不出现横向滚动**：看板按预览宽度计算每行列数（每列至少 200px，多行时均分），记录管理表格在窄屏或列多时自动切成卡片视图，表单提交记录同理，仪表盘表格窄屏时单元格换行；`npm run verify:templates` 在 375 / 760 / 1024 / 1280px 下检查页面和内部容器都没有横向滚动。
 - **新建应用时模板配置两次不合法**，降级为自由生成（卡片上会说明），而不是直接报错。
 - **静态检查在预算用尽后仍失败**时，版本以 `error` 入库并按"放弃"逻辑回退；SSE `done` 返回 `versionId: null`，前端重新拉取项目详情同步当前版本。
 - **自动修复轮次中补丁应用失败**不插入系统错误消息（前端会继续下一轮或回退），手动修复失败才提示。
