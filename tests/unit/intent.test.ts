@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeIntent, templateFitsPrompt } from "@/lib/agent/intent";
+import { normalizeIntent, templateFitsPrompt, templateRejection } from "@/lib/agent/intent";
 
 const tpl = { configJson: "{}" };
 const detached = { configJson: null };
@@ -29,5 +29,18 @@ describe("templateFitsPrompt", () => {
   });
   it("其他模板不受影响", () => {
     expect(templateFitsPrompt("todo", "做一个 2048 小游戏")).toBe(true);
+  });
+});
+
+describe("templateRejection", () => {
+  it("PM 列出做不到的功能时放弃模板", () => {
+    expect(templateRejection("todo", "游泳打卡日历", ["月历视图"])).toBe("unsupported");
+  });
+  it("game 模板沿用玩法关键词校验", () => {
+    expect(templateRejection("game", "2048", [])).toBe("game_kind");
+    expect(templateRejection("game", "贪吃蛇", [])).toBeNull();
+  });
+  it("都满足时保留模板", () => {
+    expect(templateRejection("ledger", "家庭记账", [])).toBeNull();
   });
 });

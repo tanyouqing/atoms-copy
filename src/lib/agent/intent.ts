@@ -19,3 +19,13 @@ export function templateFitsPrompt(templateId: TemplateId, prompt: string): bool
   if (templateId === "game") return GAME_KINDS.test(prompt);
   return true;
 }
+
+/**
+ * 新建类意图是否放弃模板、改走自由生成（docs/07 §2）。返回原因，null 表示保留模板。
+ * PM 列出了模板做不到的功能，或命中了已知的硬套场景时放弃。
+ */
+export function templateRejection(templateId: TemplateId, prompt: string, unsupported: readonly string[]): string | null {
+  if (unsupported.length > 0) return "unsupported";
+  if (!templateFitsPrompt(templateId, prompt)) return "game_kind";
+  return null;
+}

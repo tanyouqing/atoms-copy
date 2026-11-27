@@ -59,7 +59,9 @@ function pm(ctx: Extract<MockCtx, { kind: "pm" }>): unknown {
     return { ...base, intent: "code_patch", templateId: ctx.currentTemplateId, appName: "每日习惯打卡", versionLabel: "增加导出按钮", reply: "好的，我会按你的要求调整页面。", features: ["按要求调整"], changes: ["在页面底部增加一个导出按钮"], themeColor: ctx.currentTheme ?? "indigo" };
   }
   const t = pickTemplate(p);
-  return { ...base, intent: ctx.hasCurrent ? "regenerate" : "new_app", templateId: t, appName: NAMES[t], versionLabel: `初版${NAMES[t]}`.slice(0, 16), reply: `好的，我会用"${NAMES[t]}"的思路帮你搭建这个应用，先做出核心功能，你可以继续让我修改。`, features: ["核心功能一应俱全", "数据保存在浏览器", "手机上也能用"], themeColor: t === "todo" ? "indigo" : "violet" };
+  // 模拟 PM 发现模板做不到的功能（如日历视图）：服务端据此改走自由生成
+  const unsupported = p.includes("日历") ? ["月历视图"] : [];
+  return { ...base, unsupported, intent: ctx.hasCurrent ? "regenerate" : "new_app", templateId: t, appName: NAMES[t], versionLabel: `初版${NAMES[t]}`.slice(0, 16), reply: `好的，我会用"${NAMES[t]}"的思路帮你搭建这个应用，先做出核心功能，你可以继续让我修改。`, features: ["核心功能一应俱全", "数据保存在浏览器", "手机上也能用"], themeColor: t === "todo" ? "indigo" : "violet" };
 }
 
 function config(ctx: Extract<MockCtx, { kind: "config" }>): unknown {

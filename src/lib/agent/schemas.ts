@@ -14,6 +14,8 @@ export const PmOutputSchema = z.object({
   reply: z.string().trim().min(1).max(120),
   features: z.array(z.string().max(40)).min(1).max(6),
   changes: z.array(z.string().max(80)).max(8),
+  // 用户要求里所选模板做不到的功能；不为空时服务端改走自由生成
+  unsupported: z.array(z.string().max(60)).max(8).default([]),
   language: z.enum(["zh-CN", "en"]),
   themeColor: z.enum(THEME_COLORS),
 });
