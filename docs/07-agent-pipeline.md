@@ -183,7 +183,7 @@ async function callJson<T>(opts: {
 1. 只输出一个 JSON 对象，不要输出任何其他文字或代码块标记。
 2. 严格遵守类型定义：字段名、枚举值、数组长度、字符串长度都不能超出限制。
 3. 所有界面文案使用 {{LANGUAGE}}，文案要具体、贴合用户场景，不要出现"示例""Lorem ipsum"之类的占位词。
-4. 示例数据（seed 开头的字段）要真实可信，数量按类型定义的建议值，让用户打开就能看到应用的样子。
+4. 新建应用时，seed 开头的字段一律输出空数组 []：应用从空白状态开始，由用户自己添加数据；空状态文案（如 emptyText）要写清楚下一步该做什么。
 5. theme.primary 使用 {{THEME_COLOR}}。
 6. 字段 key 只用小写英文字母开头的 camelCase，例如 dueDate、amount。
 ```
@@ -234,7 +234,7 @@ async function callJson<T>(opts: {
 3. 需要图表时只能用 Chart.js：<script src="{{CHARTJS_CDN}}"></script>。除这两个以外，不要引用任何外部脚本、样式、字体或图片。
 4. 逻辑使用原生 JavaScript，写在 <body> 末尾的一个 <script> 标签里。不要用 type="module"、import、JSX、React、Vue 或 jQuery。
 5. 数据用 localStorage 持久化，键名统一以 "app:" 开头。读写都要用 try/catch 包裹，JSON 解析失败时回退到默认数据。
-6. 不要调用 fetch、XMLHttpRequest 或任何网络接口；需要的数据用本地示例数据模拟。
+6. 不要调用 fetch、XMLHttpRequest 或任何网络接口。用户自己录入的数据（任务、记录、打卡等）初始为空，不要预置示例数据，用友好的空状态提示引导用户添加第一条。
 7. 图标使用 emoji 或内联 SVG。
 8. 必须包含 <meta name="viewport" content="width=device-width, initial-scale=1">，布局在 375px 宽的手机上也要可用。
 9. 代码总长度控制在 30000 字符以内。不要写注释性的大段说明。

@@ -4,6 +4,7 @@ import { AppError } from "@/lib/errors";
 import { getTemplateMeta, type TemplateId } from "@/lib/templates/registry";
 import { loadContract, loadExampleText, renderTemplate } from "@/lib/templates/render";
 import { TEMPLATE_SCHEMAS } from "@/lib/templates/schemas";
+import { stripSeedData } from "@/lib/templates/seeds";
 import type { RuntimeError } from "@/types/runtime";
 import { closeHtml, extractHtml, joinContinuation } from "./extract";
 import { applyPatches, describeFailures, parsePatches, summarizePatches, type Patch } from "./patch";
@@ -31,7 +32,7 @@ export async function generateConfig(env: StepEnv, a: { templateId: TemplateId; 
   const meta = getTemplateMeta(a.templateId);
   const system = buildConfigSystem({ templateName: meta.name, contract: loadContract(a.templateId), example: loadExampleText(a.templateId), language: LANG(a.pm.language), themeColor: a.pm.themeColor });
   const prompt = a.currentConfig !== null ? buildConfigUserEdit({ currentConfig: a.currentConfig, changes: a.pm.changes, prompt: a.prompt }) : buildConfigUserNew({ appName: a.pm.appName, prompt: a.prompt, features: a.pm.features });
-  const config: unknown = await callJson({
+  const raw: unknown = await callJson({
     step: "config",
     schema: TEMPLATE_SCHEMAS[a.templateId],
     system,
@@ -43,6 +44,8 @@ export async function generateConfig(env: StepEnv, a: { templateId: TemplateId; 
     ctx: env.ctx,
     mock: { kind: "config", templateId: a.templateId, themeColor: a.pm.themeColor, currentConfig: a.currentConfig, prompt: a.prompt },
   });
+  // 新建应用不带示例数据（从空白状态开始）；修改时保留用户已有的配置
+  const config = a.currentConfig === null ? stripSeedData(a.templateId, raw) : raw;
   return { config, html: renderTemplate(a.templateId, config) };
 }
 

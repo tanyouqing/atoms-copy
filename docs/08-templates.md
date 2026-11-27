@@ -136,7 +136,7 @@ interface TodoConfig extends BaseConfig {
     progressBar: boolean;           // 顶部显示完成进度
   };
   emptyText: string;                // 空状态文案，≤40 字
-  seedItems: {                      // 3-8 条示例
+  seedItems: {                      // 新建应用时为空数组 []（用户自己添加）；修改时保持原样
     title: string;                  // ≤40 字
     category?: string;              // categories 中的 id
     done?: boolean;
@@ -162,7 +162,7 @@ interface LedgerConfig extends BaseConfig {
   monthlyBudget: number | null;     // 月预算，null 表示不显示预算进度
   charts: ("expenseByCategory" | "dailyTrend")[];   // 0-2 个，饼图 / 本月每日支出柱状图
   noteLabel: string;                // 备注字段名称，如"备注""用途"，≤6 字
-  seedEntries: {                    // 6-15 条，日期分布在最近 30 天
+  seedEntries: {                    // 新建应用时为空数组 []；最多 15 条
     type: "expense" | "income";
     amount: number;                 // > 0，最多两位小数
     category: string;               // 对应分类 id
@@ -189,7 +189,7 @@ interface FormConfig extends BaseConfig {
     title: string;                  // ≤20 字
     exportCsv: boolean;
   };
-  seedResponses: Record<string, string | number | boolean>[];   // 0-5 条示例提交，key 对应 fields
+  seedResponses: Record<string, string | number | boolean>[];   // 新建应用时为空数组 []；key 对应 fields
 }
 ```
 
@@ -203,7 +203,7 @@ interface KanbanConfig extends BaseConfig {
   cardNoun: string;                 // 卡片叫什么，如"候选人""任务"，≤6 字
   cardFields: Field[];              // 0-5 个，卡片的额外字段（title 固定存在）
   showOnCard: string[];             // 在卡片上直接展示的字段 key，0-3 个
-  seedCards: {                      // 4-12 张，分布在各列
+  seedCards: {                      // 新建应用时为空数组 []；最多 12 张
     column: string;                 // 列 id
     title: string;                  // ≤40 字
     fields?: Record<string, string | number | boolean>;
@@ -310,7 +310,7 @@ interface CrudConfig extends BaseConfig {
   filterField?: string;             // 用于筛选的 select 字段 key
   sortOptions: { key: string; label: string; dir: "asc" | "desc" }[];  // 1-4 个
   defaultView: "table" | "cards";
-  seedRecords: Record<string, string | number | boolean>[];  // 3-10 条
+  seedRecords: Record<string, string | number | boolean>[];  // 新建应用时为空数组 []；最多 10 条
 }
 ```
 

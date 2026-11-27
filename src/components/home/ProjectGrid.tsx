@@ -10,12 +10,14 @@ import { ConfirmDialog, Dialog } from "@/components/ui/dialog";
 import { Menu, MenuItem } from "@/components/ui/menu";
 import { api, ApiError } from "@/lib/api-client";
 import { TEMPLATES } from "@/lib/templates/registry";
+import { useMounted } from "@/hooks/useMounted";
 import { relativeTime } from "@/lib/utils";
 import type { ProjectSummary } from "@/types/api";
 
 const templateName = (id: string | null) => (id ? (TEMPLATES.find((t) => t.id === id)?.name ?? id) : "自由生成");
 
 export function ProjectGrid({ projects }: { projects: ProjectSummary[] }) {
+  const mounted = useMounted();
   const router = useRouter();
   const [, setTick] = useState(0);
   const [renaming, setRenaming] = useState<ProjectSummary | null>(null);
@@ -62,7 +64,7 @@ export function ProjectGrid({ projects }: { projects: ProjectSummary[] }) {
                 <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs text-[var(--muted)]">
                   {p.currentSeq ? <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 font-medium text-indigo-700">v{p.currentSeq}</span> : <span className="rounded-full bg-zinc-100 px-2 py-0.5">未生成</span>}
                   <span className="rounded-full bg-zinc-100 px-2 py-0.5">{templateName(p.templateId)}</span>
-                  <span className="ml-auto">{relativeTime(p.updatedAt)}</span>
+                  <span className="ml-auto">{mounted ? relativeTime(p.updatedAt) : ""}</span>
                 </div>
               </Link>
               <div className="absolute right-2 top-2 opacity-100 transition-opacity sm:opacity-0 sm:group-hover:opacity-100 sm:focus-within:opacity-100">

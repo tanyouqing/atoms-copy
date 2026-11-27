@@ -12,7 +12,7 @@ export function buildFreeSystem(): string {
 3. 需要图表时只能用 Chart.js：<script src="${CHARTJS_CDN}"></script>。除这两个以外，不要引用任何外部脚本、样式、字体或图片。
 4. 逻辑使用原生 JavaScript，写在 <body> 末尾的一个 <script> 标签里。不要用 type="module"、import、JSX、React、Vue 或 jQuery。
 5. 数据用 localStorage 持久化，键名统一以 "app:" 开头。读写都要用 try/catch 包裹，JSON 解析失败时回退到默认数据。
-6. 不要调用 fetch、XMLHttpRequest 或任何网络接口；需要的数据用本地示例数据模拟。
+6. 不要调用 fetch、XMLHttpRequest 或任何网络接口。用户自己录入的数据（任务、记录、打卡等）初始为空，不要预置示例数据，用友好的空状态提示引导用户添加第一条。
 7. 图标使用 emoji 或内联 SVG。
 8. 必须包含 <meta name="viewport" content="width=device-width, initial-scale=1">，布局在 375px 宽的手机上也要可用。
 9. 代码总长度控制在 30000 字符以内。不要写注释性的大段说明。

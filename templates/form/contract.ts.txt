@@ -10,5 +10,5 @@ interface FormConfig extends BaseConfig {
     title: string;                  // ≤20 字
     exportCsv: boolean;
   };
-  seedResponses: Record<string, string | number | boolean>[];   // 0-5 条示例提交，key 对应 fields
+  seedResponses: Record<string, string | number | boolean>[];   // 新建应用时为空数组 []；key 对应 fields
 }

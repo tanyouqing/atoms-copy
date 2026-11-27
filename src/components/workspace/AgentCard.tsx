@@ -3,6 +3,7 @@
 import { Check, ChevronRight, Loader2, Square, X } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 import { AgentAvatar } from "@/components/ui/avatar";
+import { useMounted } from "@/hooks/useMounted";
 import { AGENTS, type AgentRole } from "@/lib/agents";
 import { TEMPLATES } from "@/lib/templates/registry";
 import { cn, fmtDuration } from "@/lib/utils";
@@ -18,6 +19,7 @@ function StatusIcon({ status }: { status: MessageDTO["status"] }) {
 }
 
 function Elapsed({ m }: { m: MessageDTO }) {
+  const mounted = useMounted();
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (m.status !== "running") return;
@@ -25,7 +27,9 @@ function Elapsed({ m }: { m: MessageDTO }) {
     return () => clearInterval(t);
   }, [m.status]);
   const end = m.finishedAt ?? (m.status === "running" ? now : m.startedAt);
-  return <span className="text-xs tabular-nums text-[var(--muted)]">{fmtDuration(Math.max(0, end - m.startedAt))}</span>;
+  // 运行中的耗时依赖当前时间，服务端与浏览器不一致，挂载后再显示
+  const text = m.status === "running" && !mounted ? "" : fmtDuration(Math.max(0, end - m.startedAt));
+  return <span className="text-xs tabular-nums text-[var(--muted)]">{text}</span>;
 }
 
 function Collapsible({ label, children }: { label: string; children: ReactNode }) {
