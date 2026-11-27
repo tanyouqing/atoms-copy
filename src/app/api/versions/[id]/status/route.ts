@@ -20,7 +20,7 @@ const Body = z
 export const POST = withApi<{ id: string }>(async (req, { params, visitorId }) => {
   const body = Body.parse(await readJson(req));
   const version = getVersion(params.id) ?? notFoundError();
-  getProjectForVisitor(version.projectId, visitorId) ?? notFoundError();
+  if (!getProjectForVisitor(version.projectId, visitorId)) notFoundError();
   const r = applyQaResult({ version, status: body.status, errors: body.errors ?? [], qa: body.qa });
   if (body.qa?.outcome === "give_up") log.info("qa.give_up", { projectId: version.projectId, versionId: version.id, rolledBackTo: r.currentVersion?.id ?? null });
   return Response.json({ ok: true, message: r.message, currentVersion: r.currentVersion });

@@ -20,7 +20,7 @@ const Patch = z
 
 export const PATCH = withApi<P>(async (req, { params, visitorId }) => {
   const body = Patch.parse(await readJson(req));
-  getProjectForVisitor(params.id, visitorId) ?? notFoundError();
+  if (!getProjectForVisitor(params.id, visitorId)) notFoundError();
   const updated =
     updateProject(params.id, {
       ...(body.title !== undefined ? { title: body.title, titleLocked: true } : {}),
@@ -30,7 +30,7 @@ export const PATCH = withApi<P>(async (req, { params, visitorId }) => {
 });
 
 export const DELETE = withApi<P>((_req, { params, visitorId }) => {
-  getProjectForVisitor(params.id, visitorId) ?? notFoundError();
+  if (!getProjectForVisitor(params.id, visitorId)) notFoundError();
   abortProject(params.id);
   deleteProject(params.id);
   return Response.json({ ok: true });

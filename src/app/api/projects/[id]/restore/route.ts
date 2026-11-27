@@ -11,7 +11,7 @@ const Body = z.object({ versionId: z.string().min(1), reason: z.enum(["user", "a
 
 export const POST = withApi<{ id: string }>(async (req, { params, visitorId }) => {
   const body = Body.parse(await readJson(req));
-  getProjectForVisitor(params.id, visitorId) ?? notFoundError();
+  if (!getProjectForVisitor(params.id, visitorId)) notFoundError();
   if (isLocked(params.id)) throw new AppError("PROJECT_BUSY");
   const v = getVersion(body.versionId);
   if (!v || v.projectId !== params.id) notFoundError();
