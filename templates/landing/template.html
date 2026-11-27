@@ -7,8 +7,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
 <style type="text/tailwindcss">
 @custom-variant dark (&:where(.dark, .dark *));
-@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
-@utility surface { @apply bg-white dark:bg-slate-900; }
+@theme {
+  --color-slate-50: #f6f3ec; --color-slate-100: #efeae0; --color-slate-200: #e4ded2; --color-slate-300: #d0c8b8; --color-slate-400: #a59c8a; --color-slate-500: #7b7364;
+  --color-slate-600: #5f584c; --color-slate-700: #474137; --color-slate-800: #2f2b24; --color-slate-900: #1f1c17; --color-slate-950: #15130f;
+  --font-display: Georgia, "Times New Roman", "Songti SC", "STSong", serif;
+}
+@utility kbd { @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-b-2 border-slate-300 bg-slate-50 px-1 font-mono text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400; }
+@utility num { @apply font-display tabular-nums; }
+@utility rise { animation: rise .28s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .rise { animation: none; } }
+@utility card { @apply rounded-2xl border border-slate-200 bg-[#fffdf9] p-5 shadow-[0_1px_0_rgb(31_28_23/0.03),0_10px_30px_-20px_rgb(31_28_23/0.35)] md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-[#fffdf9] dark:bg-slate-900; }
 @utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
 @utility line { @apply border-slate-200 dark:border-slate-800; }
 @utility t-strong { @apply text-slate-900 dark:text-white; }
@@ -36,16 +46,18 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
 <div id="app"></div>
-<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
-<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#fffdf9] p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-slate-100 dark:text-slate-900"><span id="toast-msg"></span><button type="button" id="toast-undo" class="hidden shrink-0 cursor-pointer font-semibold text-[var(--p-200)] hover:underline dark:text-[var(--p-700)]"></button></div>
 <script id="app-config" type="application/json">__APP_CONFIG__</script>
 <script>
 (function () {
   "use strict";
   const TID = "landing";
   const I18N = {
-    "zh-CN": { menu: "菜单", recommended: "推荐", emailPh: "输入你的邮箱", subscribed: "提交成功，我们会尽快联系你", dup: "这个邮箱已经提交过啦", collected: "已有 {n} 人留下了邮箱", thanks: "感谢关注！", rights: "保留所有权利" },
-    en: { menu: "Menu", recommended: "Popular", emailPh: "Enter your email", subscribed: "Thanks! We'll be in touch soon", dup: "This email is already on the list", collected: "{n} people have signed up", thanks: "Thanks for your interest!", rights: "All rights reserved" },
+    "zh-CN": { menu: "菜单", recommended: "推荐", emailPh: "输入你的邮箱", subscribed: "提交成功，我们会尽快联系你", dup: "这个邮箱已经提交过啦", collected: "已有 {n} 人留下了邮箱", thanks: "感谢关注！", rights: "保留所有权利", planPicked: "已选择：{p}", planNoted: "我们已记下你感兴趣的方案：{p}", another: "再提交一个邮箱", leads: "已收集 {n} 个邮箱",
+      leadsTitle: "收集到的邮箱", leadsHint: "只保存在当前浏览器里，可导出为 CSV。" },
+    en: { menu: "Menu", recommended: "Popular", emailPh: "Enter your email", subscribed: "Thanks! We'll be in touch soon", dup: "This email is already on the list", collected: "{n} people have signed up", thanks: "Thanks for your interest!", rights: "All rights reserved", planPicked: "Selected: {p}", planNoted: "We noted your interest in {p}", another: "Add another email", leads: "{n} sign-ups",
+      leadsTitle: "Sign-ups", leadsHint: "Stored only in this browser. Export as CSV." },
   };
   const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
   const KEY = "app:" + TID + ":data";
@@ -61,7 +73,7 @@
     orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
     rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
     violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
-    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+    slate: ["#f8fafc", "#f1f5f9", "#e4ded2", "#7b7364", "#475569", "#334155"],
   };
   const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
   const pal = (name) => PALETTE[name] || PALETTE.indigo;
@@ -70,8 +82,8 @@
   document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
   if (DARK) document.documentElement.classList.add("dark");
   const BASE_I18N = {
-    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
-    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+    "zh-CN": { undo: "撤销", undone: "已撤销", shortcuts: "键盘快捷键", confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { undo: "Undo", undone: "Undone", shortcuts: "Keyboard shortcuts", confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
   };
   const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
   const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
@@ -101,7 +113,21 @@
   const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
   const saveMeta = (m) => save(META_KEY, m);
 
-  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+  let undoFn = null;
+  const hideToast = () => { const el = $("#toast"); el.style.opacity = "0"; el.classList.add("pointer-events-none"); undoFn = null; };
+  /** 轻提示；传 onUndo 时显示「撤销」按钮，5 秒内可撤销。 */
+  const toast = (msg, onUndo) => {
+    const el = $("#toast");
+    $("#toast-msg").textContent = msg;
+    undoFn = onUndo || null;
+    $("#toast-undo").textContent = t("undo");
+    $("#toast-undo").classList.toggle("hidden", !undoFn);
+    el.classList.toggle("pointer-events-none", !undoFn);
+    el.style.opacity = "1";
+    clearTimeout(el._h);
+    el._h = setTimeout(hideToast, undoFn ? 5000 : 2000);
+  };
+  $("#toast-undo").addEventListener("click", () => { const fn = undoFn; hideToast(); if (fn) { fn(); toast(t("undone")); } });
 
   let modalClose = null;
   const openModal = (html, onClose) => {
@@ -133,6 +159,21 @@
   };
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+  /** 单键快捷键（docs/08 §5.2）：焦点在输入框或弹窗打开时不触发；按 ? 查看全部。 */
+  const KEYS = [];
+  const shortcut = (key, label, fn) => KEYS.push({ key, label, fn });
+  const showKeys = () => openModal('<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("shortcuts")) + '</div><ul class="space-y-2 text-sm t-body">' +
+    KEYS.concat([{ key: "?", label: t("shortcuts") }, { key: "Esc", label: t("close") }]).map((k) => '<li class="flex items-center justify-between gap-4"><span>' + esc(k.label) + '</span><span class="kbd">' + esc(({ " ": "Space", ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓", Enter: "Enter" })[k.key] || k.key.toUpperCase()) + "</span></li>").join("") +
+    '</ul><div class="flex justify-end"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + "</button></div></div>");
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || !$("#modal").classList.contains("hidden")) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
+    if (e.key === "?" && KEYS.length) { e.preventDefault(); showKeys(); return; }
+    const k = KEYS.find((x) => x.key === e.key);
+    if (k) { e.preventDefault(); k.fn(e); }
+  });
+  const keysHint = () => KEYS.length ? '<footer class="pt-2 text-center text-xs t-faint"><button type="button" data-act="keys" class="cursor-pointer hover:text-[var(--p-600)]"><span class="kbd">?</span> ' + esc(t("shortcuts")) + "</button></footer>" : "";
 
   /** 整体重绘时保留输入框焦点与光标位置。 */
   const keepFocus = (fn) => {
@@ -149,7 +190,7 @@
   };
 
   /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
-  const ACTIONS = { "modal-close": () => closeModal() };
+  const ACTIONS = { "modal-close": () => closeModal(), keys: () => showKeys() };
   const delegate = (type) => document.addEventListener(type, (e) => {
     const el = e.target.closest && e.target.closest("[data-" + type + "]");
     if (!el) return;
@@ -167,7 +208,7 @@
   const header = (extra) =>
     '<header class="flex flex-wrap items-start justify-between gap-4">' +
     '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
-    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    '<div class="min-w-0"><h1 class="font-display text-[1.65rem] leading-tight font-semibold tracking-tight t-strong">' + esc(CONFIG.title) + "</h1>" +
     (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
     (extra || "") + "</header>";
   const emptyState = (emoji, text, btn) =>
@@ -179,18 +220,34 @@
   const findIdx = (type) => SECTIONS.findIndex((s) => s.type === type);
   const CTA_TARGET = findIdx("contact") >= 0 ? "sec-" + findIdx("contact") : findIdx("pricing") >= 0 ? "sec-" + findIdx("pricing") : SECTIONS.length ? "sec-0" : "";
   const data = loadData(() => []);
-  const state = { menuOpen: false };
+  const state = { menuOpen: false, plan: "", active: "", seen: new Set(), joined: false };
   const persist = () => save(KEY, data);
   const TILE_PALETTES = [CONFIG.theme && CONFIG.theme.primary, "sky", "violet", "amber", "rose", "emerald", "orange", "teal", "blue"];
   const tileBg = (i) => { const a = pal(TILE_PALETTES[i % TILE_PALETTES.length]); return "background:linear-gradient(135deg," + (DARK ? a[5] + "," + a[3] : a[1] + "," + a[3]) + ")"; };
   const wrap = (inner) => '<div class="mx-auto max-w-6xl px-4 md:px-8">' + inner + "</div>";
-  const sectionTitle = (title) => '<h2 class="text-center text-2xl font-bold tracking-tight t-strong md:text-4xl">' + esc(title) + "</h2>";
+  const sectionTitle = (title) => '<h2 class="text-center font-display text-2xl font-semibold tracking-tight t-strong md:text-4xl">' + esc(title) + "</h2>";
+  /** 统计数字滚动：只对以数字开头的值生效（如 "12万+" "98%"），其余原样显示。 */
+  const countUp = (el) => {
+    const raw = el.getAttribute("data-count");
+    const m = raw.match(/^([^\d]*)([\d,.]+)(.*)$/);
+    if (!m || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const target = Number(m[2].replace(/,/g, ""));
+    const dec = (m[2].split(".")[1] || "").length;
+    const t0 = performance.now();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / 900);
+      const v = target * (1 - Math.pow(1 - k, 3));
+      el.textContent = m[1] + (m[2].includes(",") ? v.toLocaleString("en", { maximumFractionDigits: dec, minimumFractionDigits: dec }) : v.toFixed(dec)) + m[3];
+      if (k < 1) requestAnimationFrame(step); else el.textContent = raw;
+    };
+    requestAnimationFrame(step);
+  };
   const goto = (target, cls, label) => '<button type="button" data-act="goto" data-target="' + esc(target) + '" class="' + cls + '">' + esc(label) + "</button>";
 
   const navBar = () =>
     '<nav id="nav" class="sticky top-0 z-40 border-b border-transparent transition">' + wrap(
       '<div class="flex h-16 items-center justify-between gap-4"><button type="button" data-act="goto" data-target="top" class="flex cursor-pointer items-center gap-2 text-lg font-bold t-strong"><span class="text-2xl">' + esc(CONFIG.emoji) + "</span>" + esc(CONFIG.brand || CONFIG.title) + "</button>" +
-      '<div class="hidden items-center gap-1 md:flex">' + NAV.map((n) => goto(n.target, "cursor-pointer rounded-lg px-3 py-2 text-sm font-medium t-body transition hover:text-[var(--p-600)]", n.label)).join("") + "</div>" +
+      '<div class="hidden items-center gap-1 md:flex">' + NAV.map((n) => goto(n.target, "cursor-pointer rounded-lg px-3 py-2 text-sm font-medium transition hover:text-[var(--p-600)] " + (state.active === n.target ? "text-[var(--p-600)] bg-[var(--p-50)] dark:bg-[var(--p-700)]/25" : "t-body"), n.label)).join("") + "</div>" +
       '<div class="flex items-center gap-2">' + (CTA_TARGET ? goto(CTA_TARGET, "btn btn-primary hidden sm:inline-flex", HERO.primaryCta) : "") +
       (NAV.length ? '<button type="button" data-act="menu" class="icon-btn h-10 w-10 text-xl md:hidden" aria-label="' + esc(t("menu")) + '">' + (state.menuOpen ? "✕" : "☰") + "</button>" : "") + "</div></div>" +
       (state.menuOpen ? '<div class="space-y-1 border-t line pb-4 pt-2 md:hidden">' + NAV.map((n) => goto(n.target, "block w-full cursor-pointer rounded-lg px-3 py-2.5 text-left text-sm font-medium t-body hover:bg-slate-100 dark:hover:bg-slate-800", n.label)).join("") +
@@ -218,7 +275,7 @@
     '<header id="sec-top" class="relative overflow-hidden"><div class="pointer-events-none absolute inset-x-0 -top-40 h-80 opacity-40 blur-3xl" style="background:radial-gradient(closest-side,' + PRIMARY[2] + ',transparent)"></div>' +
     wrap('<div class="relative grid items-center gap-12 py-16 md:grid-cols-2 md:py-24"><div class="space-y-6 text-center md:text-left">' +
       (HERO.eyebrow ? '<span class="tag tag-primary px-3 py-1">' + esc(HERO.eyebrow) + "</span>" : "") +
-      '<h1 class="text-4xl font-extrabold tracking-tight t-strong md:text-6xl">' + esc(HERO.headline) + "</h1>" +
+      '<h1 class="font-display text-4xl leading-[1.1] font-semibold tracking-tight t-strong md:text-6xl">' + esc(HERO.headline) + "</h1>" +
       '<p class="text-base leading-relaxed t-body md:text-lg">' + esc(HERO.subheadline) + "</p>" +
       '<div class="flex flex-col justify-center gap-3 sm:flex-row md:justify-start">' + (CTA_TARGET ? goto(CTA_TARGET, "btn btn-primary px-6 py-3 text-base", HERO.primaryCta) : "") +
       (HERO.secondaryCta && SECTIONS.length ? goto("sec-0", "btn btn-secondary px-6 py-3 text-base", HERO.secondaryCta) : "") + "</div></div>" +
@@ -228,7 +285,7 @@
     features: (s) => sectionTitle(s.title) + '<div class="mt-10 grid gap-4 sm:grid-cols-2 ' + (s.items.length === 4 ? "" : "lg:grid-cols-3") + '">' + s.items.map((it) =>
       '<div class="card transition hover:-translate-y-0.5 hover:shadow-md"><div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(it.emoji) + '</div><h3 class="mt-4 text-lg font-semibold t-strong">' + esc(it.title) + '</h3><p class="mt-2 text-sm leading-relaxed t-body">' + esc(it.desc) + "</p></div>").join("") + "</div>",
     stats: (s) => '<div class="grid grid-cols-2 gap-4 rounded-3xl p-6 md:p-10 ' + (s.items.length > 2 ? "md:grid-cols-" + s.items.length : "") + '" style="background:linear-gradient(135deg,' + PRIMARY[5] + "," + PRIMARY[3] + ')">' + s.items.map((it) =>
-      '<div class="text-center text-white"><div class="text-3xl font-extrabold md:text-5xl">' + esc(it.value) + '</div><div class="mt-1 text-sm opacity-80">' + esc(it.label) + "</div></div>").join("") + "</div>",
+      '<div class="text-center text-white"><div class="num text-3xl font-semibold md:text-5xl" data-count="' + esc(it.value) + '">' + esc(it.value) + '</div><div class="mt-1 text-sm opacity-80">' + esc(it.label) + "</div></div>").join("") + "</div>",
     steps: (s) => sectionTitle(s.title) + '<ol class="mt-10 grid gap-4 md:grid-cols-' + Math.min(s.items.length, 3) + '">' + s.items.map((it, i) =>
       '<li class="card relative"><div class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--p-600)] text-sm font-bold text-white">' + (i + 1) + '</div><h3 class="mt-4 text-lg font-semibold t-strong">' + esc(it.title) + '</h3><p class="mt-2 text-sm leading-relaxed t-body">' + esc(it.desc) + "</p></li>").join("") + "</ol>",
     testimonials: (s) => sectionTitle(s.title) + '<div class="mt-10 grid gap-4 md:grid-cols-2">' + s.items.map((it, i) =>
@@ -244,12 +301,16 @@
       '<details class="group card p-0 md:p-0"><summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-left font-medium t-strong [&::-webkit-details-marker]:hidden">' + esc(it.q) +
       '<span class="shrink-0 text-xl t-faint transition group-open:rotate-45">＋</span></summary><p class="px-5 pb-5 text-sm leading-relaxed t-body">' + esc(it.a) + "</p></details>").join("") + "</div>",
     gallery: (s) => sectionTitle(s.title) + '<div class="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3">' + s.items.map((it, i) =>
-      '<div class="group overflow-hidden rounded-2xl border line surface shadow-sm"><div class="flex aspect-[4/3] items-center justify-center text-5xl transition group-hover:scale-105" style="' + tileBg(i) + '">' + esc(it.emoji) + "</div>" +
+      '<div data-act="photo" data-i="' + i + '" data-s="' + SECTIONS.indexOf(s) + '" class="group cursor-zoom-in overflow-hidden rounded-2xl border line surface shadow-sm"><div class="flex aspect-[4/3] items-center justify-center text-5xl transition group-hover:scale-105" style="' + tileBg(i) + '">' + esc(it.emoji) + "</div>" +
       '<div class="p-4"><h3 class="text-sm font-semibold t-strong">' + esc(it.title) + '</h3><p class="mt-1 text-xs t-muted">' + esc(it.caption) + "</p></div></div>").join("") + "</div>",
     contact: (s) => '<div class="relative overflow-hidden rounded-3xl px-6 py-12 text-center text-white md:px-12 md:py-16" style="background:linear-gradient(135deg,' + PRIMARY[5] + "," + PRIMARY[3] + ')">' +
       '<h2 class="text-2xl font-bold md:text-4xl">' + esc(s.title) + '</h2><p class="mx-auto mt-3 max-w-xl text-sm opacity-90 md:text-base">' + esc(s.text) + "</p>" +
-      (s.collectEmail
-        ? '<form data-submit="email" class="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row" novalidate><input id="email" type="email" autocomplete="email" class="w-full rounded-xl border-0 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-white/60 focus:outline-none" placeholder="' + esc(t("emailPh")) + '">' +
+      (s.collectEmail && state.joined
+        ? '<div class="rise mx-auto mt-8 max-w-md rounded-2xl bg-white/15 px-6 py-5 backdrop-blur"><div class="text-3xl">🎉</div><p class="mt-2 font-semibold">' + esc(t("subscribed")) + "</p>" + (state.plan ? '<p class="mt-1 text-sm opacity-90">' + esc(t("planNoted", { p: state.plan })) + "</p>" : "") +
+          '<button type="button" data-act="again" class="mt-3 cursor-pointer text-xs underline opacity-80 hover:opacity-100">' + esc(t("another")) + "</button></div>"
+        : s.collectEmail
+        ? (state.plan ? '<div class="mt-6 inline-flex items-center gap-2 rounded-full bg-white/20 px-3 py-1 text-xs">' + esc(t("planPicked", { p: state.plan })) + ' <button type="button" data-act="unplan" class="cursor-pointer opacity-80 hover:opacity-100" aria-label="clear">✕</button></div>' : "") +
+          '<form data-submit="email" class="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row" novalidate><input id="email" type="email" autocomplete="email" class="w-full rounded-xl border-0 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-white/60 focus:outline-none" placeholder="' + esc(t("emailPh")) + '">' +
           '<button type="submit" class="btn shrink-0 bg-slate-900 px-6 py-3 text-white hover:bg-slate-800">' + esc(s.buttonText) + "</button></form>" +
           '<p id="email-err" class="mt-2 text-xs text-white/90" hidden></p>' + (data.items.length ? '<p class="mt-4 text-xs opacity-80">' + esc(t("collected", { n: data.items.length })) + "</p>" : "")
         : '<button type="button" data-act="contact-btn" class="btn mt-8 bg-white px-6 py-3 text-base text-slate-900 hover:bg-slate-100">' + esc(s.buttonText) + "</button>") + "</div>",
@@ -257,13 +318,32 @@
 
   const footer = () => '<footer class="mt-8 border-t line py-10">' + wrap('<div class="flex flex-col items-center justify-between gap-4 text-sm t-muted md:flex-row"><div class="flex items-center gap-2"><span>' + esc(CONFIG.emoji) + '</span><span class="font-semibold t-strong">' + esc(CONFIG.brand || CONFIG.title) + "</span><span>· " + esc((CONFIG.footer && CONFIG.footer.text) || "") + "</span></div>" +
     '<div class="flex flex-wrap justify-center gap-4">' + ((CONFIG.footer && CONFIG.footer.links) || []).map((l) => '<span class="cursor-default hover:text-[var(--p-600)]">' + esc(l) + "</span>").join("") + "</div></div>" +
-    '<p class="mt-6 text-center text-xs t-faint">© ' + new Date().getFullYear() + " " + esc(CONFIG.brand || CONFIG.title) + " · " + esc(t("rights")) + "</p>") + "</footer>";
+    '<p class="mt-6 text-center text-xs t-faint">© ' + new Date().getFullYear() + " " + esc(CONFIG.brand || CONFIG.title) + " · " + esc(t("rights")) +
+    (data.items.length ? ' · <button type="button" data-act="leads" class="cursor-pointer underline-offset-2 hover:text-[var(--p-600)] hover:underline">' + esc(t("leads", { n: data.items.length })) + "</button>" : "") + "</p>") + "</footer>" +
+    '<button type="button" id="to-top" data-act="goto" data-target="top" aria-label="top" class="fixed right-5 bottom-5 z-30 flex h-11 w-11 cursor-pointer items-center justify-center rounded-full border line surface text-lg t-body opacity-0 shadow-lg transition hover:text-[var(--p-600)] pointer-events-none">↑</button>';
 
   const render = () => keepFocus(() => {
     $("#app").innerHTML = navBar() + hero() + SECTIONS.map((s, i) => R[s.type]
-      ? '<section id="sec-' + i + '" class="scroll-mt-20 py-12 md:py-20' + (s.type === "testimonials" || s.type === "faq" ? " surface-2" : "") + '">' + wrap(R[s.type](s)) + "</section>" : "").join("") + footer();
+      ? '<section id="sec-' + i + '" data-reveal class="scroll-mt-20 py-12 transition duration-700 md:py-20' + (s.type === "testimonials" || s.type === "faq" ? " surface-2" : "") + (REVEAL && !state.seen.has("sec-" + i) ? " translate-y-6 opacity-0" : "") + '">' + wrap(R[s.type](s)) + "</section>" : "").join("") + footer();
     onScroll();
+    observe();
   });
+
+  /** 滚动出现：每个区块第一次进入视口时淡入；统计数字顺带滚动计数。减弱动效或不支持时直接显示。 */
+  const REVEAL = "IntersectionObserver" in window && !window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let io = null;
+  function observe() {
+    if (!REVEAL) return;
+    if (io) io.disconnect();
+    io = new IntersectionObserver((entries) => entries.forEach((en) => {
+      if (!en.isIntersecting || state.seen.has(en.target.id)) return;
+      state.seen.add(en.target.id);
+      en.target.classList.remove("translate-y-6", "opacity-0");
+      $$("[data-count]", en.target).forEach(countUp);
+      io.unobserve(en.target);
+    }), { threshold: 0.12 });
+    $$("[data-reveal]").forEach((el) => { if (!state.seen.has(el.id)) io.observe(el); });
+  }
 
   function onScroll() {
     const nav = $("#nav");
@@ -271,8 +351,23 @@
     const on = window.scrollY > 8 || state.menuOpen;
     ["bg-white/85", "dark:bg-slate-950/85", "shadow-sm", "backdrop-blur", "line"].forEach((c) => nav.classList.toggle(c, on));
     nav.classList.toggle("border-transparent", !on);
+    const top = $("#to-top");
+    if (top) { const show = window.scrollY > 600; top.classList.toggle("opacity-0", !show); top.classList.toggle("pointer-events-none", !show); }
+    // 滚动高亮：视口上 1/3 处所在的区块
+    let cur = "";
+    if (window.scrollY > 40) NAV.forEach((n) => { const el = document.getElementById(n.target); if (el && el.getBoundingClientRect().top < window.innerHeight / 3) cur = n.target; });
+    if (cur !== state.active) {
+      state.active = cur;
+      $$("#nav [data-act=goto]").forEach((b) => {
+        const on2 = b.getAttribute("data-target") === cur && !b.classList.contains("btn");
+        if (!NAV.some((n) => n.target === b.getAttribute("data-target")) || b.closest(".md\\:hidden")) return;
+        ["text-[var(--p-600)]", "bg-[var(--p-50)]", "dark:bg-[var(--p-700)]/25"].forEach((c) => b.classList.toggle(c, on2));
+        b.classList.toggle("t-body", !on2);
+      });
+    }
   }
   window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onScroll);
 
   ACTIONS.goto = (el) => {
     state.menuOpen = false;
@@ -285,8 +380,41 @@
   ACTIONS.menu = () => { state.menuOpen = !state.menuOpen; render(); };
   ACTIONS.plan = (el) => {
     const contact = findIdx("contact");
+    state.plan = el.getAttribute("data-plan");
+    if (contact >= 0 && SECTIONS[contact].collectEmail) { state.joined = false; render(); }
     if (contact >= 0) document.getElementById("sec-" + contact).scrollIntoView({ behavior: "smooth" });
-    toast("✓ " + el.getAttribute("data-plan"));
+    toast(t("planPicked", { p: state.plan }));
+  };
+  ACTIONS.unplan = () => { state.plan = ""; render(); };
+  ACTIONS.again = () => { state.joined = false; render(); const i = $("#email"); if (i) i.focus(); };
+  ACTIONS.photo = (el) => {
+    const s = SECTIONS[Number(el.getAttribute("data-s"))];
+    const i = Number(el.getAttribute("data-i"));
+    const it = s && s.items[i];
+    if (!it) return;
+    openModal('<div class="space-y-4"><div class="flex aspect-[4/3] items-center justify-center rounded-2xl text-8xl" style="' + tileBg(i) + '">' + esc(it.emoji) + '</div><div><h3 class="text-lg font-semibold t-strong">' + esc(it.title) + '</h3><p class="mt-1 text-sm t-body">' + esc(it.caption) + "</p></div>" +
+      '<div class="flex items-center justify-between"><span class="text-xs t-faint">' + (i + 1) + " / " + s.items.length + '</span><div class="flex gap-2">' +
+      (i > 0 ? '<button type="button" class="btn btn-secondary" data-act="photo" data-s="' + SECTIONS.indexOf(s) + '" data-i="' + (i - 1) + '">←</button>' : "") +
+      (i < s.items.length - 1 ? '<button type="button" class="btn btn-secondary" data-act="photo" data-s="' + SECTIONS.indexOf(s) + '" data-i="' + (i + 1) + '">→</button>' : "") +
+      '<button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + "</button></div></div></div>");
+  };
+  /** 站长视角：查看和导出收集到的邮箱（数据只在本机浏览器）。 */
+  ACTIONS.leads = () => {
+    const rows = data.items.slice().sort((a, b) => b.at - a.at);
+    openModal('<div class="space-y-4"><div><div class="text-lg font-semibold t-strong">' + esc(t("leadsTitle")) + '</div><p class="text-xs t-faint">' + esc(t("leadsHint")) + "</p></div>" +
+      '<ul class="max-h-72 divide-y divide-slate-100 overflow-y-auto text-sm dark:divide-slate-800">' + rows.map((r) => '<li class="flex items-center justify-between gap-3 py-2"><span class="min-w-0 truncate t-body">' + esc(r.email) + "</span>" +
+        (r.plan ? '<span class="tag tag-primary">' + esc(r.plan) + "</span>" : "") + '<span class="shrink-0 text-xs t-faint">' + esc(fmtDate(new Date(r.at))) + "</span></li>").join("") + "</ul>" +
+      '<div class="flex justify-end gap-2"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + '</button><button type="button" class="btn btn-primary" data-act="leads-csv">↓ CSV</button></div></div>');
+  };
+  ACTIONS["leads-csv"] = () => {
+    const cell = (v) => { const x = String(v ?? ""); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+    const text = [["email", "plan", "time"]].concat(data.items.map((r) => [r.email, r.plan || "", new Date(r.at).toISOString()])).map((r) => r.map(cell).join(",")).join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\uFEFF" + text], { type: "text/csv;charset=utf-8" }));
+    a.download = (CONFIG.brand || CONFIG.title) + "-emails.csv";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1000);
   };
   ACTIONS["contact-btn"] = () => toast(t("thanks"));
   ACTIONS.email = (form, e) => {
@@ -296,8 +424,9 @@
     const err = $("#email-err");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = t("errEmail"); err.hidden = false; input.focus(); return; }
     if (data.items.some((x) => x.email === email)) { err.hidden = true; toast(t("dup")); return; }
-    data.items.push({ email, at: Date.now() });
+    data.items.push({ email, at: Date.now(), plan: state.plan || undefined });
     persist();
+    state.joined = true;
     render();
     toast(t("subscribed"));
   };

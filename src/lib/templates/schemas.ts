@@ -131,6 +131,7 @@ export const FormConfigSchema = z.object({
   successTitle: str(20),
   successText: z.string().trim().max(100),
   allowMultiple: z.boolean(),
+  stepByStep: z.boolean().optional(),
   adminView: z.object({ enabled: z.boolean(), title: str(20), exportCsv: z.boolean() }),
   seedResponses: z.array(z.record(z.string(), scalar)).max(5),
 });

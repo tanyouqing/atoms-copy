@@ -1,0 +1,26 @@
+{
+  "title": "课程满意度问卷",
+  "subtitle": "匿名填写，约 1 分钟",
+  "emoji": "📝",
+  "locale": "zh-CN",
+  "theme": { "primary": "teal", "mode": "light" },
+  "intro": "感谢参加本期《前端工程化》训练营，你的反馈会直接用于改进下一期课程。",
+  "fields": [
+    { "key": "score", "label": "整体满意度", "type": "rating", "required": true },
+    { "key": "pace", "label": "课程节奏", "type": "select", "required": true, "options": ["太快", "刚好", "太慢"] },
+    { "key": "hours", "label": "每周投入小时数", "type": "number", "min": 0, "max": 40 },
+    { "key": "recommend", "label": "愿意推荐", "type": "checkbox", "placeholder": "我愿意推荐给朋友" },
+    { "key": "advice", "label": "改进建议", "type": "textarea", "placeholder": "哪里可以做得更好？" }
+  ],
+  "submitText": "提交问卷",
+  "successTitle": "感谢你的反馈",
+  "successText": "我们会在下一期开课前公布改进清单。",
+  "allowMultiple": true,
+  "stepByStep": true,
+  "adminView": { "enabled": true, "title": "问卷结果", "exportCsv": true },
+  "seedResponses": [
+    { "score": 5, "pace": "刚好", "hours": 6, "recommend": true, "advice": "希望多一些实战项目" },
+    { "score": 4, "pace": "太快", "hours": 10, "recommend": true, "advice": "第三周内容有点赶" },
+    { "score": 3, "pace": "太快", "hours": 4, "recommend": false, "advice": "" }
+  ]
+}
