@@ -38,7 +38,7 @@ function Mia() {
   return (
     <>
       <path d="M13.6 29 C12.4 19 15.6 11 24 11 C32.4 11 35.6 19 34.4 29 C33 30 31.6 29.6 31.4 28 L31.6 19.5 C27.4 19.4 22.6 17.6 19.8 15.2 C19 17.4 17.6 19 16.4 19.8 L16.6 28 C16.4 29.6 15 30 13.6 29 Z" fill={hair} />
-      <Base shirt="#D4932A" />
+      <Base shirt="#F5A524" />
       <path d="M15 20.5 C15.4 14 19 11.8 24 11.8 C29 11.8 32.6 14 33 20.5 C29 20.2 23.6 18.4 20.4 15.6 C19.4 18 17.4 19.8 15 20.5 Z" fill={hair} />
       <Face cheeks={false} />
       <g stroke={INK} strokeWidth="0.9" fill="none">
@@ -62,8 +62,8 @@ function Leo() {
   const hair = "#2B2620";
   return (
     <>
-      <Base shirt="#2F6DB5" />
-      <path d="M17 36.2 C19 39.4 29 39.4 31 36.2" stroke="#245892" strokeWidth="2.4" fill="none" strokeLinecap="round" />
+      <Base shirt="#3B82F6" />
+      <path d="M17 36.2 C19 39.4 29 39.4 31 36.2" stroke="#2563EB" strokeWidth="2.4" fill="none" strokeLinecap="round" />
       <path d="M15.2 19.6 C14.6 13.4 18.4 10.6 23.6 10.6 C28.2 10.6 32.6 12.6 32.8 19 C31.2 17 29.4 16.4 27.6 16.6 C26.6 15.4 25 15 23.4 15.8 C21.4 15 18.2 16 15.2 19.6 Z" fill={hair} />
       <path d="M22 11 L24.6 8.8 L25 11.2 Z" fill={hair} />
       <Face />
@@ -84,10 +84,10 @@ function Iris() {
   return (
     <>
       <circle cx="24" cy="10.2" r="3.8" fill={hair} />
-      <Base shirt="#2F8A57" />
+      <Base shirt="#22C55E" />
       <path d="M14.9 22.4 C14.4 15 18.6 12.2 24 12.2 C29.4 12.2 33.6 15 33.1 22.4 C31.8 19 28.4 16.8 25.2 16.6 C23.4 17.8 21 18.2 18.6 17.8 C16.8 18.8 15.6 20.4 14.9 22.4 Z" fill={hair} />
       <Face />
-      <path d="M21 34.6 L24 37.6 L27 34.6" stroke="#22683F" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
+      <path d="M21 34.6 L24 37.6 L27 34.6" stroke="#15803D" strokeWidth="1.3" fill="none" strokeLinejoin="round" />
       <path d="M29.4 44.6 L26.2 47.8" stroke="#5B3A1E" strokeWidth="2.4" strokeLinecap="round" />
       <circle cx="33.2" cy="40.6" r="5" fill="#EAF7FF" fillOpacity="0.85" stroke="#2A2118" strokeWidth="1.5" />
       <path d="M31 39 Q32 37.8 33.4 37.6" stroke="#FFFFFF" strokeWidth="1" fill="none" strokeLinecap="round" />

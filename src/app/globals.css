@@ -1,39 +1,41 @@
 @import "tailwindcss";
 
 /*
- * 视觉基调（docs/02 §2）：暖白纸面 + 墨色文字 + 一处朱红点缀。
- * 把 Tailwind 的 zinc 灰阶整体换成偏暖的石色，已有的 zinc-* 类名自动跟着变，不用逐个改。
+ * 视觉基调（docs/02 §2）：首屏深色科技感（网格、光晕、流动描边），内容区明亮中性色 + 橙红点缀。
+ * Tailwind 的 zinc 灰阶整体换成略暖的中性灰，已有的 zinc-* 类名自动跟着变。
  */
 @theme {
-  --color-zinc-50: #faf8f3;
-  --color-zinc-100: #f1ede4;
-  --color-zinc-200: #e4ded2;
-  --color-zinc-300: #d0c8b8;
-  --color-zinc-400: #a59c8a;
-  --color-zinc-500: #7b7364;
-  --color-zinc-600: #5f584c;
-  --color-zinc-700: #474137;
-  --color-zinc-800: #2f2b24;
-  --color-zinc-900: #1f1c17;
-  --color-zinc-950: #12100c;
+  --color-zinc-50: #f8f8f6;
+  --color-zinc-100: #f0f0ed;
+  --color-zinc-200: #e3e3df;
+  --color-zinc-300: #cfcfc9;
+  --color-zinc-400: #a1a19a;
+  --color-zinc-500: #74746d;
+  --color-zinc-600: #56564f;
+  --color-zinc-700: #3f3f3a;
+  --color-zinc-800: #27272a;
+  --color-zinc-900: #15161a;
+  --color-zinc-950: #0a0b0e;
 }
 
 :root {
-  --brand: #e0532b;
-  --brand-ink: #b23c18;
-  --brand-soft: #fbe9e1;
-  --ink: #1f1c17;
-  --bg: #f5f2eb;
-  --panel: #fffdf9;
-  --border: #e4ded2;
-  --text: #1f1c17;
-  --muted: #7b7364;
-  --success: #2f8a57;
-  --warning: #c27a12;
-  --danger: #cf3b2a;
-  --pm: #d4932a;
-  --engineer: #2f6db5;
-  --qa: #2f8a57;
+  --brand: #ff5a1f;
+  --brand-ink: #d63d06;
+  --brand-soft: #ffeadf;
+  --signal: #27d3c3;
+  --ink: #15161a;
+  --night: #0a0d12;
+  --bg: #f7f7f5;
+  --panel: #ffffff;
+  --border: #e5e5e0;
+  --text: #15161a;
+  --muted: #6b6b64;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #e5372a;
+  --pm: #f5a524;
+  --engineer: #3b82f6;
+  --qa: #22c55e;
 }
 
 html,
@@ -59,7 +61,7 @@ pre,
 }
 
 ::selection {
-  background: #f6c9b6;
+  background: #ffc8b0;
 }
 
 /* 首页底纹：很淡的点阵，像笔记本 */
@@ -146,6 +148,95 @@ pre,
   transform: translateY(16px);
 }
 
+
+/* ---------- 首屏科技感：网格、光晕、流动边框 ---------- */
+
+.tech-grid {
+  background-image:
+    linear-gradient(rgb(255 255 255 / 0.06) 1px, transparent 1px),
+    linear-gradient(90deg, rgb(255 255 255 / 0.06) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 35%, #000 40%, transparent 100%);
+}
+
+@keyframes atoms-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(40px, -30px, 0) scale(1.08);
+  }
+}
+.glow-orb {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(80px);
+  animation: atoms-drift 16s ease-in-out infinite;
+}
+
+/* 输入框外圈的流动渐变描边 */
+@property --spin {
+  syntax: "<angle>";
+  initial-value: 0deg;
+  inherits: false;
+}
+@keyframes atoms-spin {
+  to {
+    --spin: 360deg;
+  }
+}
+.flow-border {
+  position: relative;
+  isolation: isolate;
+}
+.flow-border::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  padding: 1px;
+  background: conic-gradient(from var(--spin), #ff5a1f, #f5a524, #27d3c3, #3b82f6, #ff5a1f);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  animation: atoms-spin 6s linear infinite;
+}
+
+.text-fire {
+  background: linear-gradient(100deg, #ff5a1f 10%, #ffb020 55%, #ff7a45 90%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+@keyframes atoms-marquee {
+  to {
+    transform: translateX(-50%);
+  }
+}
+.marquee {
+  animation: atoms-marquee 40s linear infinite;
+}
+.marquee:hover {
+  animation-play-state: paused;
+}
+
+@keyframes atoms-scan {
+  0% {
+    transform: translateY(-100%);
+  }
+  100% {
+    transform: translateY(400%);
+  }
+}
+.scanline {
+  animation: atoms-scan 4.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
@@ -158,5 +249,11 @@ pre,
   [data-reveal][data-hidden] {
     opacity: 1;
     transform: none;
+  }
+  .marquee,
+  .glow-orb,
+  .scanline,
+  .flow-border::before {
+    animation: none !important;
   }
 }
