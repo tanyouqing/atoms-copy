@@ -1,16 +1,27 @@
-import Link from "next/link";
+import { HomeHeader } from "@/components/home/HomeHeader";
+import { ExampleCards } from "@/components/home/ExampleCards";
+import { ProjectGrid } from "@/components/home/ProjectGrid";
+import { PromptBox } from "@/components/home/PromptBox";
+import { listProjects } from "@/lib/db/queries";
+import { getVisitorIdFromRequest } from "@/lib/visitor";
 
-// 首页在 T2.1 实现；当前只提供模板画廊入口
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const visitorId = await getVisitorIdFromRequest();
+  const projects = visitorId ? listProjects(visitorId) : [];
   return (
-    <main className="mx-auto max-w-2xl space-y-4 px-6 py-24 text-center">
-      <h1 className="text-3xl font-bold">Atoms Demo</h1>
-      <p className="text-zinc-500">工作台开发中。当前可在开发环境查看 8 个应用模板。</p>
-      {process.env.NODE_ENV !== "production" && (
-        <Link href="/dev/templates" className="inline-block rounded-xl bg-zinc-900 px-4 py-2 text-sm font-medium text-white">
-          打开模板画廊
-        </Link>
-      )}
-    </main>
+    <div className="min-h-screen">
+      <HomeHeader />
+      <main className="mx-auto max-w-3xl px-4 pb-20 pt-14 sm:pt-20">
+        <section className="text-center">
+          <h1 className="text-[28px] font-bold tracking-tight sm:text-4xl">一句话，交付一个能用的应用</h1>
+          <p className="mt-3 text-base text-[var(--muted)]">描述你的想法，AI 团队会规划、编码、测试并实时预览</p>
+        </section>
+        <PromptBox />
+        <ExampleCards />
+        <ProjectGrid projects={projects} />
+      </main>
+    </div>
   );
 }

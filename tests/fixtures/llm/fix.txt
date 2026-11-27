@@ -1,0 +1,6 @@
+<<<<<<< SEARCH
+render();
+undefinedFunctionCall();
+=======
+render();
+>>>>>>> REPLACE

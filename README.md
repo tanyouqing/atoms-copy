@@ -1,42 +1,139 @@
 # Atoms Demo
 
-用自然语言描述应用 → AI 团队（Mia 产品经理、Leo 工程师、Iris 测试员）生成单文件 HTML 应用 → 沙箱 iframe 实时预览。完整设计见 [CLAUDE.md](CLAUDE.md) 与 [docs/](docs/)。
+用一句话描述你的应用，一支可见的 AI 团队（产品经理 Mia、工程师 Leo、测试员 Iris）在几十秒内交付一个可交互、可分享的单页应用。
 
-> 当前进度：已完成 8 个配置驱动的应用模板及其基础设施（T1.2 + T6.1 的模板部分），工作台、生成流水线、部署尚未开始。完整 README 在 T7.1 按 [docs/14-readme-outline.md](docs/14-readme-outline.md) 编写。
+## 在线体验
+
+- 在线链接：`http://<服务器 IP>`（待部署后填写。IP 直连，无 HTTPS；每个访客每天 40 次生成额度）
+- 演示 GIF：`docs/assets/demo.gif`（待录制：示例 → 三个角色工作 → 预览使用 → 追问修改 → 版本回滚 → 分享）
+- 推荐试玩：
+  1. 点首页示例"习惯打卡"，生成后说"把主色改成橙色，标题改成喝水小助手"
+  2. "做一个跑步数据仪表盘，展示本月跑量、配速趋势和每周对比"
+  3. "做一个番茄钟，25 分钟专注 5 分钟休息，有提示音"（自由生成路径，代码会流式出现）
+
+没有 DeepSeek Key 也能体验完整流程：设置 `LLM_MOCK=1`，模型输出换成固定样例（包括会出错再被自动修复的 `#broken` 用例）。
+
+## 功能一览
+
+| 功能 | 状态 | 说明 |
+|---|---|---|
+| F1 首页需求输入 | ✅ | 输入框 + 4 个示例 + 我的项目 |
+| F2 创建项目并进入工作台 | ✅ | 跳转后自动开始生成 |
+| F3 工作台双栏 | ✅ | 桌面可拖拽分栏；手机"对话 / 预览"分段切换 |
+| F4 多智能体流式生成 | ✅ | 三张角色卡片实时更新；自由生成时代码流式出现 |
+| F5 沙箱实时预览 | ✅ | `sandbox` 不含 `allow-same-origin`；数据经垫片持久化 |
+| F6 追问修改 | ✅ | 配置修改 / 代码补丁 / 重新生成三条路径 |
+| F7 数据持久化 | ✅ | SQLite；刷新后对话、卡片、版本、预览完整恢复 |
+| F8 我的项目 | ✅ | 打开、重命名、删除 |
+| F9 错误与加载状态 | ✅ | 超时 / 格式错误 / 断网 / 限流都有中文提示和"重试" |
+| F10 防滥用 | ✅ | 访客、IP、全站三级滚动 24 小时限流 |
+| E1 智能体团队 + 自动修复 | ✅ | 静态检查 + 浏览器运行时检查，最多 2 轮修复，失败回退 |
+| E2 版本时间线与回滚 | ✅ | 查看任意版本（只读），一键恢复 |
+| E3 公开分享链接 | ✅ | `/share/<id>`，支持 `?v=<seq>` |
+| E4 下载 HTML | ✅ | 单文件，双击即可运行 |
+| E5 手动"让测试员修复" | ✅ | 预览底部错误条 |
+| E6 恢复码 | ✅ | 首页右上角，换设备找回项目 |
+| X1 Remix | ❌ | 时间优先给主流程 |
+| X2 预览设备切换 | ✅ | 桌面 / 手机宽度 |
+| X3 代码可编辑 | ❌ | 只读查看 + 复制；编辑后需要重新走 QA，留作后续 |
+
+## 实现思路
+
+```
+浏览器                                     服务器（Docker Compose）
+┌─────────────────────────────┐          ┌──────────────────────────────────────┐
+│ 首页 / 工作台 / 分享页 (React) │  HTTP    │ nginx :80                              │
+│ 预览 iframe（sandbox）        │ ───────▶ │   └─▶ app :3000 (Next.js standalone)   │
+│   └─ 注入的 runtime 脚本      │   SSE    │        ├─ Route Handlers (/api/*)      │
+│      ├ 报错 → postMessage    │ ◀─────── │        ├─ 智能体流水线 (src/lib/agent)  │
+│      └ storage → postMessage │          │        ├─ 模板渲染 (templates/*)        │
+└─────────────────────────────┘          │        └─ SQLite (./data/app.db)        │
+                                         └──────────────┬───────────────────────┘
+                                                        ▼ DeepSeek API (deepseek-flash)
+```
+
+一次生成：**Mia**（结构化 JSON：意图、模板、功能点）→ **Leo**（填模板配置 / 自由生成整页 / SEARCH-REPLACE 补丁）→ **Iris**（服务端静态检查 + 浏览器里加载后收集运行时报错 → 自动修复 ≤ 2 轮 → 仍失败回退到上一个通过的版本）。
+
+- 生成物是**单文件 HTML**：预览秒开、零构建失败、预览不占服务器资源。
+- 编排：Vercel AI SDK（`generateText` / `streamText`）+ 手写 TypeScript 状态机（`src/lib/agent/pipeline.ts`）。每一步都写 `messages` 表并通过 SSE 推给前端，UI 卡片完全由消息驱动，所以刷新后能原样恢复。
+- 运行时 QA 发生在浏览器：iframe 里注入的 runtime 上报 `ready` 和报错，`useAutoFix` 决定通过、修复还是放弃；放弃时服务端在同一事务里回退。
+
+## 关键取舍
+
+**1. 低成本模型下的质量策略（重点）。** 只用 DeepSeek Flash，用四层工程手段兜底，而不是指望模型一次写对：
+
+- **模板优先**：8 个精修模板（待办、记账、表单、看板、落地页、仪表盘、小游戏、记录管理），模型只输出几 KB 的 JSON 配置 → 解决"低成本模型写长代码不稳定"；代价是多样性受限，模板外的需求走自由生成。
+- **多步短输出**：PM 与配置都是小 JSON，zod 校验，失败时把校验错误喂回去重试一次 → 格式错误自动恢复。新建时配置两次都不合法，降级为自由生成，保证主流程有结果。
+- **自动修复闭环**：静态检查（结构、外链白名单、`vm.Script` 语法检查）+ 运行时报错回传，报错行号与存储 HTML 一致（runtime 注入不加换行），修复提示词带行号片段；最多 2 轮，失败回退 → 用户永远不会停在一个坏版本上。
+- **补丁式修改**：SEARCH/REPLACE，精确匹配失败时按行宽松匹配；失败重试一次，再失败才整页重写 → 输出更短更快，不丢已有内容。
+- 结论：在成本约束下，用工程手段换稳定性，比依赖模型能力更可控。成本估算：模板路径约 4k 输入 + 1.2k 输出 ≈ **$0.0013/次**，自由生成约 **$0.005/次**（非高峰价）；实际数据用 `npm run usage` 从 `llm_calls` 汇总（待线上跑过真实流量后贴入）。
+
+**2. 单文件 HTML vs 多文件工程（WebContainer）**：单文件可以直接 `srcdoc` 渲染、做静态检查和行号定位；代价是规模上限约 3 万字符。
+
+**3. 增量编辑 vs 整页重写**：意图由 PM 判断，再按规则强制修正（无版本 → 新建；已脱离模板的"改配置" → 补丁），模板应用改配置、其余打补丁。
+
+**4. 匿名访客 ID + 恢复码 vs 登录**：评审打开即用；恢复码就是访客 ID，可在另一台设备找回项目。
+
+**5. 沙箱边界**：iframe 永不加 `allow-same-origin`；opaque origin 下 `localStorage` 不可用，runtime 用垫片把数据 `postMessage` 回父页面，按项目存储，刷新后仍在。父页面只接受本次渲染随机 channel 的消息。
+
+**6. 自有服务器 + Docker Compose vs Serverless**：流式生成可达数十秒，不受函数时长限制；Nginx 对 `/api/` 关闭缓冲，服务端每 15 秒发 SSE ping。
+
+**7. SQLite vs Postgres**：单机零运维，数据是一个挂载卷里的文件；Drizzle 迁移到 Postgres 改动很小。
+
+**8. 手写状态机 vs LangGraph / Mastra**：三步流程手写更透明，状态全在 `messages` 表；步骤变多或需要断点续跑时再迁移。
+
+## 后续规划
+
+1. WebContainer 多文件 React 工程：突破单文件规模上限。
+2. 把高质量的自由生成结果沉淀为新模板：数据飞轮。
+3. 点选编辑：在预览里点元素直接提修改，补丁定位更准。
+4. 竞速模式：同一需求多模型并行，用户择优。
+5. 生成应用自带后端与数据库（类 Atoms Cloud）。
+6. 迁移到 LangGraph 做可恢复长流程；配置域名与 HTTPS。
 
 ## 本地运行
 
 ```bash
-npm install
-npm run dev                 # http://localhost:3000/dev/templates 模板画廊（仅开发环境）
-npm test                    # 单元测试：schema、渲染、静态检查、srcdoc 组装
-npm run verify:templates    # 浏览器自检：在沙箱 iframe 中逐个跑模板，截图输出到 .verify/
-npm run typecheck && npm run lint
+git clone https://github.com/tanyouqing/atoms-copy.git && cd atoms-copy
+cp .env.example .env        # 填 DEEPSEEK_API_KEY；没有 Key 可设 LLM_MOCK=1 体验流程
+npm ci && npm run dev       # http://localhost:3000
 ```
 
-## 应用模板
+Docker：`mkdir -p data && sudo chown 1001:1001 data && docker compose up -d --build`，然后访问 `http://<IP>`。部署细节、内存不足方案、备份见 [docs/10-deployment.md](docs/10-deployment.md)。
 
-| id | 名称 | 示例（`templates/<id>/example.json`） | 额外变体（`tests/fixtures/templates/`） |
-|---|---|---|---|
-| `todo` | 待办清单 | 习惯打卡（habit） | 任务模式英文深色、购物清单（checklist） |
-| `ledger` | 记账本 | 家庭记账（预算 + 两种图表） | 英文深色旅行预算 |
-| `form` | 表单收集 | 读书会报名（8 种字段 + 已收集页 + 导出 CSV） | 英文深色反馈表（单次提交） |
-| `kanban` | 看板 | 招聘进度（5 列，WIP 上限） | 英文深色内容排期 |
-| `landing` | 落地页 | 咖啡馆（emoji 网格 + 邮箱收集） | 英文深色 SaaS（手机外框 + 定价） |
-| `dashboard` | 数据仪表盘 | 门店经营（折线/环形/柱状 + 可排序表格 + 编辑数据） | 英文深色健身数据 |
-| `game` | 小游戏 | 记忆翻牌 | 猜数字、贪吃蛇、知识问答 |
-| `crud` | 通用记录管理 | 书架（卡片/表格视图、筛选、排序、CSV 导入导出） | 英文深色客户名单 |
+## 项目结构与文档
 
-每个模板目录含 `template.html`（只有 `__APP_TITLE__`、`__APP_CONFIG__` 两个占位符）、`contract.ts.txt`（给模型看的配置契约）、`example.json`。配置的 zod schema 在 `src/lib/templates/schemas.ts`，渲染在 `src/lib/templates/render.ts`。
+- `src/lib/agent/`：流水线、提示词（`prompts/`）、补丁、静态检查；`src/lib/llm/`：DeepSeek 接入、调用封装、mock
+- `src/app/api/`：REST 与 SSE 接口；`src/components/workspace/`：工作台；`src/lib/preview/`：沙箱 runtime 与 srcdoc 组装
+- `templates/`：8 个模板（`template.html` + 配置契约 + 示例）；`drizzle/`：数据库迁移
+- 设计文档：[PRD](docs/01-prd.md)、[架构](docs/04-architecture.md)、[智能体流水线与全部提示词](docs/07-agent-pipeline.md)、[模板](docs/08-templates.md)
 
-`npm run verify:templates` 对 19 个用例逐一检查：runtime 无报错、页面非空白、375px 无横向溢出（看板列区域除外）、典型交互后刷新数据仍在、清空存储后回到 seed 数据，并跑通各模板的关键交互（表单校验、看板拖拽与菜单换列、CSV 导入、仪表盘 JSON 编辑、三种游戏通关等）。
+## 测试
+
+- `npm test`：101 个单元测试，覆盖补丁、JSON/HTML 提取、静态检查、srcdoc 行号不变、8 个模板 schema 与渲染、意图修正、限流、SSE 解析、工作台 reducer、数据库查询，以及用假 fetch 验证真实模型请求体（`thinking: disabled`、`response_format`）。
+- `npm run test:e2e`：12 个 Playwright 用例（`LLM_MOCK=1`，无需 Key），覆盖创建、刷新持久化、改配置、补丁、自动修复、修复失败回退、版本恢复、分享、下载、访客隔离、停止、手机布局。
+- `npm run smoke:llm`：用真实 Key 跑 8 条需求 + 2 条追问，输出意图、模板、耗时、静态检查结果。`npm run verify:templates`：在真实沙箱里逐个检查模板。
+
+## AI 工具使用
+
+- 方案与文档：Claude（claude.ai）先产出方案，再写成给编码智能体的 14 篇文档（`CLAUDE.md` + `docs/`）。
+- 编码：Claude Code 按 `docs/12-tasks.md` 的任务顺序实现，分阶段提交 PR；人工审阅 PR 与模板效果。
+- 账单截图：待补充。
 
 ## 设计说明 / 已知问题
 
-- **预览 iframe 增加 `allow-downloads`**：表单和记录管理模板的"导出 CSV"用 Blob + `a[download]`，沙箱不加这个标志时 Chrome 会拦截下载。它不涉及同源权限，`allow-same-origin` 仍然禁止。已同步更新 docs/04、docs/09。
-- **仪表盘的存储结构**与其他模板不同：值为 `{ version, base, edited, metrics, charts }`，`base` 是配置数据的哈希。配置被追问修改后以新配置为准，否则"加一个指标"这类修改会被旧存储盖住。已写入 docs/08 §5.2。
-- **记账本**：本月没有记录时默认打开最近一个有记录的月份，避免示例数据不在当月时首屏为空。
-- **契约中没有写长度上限的字符串**（如落地页各区块文案）在 schema 里只做宽松上限（100 / 400 字），防止异常输出又不额外收紧模型。
-- **vendor 版本**：Tailwind Browser 4.3.5、Chart.js 4.5.1，文件来自 npm 包，提交在 `public/vendor/`。存储的 HTML 中写 jsDelivr 地址，预览时替换为本站地址。
-- **lint 命令**用 `eslint .`（Next 15.5 已不推荐 `next lint`），规则同 `next/core-web-vitals` + `next/typescript`。
-- 看板拖拽在桌面浏览器使用 HTML5 拖放；手机上通过卡片的"⋯ → 移到"菜单换列。
+- **预览 iframe 增加 `allow-downloads`**：表单和记录管理模板的"导出 CSV"需要；不涉及同源权限，`allow-same-origin` 仍然禁止。
+- **仪表盘的存储结构**与其他模板不同：值为 `{ version, base, edited, metrics, charts }`，`base` 是配置数据的哈希，配置被追问修改后以新配置为准（docs/08 §5.2）。
+- **结构化输出用 `generateText` + `response_format: json_object` + 自己提取与 zod 校验**，没有用 `generateObject`：模板 schema 里有 refine / default，转换成 JSON Schema 不可靠；自己处理也便于把校验错误喂回模型重试。`deepseekFetch` 对每个请求注入 `thinking: {type: "disabled"}`，非流式请求补 `response_format`，见 `tests/unit/llm-call.test.ts`。
+- **新建应用时模板配置两次不合法**，降级为自由生成（卡片上会说明），而不是直接报错。
+- **静态检查在预算用尽后仍失败**时，版本以 `error` 入库并按"放弃"逻辑回退；SSE `done` 返回 `versionId: null`，前端重新拉取项目详情同步当前版本。
+- **自动修复轮次中补丁应用失败**不插入系统错误消息（前端会继续下一轮或回退），手动修复失败才提示。
+- **停止**：前端断开 SSE，服务端把运行中的卡片标记为"已停止"并写系统消息；前端随后拉取一次项目详情与服务端对齐。
+- **UI 组件**：构建环境无法访问 shadcn 组件仓库，`src/components/ui/` 下按 shadcn 的样式手写了 Button、Dialog、Menu、Switch 等少量组件，没有引入 Radix；Toast 用 `sonner`。
+- **代码 Tab 在手机上隐藏**（docs/02 §5.2），手机只保留预览。
+- **下载文件名**由 `Content-Disposition` 决定（`<标题>-v<seq>.html`，同时给出 ASCII 回退名）；E2E 中无头 Chromium 的 `suggestedFilename` 取 URL 末段，所以用例直接校验响应头。
+- **DeepSeek 的缓存命中 token** 字段（`prompt_cache_hit_tokens`）不在 OpenAI 兼容格式里，`llm_calls.cached_input_tokens` 可能为空，费用估算按未命中计，偏保守。
+- **localStorage 垫片**：在 Chromium 中验证（E2E 02）；Safari / Firefox 尚待人工验证。
+- IP 直连无 HTTPS，部分浏览器剪贴板 API 不可用，已降级为选中文本并提示"请手动复制"。
+- 单文件规模上限约 3 万字符（提示词约束），静态检查上限 8 万字符。
+- 进程内的项目锁和用户内存状态只适合单实例部署。

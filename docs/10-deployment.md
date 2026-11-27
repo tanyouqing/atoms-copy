@@ -90,6 +90,7 @@ COPY --from=build /app/.next/static ./.next/static
 COPY --from=build /app/public ./public
 COPY --from=build /app/templates ./templates
 COPY --from=build /app/drizzle ./drizzle
+COPY --from=build /app/tests/fixtures/llm ./tests/fixtures/llm   # LLM_MOCK=1 演示用
 USER app
 EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 CMD node -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
