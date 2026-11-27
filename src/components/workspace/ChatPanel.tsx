@@ -6,9 +6,11 @@ import { Button } from "@/components/ui/button";
 import { SOURCE_LABELS } from "@/lib/agents";
 import { clockTime, cn } from "@/lib/utils";
 import type { MessageDTO, VersionSummary } from "@/types/api";
+import { useMounted } from "@/hooks/useMounted";
 import { AgentCard } from "./AgentCard";
 
 function VersionCard({ m, version, isCurrent, isViewing, onSelect }: { m: MessageDTO; version: VersionSummary | undefined; isCurrent: boolean; isViewing: boolean; onSelect: () => void }) {
+  const mounted = useMounted();
   const meta = (m.meta ?? {}) as { seq?: number; source?: keyof typeof SOURCE_LABELS };
   const source = version?.source ?? meta.source;
   return (
@@ -22,7 +24,7 @@ function VersionCard({ m, version, isCurrent, isViewing, onSelect }: { m: Messag
       <span className="min-w-0 flex-1 truncate font-medium">{version?.label ?? m.content}</span>
       {source && <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">{SOURCE_LABELS[source]}</span>}
       {version?.status === "error" && <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs text-[var(--danger)]">有问题</span>}
-      <span className="text-xs text-[var(--muted)]">{clockTime(m.createdAt)}</span>
+      <span className="text-xs text-[var(--muted)]">{mounted ? clockTime(m.createdAt) : ""}</span>
       {isCurrent && <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-xs font-medium text-indigo-700">当前</span>}
     </button>
   );
