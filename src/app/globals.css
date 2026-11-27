@@ -1,16 +1,39 @@
 @import "tailwindcss";
 
+/*
+ * 视觉基调（docs/02 §2）：暖白纸面 + 墨色文字 + 一处朱红点缀。
+ * 把 Tailwind 的 zinc 灰阶整体换成偏暖的石色，已有的 zinc-* 类名自动跟着变，不用逐个改。
+ */
+@theme {
+  --color-zinc-50: #faf8f3;
+  --color-zinc-100: #f1ede4;
+  --color-zinc-200: #e4ded2;
+  --color-zinc-300: #d0c8b8;
+  --color-zinc-400: #a59c8a;
+  --color-zinc-500: #7b7364;
+  --color-zinc-600: #5f584c;
+  --color-zinc-700: #474137;
+  --color-zinc-800: #2f2b24;
+  --color-zinc-900: #1f1c17;
+  --color-zinc-950: #12100c;
+}
+
 :root {
-  --brand: #4f46e5;
-  --brand-soft: #eef2ff;
-  --bg: #fafafa;
-  --panel: #ffffff;
-  --border: #e4e4e7;
-  --text: #18181b;
-  --muted: #71717a;
-  --success: #16a34a;
-  --warning: #d97706;
-  --danger: #dc2626;
+  --brand: #e0532b;
+  --brand-ink: #b23c18;
+  --brand-soft: #fbe9e1;
+  --ink: #1f1c17;
+  --bg: #f5f2eb;
+  --panel: #fffdf9;
+  --border: #e4ded2;
+  --text: #1f1c17;
+  --muted: #7b7364;
+  --success: #2f8a57;
+  --warning: #c27a12;
+  --danger: #cf3b2a;
+  --pm: #d4932a;
+  --engineer: #2f6db5;
+  --qa: #2f8a57;
 }
 
 html,
@@ -20,15 +43,32 @@ body {
 }
 
 body {
-  font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   font-size: 14px;
 }
 
 code,
 pre,
 .font-mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
+
+/* 拉丁字母和数字的点缀字体：Georgia 在 Windows / macOS 上都自带，不需要加载网络字体 */
+.font-display {
+  font-family: Georgia, "Times New Roman", "Songti SC", serif;
+}
+
+::selection {
+  background: #f6c9b6;
+}
+
+/* 首页底纹：很淡的点阵，像笔记本 */
+.paper-dots {
+  background-image: radial-gradient(rgb(31 28 23 / 0.07) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* ---------- 动效：一律 150–600ms，减弱动效时全部关闭 ---------- */
 
 @keyframes atoms-bounce {
   0%,
@@ -36,9 +76,87 @@ pre,
     transform: translateY(0);
   }
   50% {
-    transform: translateY(-8px);
+    transform: translateY(-6px);
   }
 }
 .atoms-bounce {
-  animation: atoms-bounce 1.2s ease-in-out infinite;
+  animation: atoms-bounce 1.4s ease-in-out infinite;
+}
+
+/* 头像外圈：角色正在工作时缓慢呼吸 */
+@keyframes atoms-ring {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ring) 45%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 7px color-mix(in srgb, var(--ring) 0%, transparent);
+  }
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--ring) 0%, transparent);
+  }
+}
+.atoms-ring {
+  animation: atoms-ring 1.6s ease-out infinite;
+}
+
+@keyframes atoms-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.atoms-in {
+  animation: atoms-in 320ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+@keyframes atoms-draw {
+  from {
+    stroke-dashoffset: var(--len, 400);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+.atoms-draw {
+  stroke-dasharray: var(--len, 400);
+  animation: atoms-draw 900ms 300ms cubic-bezier(0.6, 0, 0.2, 1) both;
+}
+
+@keyframes atoms-caret {
+  50% {
+    opacity: 0;
+  }
+}
+.atoms-caret {
+  animation: atoms-caret 1s steps(1) infinite;
+}
+
+/* 滚动进入视口时淡入（Reveal 组件只在元素一开始位于视口外时才加 data-hidden） */
+[data-reveal] {
+  transition:
+    opacity 600ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 600ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+[data-reveal][data-hidden] {
+  opacity: 0;
+  transform: translateY(16px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+  [data-reveal][data-hidden] {
+    opacity: 1;
+    transform: none;
+  }
 }

@@ -3,6 +3,7 @@
 import { ArrowLeft, ChevronDown, Download, MoreHorizontal, Pencil, Share2, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { LogoMark } from "@/components/ui/logo";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { Menu, MenuItem } from "@/components/ui/menu";
@@ -79,7 +80,7 @@ export function VersionMenu({ versions, currentId, viewingId, onSelect }: { vers
               {SOURCE_LABELS[v.source]} · {clockTime(v.createdAt)}
             </span>
             {v.status === "error" && <span className="h-2 w-2 rounded-full bg-[var(--danger)]" title="有问题" aria-label="有问题" />}
-            {v.id === currentId && <span className="rounded-full bg-[var(--brand-soft)] px-1.5 text-xs text-indigo-700">当前</span>}
+            {v.id === currentId && <span className="rounded-full bg-[var(--brand-soft)] px-1.5 text-xs text-[var(--brand-ink)]">当前</span>}
           </MenuItem>
         ))
       }
@@ -101,11 +102,13 @@ export function TopBar(props: {
 }) {
   const [confirm, setConfirm] = useState(false);
   return (
-    <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-[var(--border)] bg-white px-2 sm:px-3">
+    <header className="flex h-14 shrink-0 items-center gap-1.5 border-b border-[var(--border)] bg-[var(--panel)] px-2 sm:px-3">
       <Link href="/" aria-label="返回首页" className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-zinc-600 hover:bg-zinc-100">
         <ArrowLeft size={16} />
       </Link>
-      <span className="hidden text-[var(--brand)] sm:inline">◆</span>
+      <span className="hidden sm:inline-flex">
+        <LogoMark size={20} />
+      </span>
       <div className="min-w-0 flex-shrink">
         <TitleEditor title={props.title} onSave={props.onRename} />
       </div>

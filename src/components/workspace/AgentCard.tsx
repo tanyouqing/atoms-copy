@@ -12,7 +12,7 @@ import type { MessageDTO, QaMeta } from "@/types/api";
 const STATUS_TEXT = { running: "进行中", done: "完成", error: "失败", stopped: "已停止" } as const;
 
 function StatusIcon({ status }: { status: MessageDTO["status"] }) {
-  if (status === "running") return <Loader2 size={14} className="animate-spin text-[var(--brand)]" aria-label="进行中" />;
+  if (status === "running") return <Loader2 size={14} className="animate-spin text-zinc-400" aria-label="进行中" />;
   if (status === "done") return <Check size={14} className="text-[var(--success)]" aria-label="完成" />;
   if (status === "error") return <X size={14} className="text-[var(--danger)]" aria-label="失败" />;
   return <Square size={12} className="fill-zinc-400 text-zinc-400" aria-label="已停止" />;
@@ -36,7 +36,7 @@ function Collapsible({ label, children }: { label: string; children: ReactNode }
   const [open, setOpen] = useState(false);
   return (
     <div className="mt-2">
-      <button type="button" onClick={() => setOpen((o) => !o)} className="inline-flex items-center gap-1 text-xs font-medium text-[var(--brand)]">
+      <button type="button" onClick={() => setOpen((o) => !o)} className="inline-flex items-center gap-1 text-xs font-medium text-[var(--brand-ink)] hover:underline">
         <ChevronRight size={14} className={cn("transition-transform", open && "rotate-90")} />
         {label}
       </button>
@@ -62,7 +62,7 @@ function PmBody({ m }: { m: MessageDTO }) {
     <>
       <p className="text-zinc-800">{m.content}</p>
       <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
-        <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 font-medium text-indigo-700">模板：{tpl}</span>
+        <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 font-medium text-[var(--brand-ink)]">模板：{tpl}</span>
         {meta.intent && <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600">{INTENT_TEXT[meta.intent] ?? meta.intent}</span>}
       </div>
       {meta.features && meta.features.length > 0 && (
@@ -129,20 +129,27 @@ function QaBody({ m }: { m: MessageDTO }) {
 export function AgentCard({ m }: { m: MessageDTO }) {
   const role = m.role as AgentRole;
   const agent = AGENTS[role];
+  const running = m.status === "running";
   return (
-    <div data-testid={`agent-card-${role}`} data-status={m.status} className={cn("rounded-xl border bg-white p-3", m.status === "error" ? "border-red-200" : "border-[var(--border)]")}>
+    <div
+      data-testid={`agent-card-${role}`}
+      data-status={m.status}
+      className={cn("atoms-in relative overflow-hidden rounded-xl border bg-[var(--panel)] p-3", m.status === "error" ? "border-red-200" : "border-[var(--border)]")}
+    >
+      <span aria-hidden className={cn("absolute inset-y-0 left-0 w-[3px] transition-opacity", running ? "opacity-100" : "opacity-0")} style={{ background: agent.color }} />
       <div className="flex items-center gap-2.5">
-        <AgentAvatar role={role} />
+        <AgentAvatar role={role} className="h-9 w-9" active={running} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5 text-sm font-semibold">
-            {agent.name}
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-semibold">{agent.short}</span>
+            <span className="text-xs text-[var(--muted)]">{agent.title}</span>
             <StatusIcon status={m.status} />
             <span className="sr-only">{STATUS_TEXT[m.status]}</span>
           </div>
         </div>
         <Elapsed m={m} />
       </div>
-      <div className="mt-2 pl-[42px] text-sm leading-relaxed">
+      <div className="mt-2 pl-[46px] text-sm leading-relaxed">
         {role === "pm" ? <PmBody m={m} /> : role === "engineer" ? <EngineerBody m={m} /> : <QaBody m={m} />}
         {m.status === "stopped" && <p className="mt-1 text-xs text-[var(--muted)]">已停止</p>}
       </div>
