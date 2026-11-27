@@ -145,7 +145,7 @@ atoms-demo/
 └──────────────────────────────────────────────────────────────────┘
 ```
 
-- **修复预算**：每个 turn 共 2 轮（服务端静态修复和客户端运行时修复共享）。`done` 事件里返回 `fixRoundsUsed`，客户端用 `2 - fixRoundsUsed` 作为剩余预算。
+- **修复预算**：每个 turn 共 4 轮（服务端静态修复和客户端运行时修复共享）。`done` 事件里返回 `fixRoundsUsed`，客户端用 `4 - fixRoundsUsed` 作为剩余预算。
 - 每一步开始和结束都写 `messages` 表（role + kind + status + content + meta），UI 卡片完全由这些消息驱动，所以刷新后能原样恢复。
 - 详细的每步输入输出、提示词、重试策略见 [07-agent-pipeline.md](07-agent-pipeline.md)。
 

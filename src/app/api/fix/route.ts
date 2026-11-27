@@ -6,6 +6,7 @@ import { findQaMessageForVersion, getProjectForVisitor, getVersion, insertMessag
 import { AppError, notFoundError } from "@/lib/errors";
 import { readJson, withApi } from "@/lib/http";
 import { acquireLock, releaseLock } from "@/lib/locks";
+import { FIX_BUDGET } from "@/lib/qa-limits";
 import { checkAndRecordUsage } from "@/lib/rate-limit";
 import { sseResponse } from "@/lib/sse";
 
@@ -18,7 +19,7 @@ const Body = z.object({
   versionId: z.string().min(1),
   turnId: z.string().min(1).nullable().optional(),
   errors: z.array(RuntimeErrorSchema).min(1).max(10),
-  round: z.number().int().min(1).max(2),
+  round: z.number().int().min(1).max(FIX_BUDGET),
   manual: z.boolean().optional(),
 });
 

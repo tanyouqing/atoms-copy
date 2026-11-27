@@ -1,15 +1,15 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FIX_BUDGET, PREVIEW_READY_TIMEOUT_MS, PREVIEW_READY_TIMEOUT_S } from "@/lib/qa-limits";
 import type { RuntimeError } from "@/types/runtime";
 
 /**
  * 测试员（Iris）的客户端 QA 状态机（docs/07 §11）：
- * 等待预览 ready（最长 8 秒）→ 合并报错 → 通过则上报 ok；有错且预算剩余则请求修复；否则放弃（服务端负责回退）。
+ * 等待预览 ready（最长 25 秒，见 qa-limits）→ 合并报错 → 通过则上报 ok；有错且预算剩余则请求修复；否则放弃（服务端负责回退）。
  * 不渲染 UI，也不直接请求接口：通过回调交给 Workspace。
  */
-export const FIX_BUDGET = 2;
-const READY_TIMEOUT = 8000;
+export { FIX_BUDGET };
 
 export type QaPhase = "idle" | "checking" | "fixing";
 
@@ -60,7 +60,7 @@ export function useAutoFix(handlers: AutoFixHandlers) {
     if (jobRef.current !== job) return;
     clearTimer();
     let errors = filterNoise([...errorsRef.current, ...(ready?.errors ?? [])]);
-    if (!ready) errors = [...errors, { type: "error", message: "页面加载超时（8 秒内没有完成渲染），可能有死循环或长时间运行的同步代码" }];
+    if (!ready) errors = [...errors, { type: "error", message: `页面加载超时（${PREVIEW_READY_TIMEOUT_S} 秒内没有完成渲染），可能有死循环或长时间运行的同步代码` }];
     else if (ready.blank) errors = [...errors, { type: "error", message: "页面渲染后内容为空" }];
     errors = errors.slice(0, 10);
 
@@ -103,7 +103,7 @@ export function useAutoFix(handlers: AutoFixHandlers) {
         void finalize(job, early);
         return;
       }
-      timerRef.current = setTimeout(() => void finalize(job, null), READY_TIMEOUT);
+      timerRef.current = setTimeout(() => void finalize(job, null), PREVIEW_READY_TIMEOUT_MS);
     },
     [finalize],
   );

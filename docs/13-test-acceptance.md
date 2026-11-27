@@ -34,7 +34,7 @@ Playwright 配置：`webServer` 启动 `npm run build && npm run start`（env �
 | `02-persist.spec.ts` | 在预览 iframe 中添加一条待办 → 刷新页面 | 对话卡片数量不变；iframe 中该待办仍在 |
 | `03-config-edit.spec.ts` | 发送"把主色改成绿色" | 出现 v2 版本卡片，来源标签"配置"；代码 Tab 的配置 JSON 中 `primary` 为 `emerald` |
 | `04-patch.spec.ts` | 发送"加一个导出按钮" | v3 来源"补丁"；iframe 中出现"导出"按钮 |
-| `05-autofix.spec.ts` | 新建项目，需求含 `#broken` | Iris 卡片出现"发现 1 个问题，正在修复（第 1/2 轮）"；最终出现"已修复"，新版本来源"修复" |
+| `05-autofix.spec.ts` | 新建项目，需求含 `#broken` | Iris 卡片出现"发现 1 个问题，正在修复（第 1/4 轮）"；最终出现"已修复"，新版本来源"修复" |
 | `06-rollback.spec.ts` | 在已有 ok 版本的项目中发送含 `#broken` 且 mock 修复也失败的需求（`#broken-hard`） | 最终显示"修复失败，已回退到 vX"；当前版本为 vX |
 | `07-versions.spec.ts` | 点 v1 版本卡片 → 恢复 | 出现黄色提示条；恢复后系统消息"已恢复到 v1"；版本下拉中 v1 标"当前" |
 | `08-share.spec.ts` | 打开分享弹窗，开启公开 → 新上下文（无 cookie）访问分享链接 | 分享页 iframe 渲染应用；关闭公开后返回 404 |
