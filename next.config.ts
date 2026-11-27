@@ -2,8 +2,10 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: "standalone",
-  // templates/*.html 在运行时用 fs 读取，standalone 打包时需要一并带上
-  outputFileTracingIncludes: { "/**": ["./templates/**/*"] },
+  serverExternalPackages: ["better-sqlite3"],
+  poweredByHeader: false,
+  // templates/ 与 drizzle/ 在运行时用 fs 读取，standalone 打包时一并带上（Dockerfile 也会显式复制）
+  outputFileTracingIncludes: { "/**": ["./templates/**/*", "./drizzle/**/*"] },
   async headers() {
     return [
       {
