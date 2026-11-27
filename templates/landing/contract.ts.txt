@@ -1,0 +1,25 @@
+type Section =
+  | { type: "features"; title: string; items: { emoji: string; title: string; desc: string }[] }       // items 3-6
+  | { type: "stats"; items: { value: string; label: string }[] }                                        // items 2-4
+  | { type: "steps"; title: string; items: { title: string; desc: string }[] }                          // items 3-5
+  | { type: "testimonials"; title: string; items: { quote: string; name: string; role: string }[] }     // items 2-4
+  | { type: "pricing"; title: string; plans: { name: string; price: string; period: string; features: string[]; highlight: boolean; cta: string }[] } // plans 2-3
+  | { type: "faq"; title: string; items: { q: string; a: string }[] }                                   // items 3-6
+  | { type: "gallery"; title: string; items: { emoji: string; title: string; caption: string }[] }      // items 3-9，用渐变色块 + emoji 代替图片
+  | { type: "contact"; title: string; text: string; buttonText: string; collectEmail: boolean };        // collectEmail 时显示邮箱输入并存入 localStorage
+
+interface LandingConfig extends BaseConfig {
+  brand: string;                    // 导航栏品牌名，≤16 字
+  nav: string[];                    // 0-5 个导航项，点击滚动到对应 section（按顺序对应 sections 中有 title 的项）
+  hero: {
+    eyebrow?: string;               // 标题上方小字，≤20 字
+    headline: string;               // ≤30 字
+    subheadline: string;            // ≤100 字
+    primaryCta: string;             // ≤10 字，点击滚动到 contact（若有）或 pricing
+    secondaryCta?: string;          // ≤10 字
+    visual: "gradient" | "emojiGrid" | "mockup";   // 右侧/下方视觉：渐变光斑、emoji 网格、手机外框模拟
+    visualEmojis?: string[];        // visual=emojiGrid 时 4-9 个
+  };
+  sections: Section[];              // 2-7 个，按顺序渲染
+  footer: { text: string; links: string[] };   // links 0-5 个纯文字
+}

@@ -1,0 +1,17 @@
+{
+  "title": "Fitness Tracker",
+  "emoji": "🏃",
+  "locale": "en",
+  "theme": { "primary": "emerald", "mode": "dark" },
+  "periodLabel": "This week",
+  "metrics": [
+    { "label": "Distance", "value": 32.5, "unit": "km", "delta": 18 },
+    { "label": "Workouts", "value": 5, "delta": 25 },
+    { "label": "Resting HR", "value": 58, "unit": "bpm", "delta": -3.3, "goodWhen": "down" }
+  ],
+  "charts": [
+    { "type": "bar", "title": "Daily distance", "labels": ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"], "datasets": [{ "label": "km", "data": [5, 0, 7.5, 4, 0, 10, 6] }], "span": 1 },
+    { "type": "pie", "title": "Workout types", "labels": ["Run", "Ride", "Yoga"], "datasets": [{ "label": "Sessions", "data": [3, 1, 1] }], "span": 1 }
+  ],
+  "editable": false
+}

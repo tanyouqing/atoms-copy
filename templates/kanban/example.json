@@ -1,0 +1,33 @@
+{
+  "title": "招聘进度看板",
+  "subtitle": "前端工程师岗位 · 本月目标入职 2 人",
+  "emoji": "🧑‍💻",
+  "locale": "zh-CN",
+  "theme": { "primary": "violet", "mode": "light" },
+  "columns": [
+    { "id": "applied", "label": "已投递", "color": "slate" },
+    { "id": "screening", "label": "简历筛选", "color": "sky" },
+    { "id": "interview", "label": "面试中", "color": "violet", "wipLimit": 3 },
+    { "id": "offer", "label": "已发 Offer", "color": "amber" },
+    { "id": "hired", "label": "已入职", "color": "emerald" }
+  ],
+  "cardNoun": "候选人",
+  "cardFields": [
+    { "key": "years", "label": "工作年限", "type": "number", "min": 0, "max": 40 },
+    { "key": "source", "label": "来源", "type": "select", "options": ["内推", "招聘网站", "社交媒体", "校招"] },
+    { "key": "rating", "label": "面试评分", "type": "rating" },
+    { "key": "email", "label": "邮箱", "type": "email" },
+    { "key": "notes", "label": "备注", "type": "textarea" }
+  ],
+  "showOnCard": ["source", "years", "rating"],
+  "seedCards": [
+    { "column": "applied", "title": "王思远", "fields": { "years": 2, "source": "招聘网站" } },
+    { "column": "applied", "title": "刘佳琪", "fields": { "years": 5, "source": "社交媒体" } },
+    { "column": "screening", "title": "赵一鸣", "fields": { "years": 3, "source": "内推", "notes": "有 Vue 3 大型项目经验" } },
+    { "column": "interview", "title": "陈可欣", "fields": { "years": 4, "source": "内推", "rating": 4, "email": "kexin@example.com" } },
+    { "column": "interview", "title": "黄子涵", "fields": { "years": 6, "source": "招聘网站", "rating": 3 } },
+    { "column": "interview", "title": "孙博文", "fields": { "years": 1, "source": "校招", "rating": 4 } },
+    { "column": "offer", "title": "李明哲", "fields": { "years": 7, "source": "内推", "rating": 5, "notes": "期望 12 月中旬入职" } },
+    { "column": "hired", "title": "吴雨萱", "fields": { "years": 3, "source": "社交媒体", "rating": 5 } }
+  ]
+}

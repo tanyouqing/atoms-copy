@@ -14,14 +14,14 @@
 <iframe
   key={renderKey}                     // 版本切换、刷新、重置数据时变化，强制重新挂载
   srcDoc={srcdoc}
-  sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"
+  sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"
   referrerPolicy="no-referrer"
   title="应用预览"
   className="h-full w-full border-0 bg-white"
 />
 ```
 
-**禁止**添加 `allow-same-origin`（否则生成代码可读取主站 cookie 与存储）。`PreviewFrame` 同时被分享页复用。
+`allow-downloads` 用于模板中的"导出 CSV"（Blob + a[download]），不扩大对主站的访问权限。**禁止**添加 `allow-same-origin`（否则生成代码可读取主站 cookie 与存储）。`PreviewFrame` 同时被分享页复用。
 
 ## 3. 组装 srcdoc（`src/lib/preview/build-srcdoc.ts`）
 

@@ -1,0 +1,14 @@
+interface FormConfig extends BaseConfig {
+  intro: string;                    // 表单说明，≤200 字
+  fields: Field[];                  // 1-15 个
+  submitText: string;               // ≤10 字
+  successTitle: string;             // ≤20 字
+  successText: string;              // ≤100 字
+  allowMultiple: boolean;           // 提交成功后是否显示"再填一份"
+  adminView: {
+    enabled: boolean;               // 是否提供"查看已收集"页
+    title: string;                  // ≤20 字
+    exportCsv: boolean;
+  };
+  seedResponses: Record<string, string | number | boolean>[];   // 0-5 条示例提交，key 对应 fields
+}

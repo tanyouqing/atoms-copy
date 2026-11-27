@@ -360,7 +360,7 @@ templates/<id>/
 1. 占位符只有两个：`__APP_TITLE__`（HTML 转义后的 title）和 `__APP_CONFIG__`（`JSON.stringify(config)` 后把 `<` 替换为 `<`、` `/` ` 转义）。`render.ts` 用 `split/join` 替换，不用正则。
 2. 主题色：模板内置 10 种 ThemeColor 的色值表（Tailwind 默认调色板的 50/100/200/500/600/700 六档十六进制值），启动时写入 `document.documentElement.style` 的 CSS 变量 `--p-50 … --p-700`，样式中用 `bg-[var(--p-600)]` 这类写法。dark 模式时 body 改为 `bg-slate-950 text-slate-100`，卡片改为 `bg-slate-900 border-slate-800`。
 3. 文案国际化：模板内置 `I18N = { "zh-CN": {...}, en: {...} }`，所有非配置文案（按钮"添加""删除""取消"、空状态等）从这里取，按 `CONFIG.locale` 选择。
-4. 数据存储：键名 `app:<templateId>:data`（例如 `app:todo:data`），值为 `{ version: 1, items: [...] }`。**首次加载（键不存在）时用 seed 数据初始化并写入**；之后只读存储。另提供 `app:<templateId>:meta` 存最好成绩、视图偏好等。
+4. 数据存储：键名 `app:<templateId>:data`（例如 `app:todo:data`），值为 `{ version: 1, items: [...] }`。**首次加载（键不存在）时用 seed 数据初始化并写入**；之后只读存储。另提供 `app:<templateId>:meta` 存最好成绩、视图偏好等。例外：`dashboard` 没有逐条数据，值为 `{ version: 1, base, edited, metrics, charts }`，`base` 是配置中 metrics/charts 的哈希；配置被修改（新版本）后 `base` 不一致，以新配置为准重新初始化。`landing` 的 items 是收集到的邮箱，`game` 的 items 是最近 50 局战绩。
 5. 日期统一用本地时区 `YYYY-MM-DD`，工具函数 `today()`、`addDays(date, n)` 写在模板内。
 6. 防 XSS：所有用户输入和配置文案插入 DOM 时用 `textContent` 或转义函数 `esc()`，不直接拼接 `innerHTML`。
 7. 代码风格：模板内 JS 使用 `const/let`、箭头函数、模板字符串；渲染采用"状态对象 + `render()` 整体重绘"的简单模式。每个模板 JS 控制在 600 行以内。

@@ -1,0 +1,28 @@
+{
+  "title": "周末读书会报名",
+  "subtitle": "12 月 7 日 · 城市书房 · 限 30 人",
+  "emoji": "📚",
+  "locale": "zh-CN",
+  "theme": { "primary": "indigo", "mode": "light" },
+  "intro": "本期共读《置身事内》，我们会围绕地方政府与经济发展展开讨论。请填写以下信息完成报名，我们会在活动前一天通过短信发送签到码。",
+  "fields": [
+    { "key": "name", "label": "姓名", "type": "text", "required": true, "placeholder": "怎么称呼你" },
+    { "key": "phone", "label": "手机号", "type": "tel", "required": true, "placeholder": "用于接收签到短信" },
+    { "key": "email", "label": "邮箱", "type": "email", "placeholder": "可选，用于接收读书笔记" },
+    { "key": "session", "label": "参加场次", "type": "select", "required": true, "options": ["上午场 10:00", "下午场 14:30"] },
+    { "key": "progress", "label": "已读进度", "type": "number", "min": 0, "max": 100, "placeholder": "0-100（%）" },
+    { "key": "expectation", "label": "对本期活动的期待", "type": "rating" },
+    { "key": "topic", "label": "最想讨论的话题", "type": "textarea", "placeholder": "说说你读这本书时最大的疑问" },
+    { "key": "photoOk", "label": "拍照许可", "type": "checkbox", "placeholder": "同意活动照片用于公众号宣传" }
+  ],
+  "submitText": "提交报名",
+  "successTitle": "报名成功！",
+  "successText": "我们已收到你的报名，活动前一天会发送签到短信，记得带上书哦。",
+  "allowMultiple": true,
+  "adminView": { "enabled": true, "title": "已报名", "exportCsv": true },
+  "seedResponses": [
+    { "name": "林晓", "phone": "13800138000", "email": "linxiao@example.com", "session": "上午场 10:00", "progress": 100, "expectation": 5, "topic": "土地财政未来会怎么转型？", "photoOk": true },
+    { "name": "周子航", "phone": "13912345678", "session": "下午场 14:30", "progress": 60, "expectation": 4, "photoOk": false },
+    { "name": "陈雨桐", "phone": "13698765432", "email": "yutong.chen@example.com", "session": "上午场 10:00", "progress": 35, "expectation": 4, "topic": "书里的招商引资案例放到今天还成立吗", "photoOk": true }
+  ]
+}

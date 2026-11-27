@@ -1,0 +1,24 @@
+{
+  "title": "每日习惯打卡",
+  "subtitle": "坚持一点点，每天进步一点点",
+  "emoji": "🌱",
+  "locale": "zh-CN",
+  "theme": { "primary": "emerald", "mode": "light" },
+  "mode": "habit",
+  "itemNoun": "习惯",
+  "categories": [
+    { "id": "health", "label": "健康", "color": "emerald" },
+    { "id": "study", "label": "学习", "color": "blue" },
+    { "id": "mind", "label": "心态", "color": "violet" }
+  ],
+  "extraFields": [],
+  "features": { "dueDate": false, "priority": false, "progressBar": true },
+  "emptyText": "还没有习惯，从一个小目标开始吧",
+  "seedItems": [
+    { "title": "喝够 8 杯水", "category": "health", "checkins": 6 },
+    { "title": "晨跑 3 公里", "category": "health", "checkins": 3 },
+    { "title": "背 20 个英语单词", "category": "study", "checkins": 5 },
+    { "title": "读书 30 分钟", "category": "study", "checkins": 1 },
+    { "title": "睡前冥想 10 分钟", "category": "mind", "checkins": 0 }
+  ]
+}

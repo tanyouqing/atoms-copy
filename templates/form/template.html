@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__APP_TITLE__</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
+<style type="text/tailwindcss">
+@custom-variant dark (&:where(.dark, .dark *));
+@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-white dark:bg-slate-900; }
+@utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
+@utility line { @apply border-slate-200 dark:border-slate-800; }
+@utility t-strong { @apply text-slate-900 dark:text-white; }
+@utility t-body { @apply text-slate-600 dark:text-slate-300; }
+@utility t-muted { @apply text-slate-500 dark:text-slate-400; }
+@utility t-faint { @apply text-slate-400 dark:text-slate-500; }
+@utility t-primary { @apply text-[var(--p-600)] dark:text-[var(--p-500)]; }
+@utility btn { @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-50; }
+@utility btn-primary { @apply bg-[var(--p-600)] text-white hover:bg-[var(--p-700)]; }
+@utility btn-secondary { @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800; }
+@utility btn-danger { @apply bg-rose-600 text-white hover:bg-rose-700; }
+@utility btn-ghost { @apply text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100; }
+@utility icon-btn { @apply inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200; }
+@utility input { @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-[var(--p-500)] focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:[color-scheme:dark]; }
+@utility field-label { @apply text-sm font-medium text-slate-700 dark:text-slate-300; }
+@utility tag { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap; }
+@utility tag-primary { @apply bg-[var(--p-50)] text-[var(--p-700)] dark:bg-[var(--p-700)]/30 dark:text-[var(--p-200)]; }
+@utility tag-muted { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300; }
+@utility seg { @apply inline-flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800; }
+@utility seg-btn { @apply cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100; }
+@utility seg-on { @apply cursor-pointer rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-900 shadow-sm transition dark:bg-slate-950 dark:text-white; }
+@utility err-text { @apply mt-1 text-xs text-rose-600 dark:text-rose-400; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+<div id="app" class="mx-auto max-w-3xl space-y-6 px-4 py-8 md:px-8"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<script id="app-config" type="application/json">__APP_CONFIG__</script>
+<script>
+(function () {
+  "use strict";
+  const TID = "form";
+  const I18N = {
+    "zh-CN": {
+      fill: "填写", collected: "{title}（{n}）", again: "再填一份", submitted: "已提交", exportCsv: "导出 CSV", exported: "已导出 CSV",
+      submittedAt: "提交时间", actions: "操作", noResponses: "还没有收到提交", delConfirm: "确定删除这条提交吗？", requiredHint: "带 * 的为必填项",
+      fixErrors: "请检查标红的项目", total: "共 {n} 份", backToForm: "返回填写",
+    },
+    en: {
+      fill: "Fill in", collected: "{title} ({n})", again: "Submit another response", submitted: "Submitted", exportCsv: "Export CSV", exported: "CSV exported",
+      submittedAt: "Submitted at", actions: "Actions", noResponses: "No responses yet", delConfirm: "Delete this response?", requiredHint: "Fields marked * are required",
+      fixErrors: "Please fix the highlighted fields", total: "{n} responses", backToForm: "Back to form",
+    },
+  };
+  const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
+  const KEY = "app:" + TID + ":data";
+  const META_KEY = "app:" + TID + ":meta";
+  const SHADES = [50, 100, 200, 500, 600, 700];
+  const PALETTE = {
+    indigo: ["#eef2ff", "#e0e7ff", "#c7d2fe", "#6366f1", "#4f46e5", "#4338ca"],
+    blue: ["#eff6ff", "#dbeafe", "#bfdbfe", "#3b82f6", "#2563eb", "#1d4ed8"],
+    sky: ["#f0f9ff", "#e0f2fe", "#bae6fd", "#0ea5e9", "#0284c7", "#0369a1"],
+    teal: ["#f0fdfa", "#ccfbf1", "#99f6e4", "#14b8a6", "#0d9488", "#0f766e"],
+    emerald: ["#ecfdf5", "#d1fae5", "#a7f3d0", "#10b981", "#059669", "#047857"],
+    amber: ["#fffbeb", "#fef3c7", "#fde68a", "#f59e0b", "#d97706", "#b45309"],
+    orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
+    rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
+    violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
+    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+  };
+  const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
+  const pal = (name) => PALETTE[name] || PALETTE.indigo;
+  const PRIMARY = pal(CONFIG.theme && CONFIG.theme.primary);
+  SHADES.forEach((s, i) => document.documentElement.style.setProperty("--p-" + s, PRIMARY[i]));
+  document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
+  if (DARK) document.documentElement.classList.add("dark");
+  const BASE_I18N = {
+    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+  };
+  const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
+  const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
+  const t = (k, vars) => String(L[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => (vars && vars[n] !== undefined ? vars[n] : ""));
+
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const load = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } };
+  const save = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const pad = (n) => String(n).padStart(2, "0");
+  const fmtDate = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const parseDate = (s) => { const p = String(s || "").split("-").map(Number); return new Date(p[0] || 1970, (p[1] || 1) - 1, p[2] || 1); };
+  const today = () => fmtDate(new Date());
+  const addDays = (date, n) => { const d = parseDate(date); d.setDate(d.getDate() + n); return fmtDate(d); };
+  const chip = (color) => { const c = pal(color); return DARK ? "background:" + c[4] + "33;color:" + c[2] : "background:" + c[0] + ";color:" + c[5]; };
+
+  /** 先读存储；键不存在（或结构不对）时用 seed 初始化并写入。 */
+  const loadData = (seed) => {
+    const d = load(KEY, null);
+    if (d && d.version === 1 && Array.isArray(d.items)) return d;
+    const fresh = { version: 1, items: seed() };
+    save(KEY, fresh);
+    return fresh;
+  };
+  const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
+  const saveMeta = (m) => save(META_KEY, m);
+
+  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+
+  let modalClose = null;
+  const openModal = (html, onClose) => {
+    const m = $("#modal");
+    $("#modal-body").innerHTML = html;
+    m.classList.remove("hidden");
+    m.classList.add("flex");
+    modalClose = onClose || null;
+    const first = $("input, textarea, select", $("#modal-body"));
+    if (first) setTimeout(() => first.focus(), 30);
+  };
+  const closeModal = () => {
+    const m = $("#modal");
+    m.classList.add("hidden");
+    m.classList.remove("flex");
+    $("#modal-body").innerHTML = "";
+    const fn = modalClose;
+    modalClose = null;
+    if (fn) fn();
+  };
+  const confirmBox = (text, onOk, okText) => {
+    openModal(
+      '<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("confirmTitle")) + "</div>" +
+      '<p class="text-sm t-body">' + esc(text) + "</p>" +
+      '<div class="flex justify-end gap-2"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("cancel")) + "</button>" +
+      '<button type="button" class="btn btn-danger" id="confirm-ok">' + esc(okText || t("delete")) + "</button></div></div>"
+    );
+    $("#confirm-ok").addEventListener("click", () => { closeModal(); onOk(); });
+  };
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+
+  /** 整体重绘时保留输入框焦点与光标位置。 */
+  const keepFocus = (fn) => {
+    const a = document.activeElement;
+    const id = a && a.id;
+    let s = null, en = null;
+    try { s = a.selectionStart; en = a.selectionEnd; } catch (e) {}
+    fn();
+    if (!id) return;
+    const n = document.getElementById(id);
+    if (!n || n === a) return;
+    n.focus();
+    try { if (s !== null) n.setSelectionRange(s, en); } catch (e) {}
+  };
+
+  /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
+  const ACTIONS = { "modal-close": () => closeModal() };
+  const delegate = (type) => document.addEventListener(type, (e) => {
+    const el = e.target.closest && e.target.closest("[data-" + type + "]");
+    if (!el) return;
+    const fn = ACTIONS[el.getAttribute("data-" + type)];
+    if (fn) fn(el, e);
+  });
+  ["change", "input", "submit", "keydown"].forEach(delegate);
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest && e.target.closest("[data-act]");
+    if (!el) return;
+    const fn = ACTIONS[el.getAttribute("data-act")];
+    if (fn) { if (el.tagName === "A") e.preventDefault(); fn(el, e); }
+  });
+
+  const header = (extra) =>
+    '<header class="flex flex-wrap items-start justify-between gap-4">' +
+    '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
+    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
+    (extra || "") + "</header>";
+  const emptyState = (emoji, text, btn) =>
+    '<div class="py-12 text-center"><div class="text-4xl">' + esc(emoji) + '</div><p class="mt-2 text-sm t-muted">' + esc(text) + "</p>" + (btn || "") + "</div>";
+  // ---- 字段渲染与校验（Field 契约，docs/08 §4.0） ----
+  const INPUT_TYPES = { text: "text", email: "email", tel: "tel", url: "url", number: "number", date: "date" };
+  const isEmpty = (v) => v === undefined || v === null || v === "";
+  const fieldControl = (f, value, idp) => {
+    const id = idp + f.key;
+    const v = isEmpty(value) ? "" : value;
+    const ph = f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : "";
+    const base = ' id="' + id + '" name="' + esc(f.key) + '"';
+    if (f.type === "textarea") return "<textarea" + base + ' rows="3" class="input"' + ph + ">" + esc(v) + "</textarea>";
+    if (f.type === "select")
+      return "<select" + base + ' class="input"><option value="">' + esc(t("choose")) + "</option>" +
+        (f.options || []).map((o) => '<option value="' + esc(o) + '"' + (o === v ? " selected" : "") + ">" + esc(o) + "</option>").join("") + "</select>";
+    if (f.type === "checkbox")
+      return '<label class="inline-flex cursor-pointer items-center gap-2 text-sm t-body"><input type="checkbox"' + base + ' class="h-4 w-4 accent-[var(--p-600)]"' + (v === true || v === "true" ? " checked" : "") + "> " + esc(f.placeholder || f.label) + "</label>";
+    if (f.type === "rating") {
+      const n = Number(v) || 0;
+      return '<div class="flex gap-1" data-rating>' + [1, 2, 3, 4, 5].map((i) =>
+        '<button type="button" data-act="rate" data-v="' + i + '" aria-label="' + i + '" class="cursor-pointer text-2xl leading-none transition ' + (i <= n ? "text-amber-400" : "text-slate-300 dark:text-slate-600") + '">★</button>').join("") +
+        '<input type="hidden"' + base + ' value="' + (n || "") + '"></div>';
+    }
+    const extra = f.type === "number" ? ' step="any"' + (f.min !== undefined ? ' min="' + f.min + '"' : "") + (f.max !== undefined ? ' max="' + f.max + '"' : "") : "";
+    return '<input type="' + (INPUT_TYPES[f.type] || "text") + '"' + base + ' class="input" value="' + esc(v) + '"' + ph + extra + ">";
+  };
+  ACTIONS.rate = (el) => {
+    const wrap = el.closest("[data-rating]");
+    const v = Number(el.getAttribute("data-v"));
+    $("input", wrap).value = String(v);
+    $$("button", wrap).forEach((b) => {
+      const on = Number(b.getAttribute("data-v")) <= v;
+      b.classList.toggle("text-amber-400", on);
+      b.classList.toggle("text-slate-300", !on);
+      b.classList.toggle("dark:text-slate-600", !on);
+    });
+  };
+  const fieldBlock = (f, value, idp) =>
+    '<div class="space-y-1"><label class="field-label block" for="' + idp + f.key + '">' + esc(f.label) + (f.required ? ' <span class="text-rose-500">*</span>' : "") + "</label>" +
+    fieldControl(f, value, idp) + '<div class="err-text" data-err="' + esc(f.key) + '" hidden></div></div>';
+  const readFields = (fields, root) => {
+    const out = {};
+    fields.forEach((f) => {
+      const el = root.querySelector('[name="' + f.key + '"]');
+      if (!el) return;
+      if (f.type === "checkbox") out[f.key] = el.checked;
+      else if (f.type === "number" || f.type === "rating") out[f.key] = el.value.trim() === "" ? "" : Number(el.value);
+      else out[f.key] = el.value.trim();
+    });
+    return out;
+  };
+  const validateField = (f, v) => {
+    if (isEmpty(v) || (f.type === "checkbox" && v === false) || (f.type === "rating" && !v)) return f.required ? t("errRequired") : "";
+    const s = String(v);
+    if (f.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return t("errEmail");
+    if (f.type === "tel" && !/^(\d{11}|\+\d[\d\s-]{5,19})$/.test(s)) return t("errTel");
+    if (f.type === "url" && !/^https?:\/\/[^\s.]+\.\S+$/.test(s)) return t("errUrl");
+    if (f.type === "number") {
+      if (typeof v !== "number" || isNaN(v)) return t("errNumber");
+      if (f.min !== undefined && v < f.min) return t("errMin", { n: f.min });
+      if (f.max !== undefined && v > f.max) return t("errMax", { n: f.max });
+    }
+    return "";
+  };
+  /** 校验 root 中的表单；通过返回值对象，否则在字段下方显示错误并返回 null。 */
+  const validateForm = (fields, root) => {
+    const vals = readFields(fields, root);
+    let firstBad = null;
+    fields.forEach((f) => {
+      const msg = validateField(f, vals[f.key]);
+      const el = root.querySelector('[data-err="' + f.key + '"]');
+      if (el) { el.textContent = msg; el.hidden = !msg; }
+      if (msg && !firstBad) firstBad = root.querySelector('[name="' + f.key + '"]');
+    });
+    if (firstBad) { if (firstBad.type !== "hidden") firstBad.focus(); return null; }
+    return vals;
+  };
+  const fmtValue = (f, v) => {
+    if (!f || isEmpty(v)) return "";
+    if (f.type === "checkbox") return v === true || v === "true" ? "✓" : "";
+    if (f.type === "rating") return "★".repeat(Math.max(0, Math.min(5, Number(v) || 0)));
+    return String(v);
+  };
+  // ---- CSV ----
+  const csvCell = (v) => { const s = String(v ?? ""); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const toCsv = (rows) => rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
+  const parseCsv = (text) => {
+    const rows = [];
+    let row = [], cell = "", q = false;
+    const s = String(text).replace(/^\uFEFF/, "");
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (q) {
+        if (c === '"' && s[i + 1] === '"') { cell += '"'; i++; }
+        else if (c === '"') q = false;
+        else cell += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { row.push(cell); cell = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && s[i + 1] === "\n") i++;
+        row.push(cell); rows.push(row); row = []; cell = "";
+      } else cell += c;
+    }
+    if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter((r) => r.some((c) => c.trim() !== ""));
+  };
+  const downloadFile = (name, text, type) => {
+    const blob = new Blob(["\uFEFF" + text], { type: type || "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1000);
+  };
+  const FIELDS = Array.isArray(CONFIG.fields) ? CONFIG.fields : [];
+  const ADMIN = CONFIG.adminView || { enabled: false, title: "", exportCsv: false };
+  const fmtTime = (ts) => { const d = new Date(ts); return fmtDate(d) + " " + pad(d.getHours()) + ":" + pad(d.getMinutes()); };
+
+  const seed = () => (CONFIG.seedResponses || []).map((r, i, arr) => {
+    const values = {};
+    FIELDS.forEach((f) => { if (r[f.key] !== undefined) values[f.key] = r[f.key]; });
+    // 示例提交分布在最近几天
+    const ts = Date.now() - (arr.length - i) * 86400000 * 0.7 - i * 3600000;
+    return { id: uid() + i, submittedAt: Math.round(ts), values };
+  });
+  const data = loadData(seed);
+  const meta = loadMeta();
+  const persist = () => save(KEY, data);
+  const state = { view: meta.view === "admin" && ADMIN.enabled ? "admin" : "form", done: !CONFIG.allowMultiple && !!meta.submitted };
+
+  const tabs = () => !ADMIN.enabled ? "" :
+    '<div class="seg">' + [["form", t("fill")], ["admin", t("collected", { title: ADMIN.title, n: data.items.length })]].map(([v, label]) =>
+      '<button type="button" data-act="view" data-v="' + v + '" class="' + (state.view === v ? "seg-on" : "seg-btn") + '">' + esc(label) + "</button>").join("") + "</div>";
+
+  const formView = () => {
+    if (state.done) {
+      return '<section class="card py-12 text-center"><div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--p-50)] text-3xl dark:bg-[var(--p-700)]/30">✅</div>' +
+        '<h2 class="mt-4 text-2xl font-bold t-strong">' + esc(CONFIG.successTitle) + '</h2><p class="mx-auto mt-2 max-w-md text-sm t-body">' + esc(CONFIG.successText) + "</p>" +
+        (CONFIG.allowMultiple ? '<button type="button" data-act="again" class="btn btn-primary mt-6">📝 ' + esc(t("again")) + "</button>" : '<div class="mt-6"><span class="tag tag-primary">' + esc(t("submitted")) + "</span></div>") + "</section>";
+    }
+    const hasReq = FIELDS.some((f) => f.required);
+    return '<section class="card space-y-6">' + (CONFIG.intro ? '<p class="text-sm leading-relaxed whitespace-pre-line t-body">' + esc(CONFIG.intro) + "</p>" : "") +
+      '<form id="main-form" data-submit="submit" class="space-y-5" novalidate>' + FIELDS.map((f) => fieldBlock(f, "", "f-")).join("") +
+      '<div class="flex flex-col-reverse items-stretch gap-3 border-t line pt-5 sm:flex-row sm:items-center sm:justify-between">' +
+      (hasReq ? '<span class="text-xs t-faint">' + esc(t("requiredHint")) + "</span>" : "<span></span>") +
+      '<button type="submit" class="btn btn-primary px-6">' + esc(CONFIG.submitText) + "</button></div></form></section>";
+  };
+
+  const adminView = () => {
+    const rows = data.items.slice().sort((a, b) => b.submittedAt - a.submittedAt);
+    const head = '<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-lg font-semibold t-strong">' + esc(ADMIN.title) + '</h2><p class="text-xs t-faint">' + esc(t("total", { n: rows.length })) + "</p></div>" +
+      (ADMIN.exportCsv && rows.length ? '<button type="button" data-act="export" class="btn btn-secondary">⬇️ ' + esc(t("exportCsv")) + "</button>" : "") + "</div>";
+    if (!rows.length) return '<section class="card space-y-4">' + head + emptyState("📭", t("noResponses"), '<button type="button" data-act="view" data-v="form" class="btn btn-primary mt-4">' + esc(t("backToForm")) + "</button>") + "</section>";
+    return '<section class="card min-w-0 space-y-4">' + head + '<div class="-mx-5 overflow-x-auto px-5 md:-mx-6 md:px-6"><table class="w-full min-w-max text-sm"><thead class="text-left text-xs t-faint"><tr>' +
+      FIELDS.map((f) => '<th class="py-2 pr-4 font-medium">' + esc(f.label) + "</th>").join("") + '<th class="py-2 pr-4 font-medium">' + esc(t("submittedAt")) + '</th><th class="py-2"></th></tr></thead>' +
+      '<tbody class="divide-y divide-slate-100 dark:divide-slate-800">' + rows.map((r) =>
+        "<tr>" + FIELDS.map((f) => '<td class="max-w-64 truncate py-2.5 pr-4 t-body" title="' + esc(fmtValue(f, r.values[f.key])) + '">' + (esc(fmtValue(f, r.values[f.key])) || '<span class="t-faint">—</span>') + "</td>").join("") +
+        '<td class="py-2.5 pr-4 text-xs whitespace-nowrap t-faint">' + esc(fmtTime(r.submittedAt)) + '</td><td class="py-2.5 text-right"><button type="button" data-act="del" data-id="' + r.id + '" class="icon-btn" aria-label="' + esc(t("delete")) + '">🗑</button></td></tr>').join("") +
+      "</tbody></table></div></section>";
+  };
+
+  const render = () => keepFocus(() => {
+    $("#app").innerHTML = header(tabs()) + (state.view === "admin" && ADMIN.enabled ? adminView() : formView());
+  });
+
+  ACTIONS.view = (el) => { state.view = el.getAttribute("data-v"); meta.view = state.view; saveMeta(meta); render(); };
+  ACTIONS.again = () => { state.done = false; render(); window.scrollTo(0, 0); };
+  ACTIONS.submit = (form, e) => {
+    e.preventDefault();
+    const vals = validateForm(FIELDS, form);
+    if (!vals) { toast(t("fixErrors")); return; }
+    data.items.push({ id: uid(), submittedAt: Date.now(), values: vals });
+    persist();
+    if (!CONFIG.allowMultiple) { meta.submitted = true; saveMeta(meta); }
+    state.done = true;
+    render();
+    window.scrollTo(0, 0);
+    toast(CONFIG.successTitle);
+  };
+  ACTIONS.del = (el) => {
+    const id = el.getAttribute("data-id");
+    confirmBox(t("delConfirm"), () => {
+      data.items = data.items.filter((r) => r.id !== id);
+      persist();
+      render();
+      toast(t("deleted"));
+    });
+  };
+  ACTIONS.export = () => {
+    const rows = [FIELDS.map((f) => f.label).concat(t("submittedAt"))].concat(
+      data.items.map((r) => FIELDS.map((f) => (f.type === "checkbox" ? (r.values[f.key] ? t("yes") : t("no")) : r.values[f.key] ?? "")).concat(fmtTime(r.submittedAt))));
+    downloadFile((CONFIG.title || "form") + ".csv", toCsv(rows));
+    toast(t("exported"));
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>

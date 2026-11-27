@@ -1,0 +1,19 @@
+{
+  "title": "Product Feedback",
+  "emoji": "💬",
+  "locale": "en",
+  "theme": { "primary": "rose", "mode": "dark" },
+  "intro": "Tell us how the new dashboard works for you. It takes about one minute.",
+  "fields": [
+    { "key": "score", "label": "Overall rating", "type": "rating", "required": true },
+    { "key": "role", "label": "Your role", "type": "select", "options": ["Engineer", "Designer", "Manager", "Other"] },
+    { "key": "website", "label": "Company website", "type": "url", "placeholder": "https://" },
+    { "key": "comments", "label": "Comments", "type": "textarea", "required": true }
+  ],
+  "submitText": "Send",
+  "successTitle": "Thank you!",
+  "successText": "Your feedback goes straight to the product team.",
+  "allowMultiple": false,
+  "adminView": { "enabled": false, "title": "Responses", "exportCsv": false },
+  "seedResponses": []
+}

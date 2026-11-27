@@ -1,0 +1,17 @@
+interface LedgerConfig extends BaseConfig {
+  currency: "¥" | "$" | "€" | "£" | "HK$" | "NT$";
+  categories: {
+    expense: { id: string; label: string; emoji: string }[];   // 3-12 个
+    income: { id: string; label: string; emoji: string }[];    // 1-6 个
+  };
+  monthlyBudget: number | null;     // 月预算，null 表示不显示预算进度
+  charts: ("expenseByCategory" | "dailyTrend")[];   // 0-2 个，饼图 / 本月每日支出柱状图
+  noteLabel: string;                // 备注字段名称，如"备注""用途"，≤6 字
+  seedEntries: {                    // 6-15 条，日期分布在最近 30 天
+    type: "expense" | "income";
+    amount: number;                 // > 0，最多两位小数
+    category: string;               // 对应分类 id
+    date: string;                   // YYYY-MM-DD，相对今天的日期；渲染时若早于 60 天前则平移到最近 30 天
+    note?: string;                  // ≤30 字
+  }[];
+}

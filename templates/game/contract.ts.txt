@@ -1,0 +1,12 @@
+type GameSpec =
+  | { kind: "guessNumber"; min: number; max: number; maxAttempts: number }         // 1 ≤ min < max ≤ 10000，maxAttempts 3-20
+  | { kind: "memory"; pairs: number; symbols: string[]; timeLimitSec: number | null } // pairs 4-12，symbols 为 emoji，长度 ≥ pairs
+  | { kind: "snake"; gridSize: number; speedMs: number; wrapWalls: boolean; foodEmoji: string } // gridSize 10-30，speedMs 60-300
+  | { kind: "quiz"; questions: { q: string; options: string[]; answer: number; explain?: string }[]; shuffle: boolean; timePerQuestionSec: number | null }; // questions 3-15，options 2-4，answer 为下标
+
+interface GameConfig extends BaseConfig {
+  game: GameSpec;
+  rulesText: string;                // 规则说明，≤150 字
+  winText: string;                  // 胜利/完成文案，≤40 字
+  loseText: string;                 // 失败文案，≤40 字
+}

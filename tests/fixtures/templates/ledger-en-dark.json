@@ -1,0 +1,26 @@
+{
+  "title": "Travel Budget",
+  "emoji": "✈️",
+  "locale": "en",
+  "theme": { "primary": "violet", "mode": "dark" },
+  "currency": "$",
+  "categories": {
+    "expense": [
+      { "id": "stay", "label": "Stay", "emoji": "🏨" },
+      { "id": "food", "label": "Food", "emoji": "🍕" },
+      { "id": "tickets", "label": "Tickets", "emoji": "🎟️" }
+    ],
+    "income": [{ "id": "refund", "label": "Refund", "emoji": "↩️" }]
+  },
+  "monthlyBudget": 500,
+  "charts": ["expenseByCategory"],
+  "noteLabel": "Note",
+  "seedEntries": [
+    { "type": "expense", "amount": 320, "category": "stay", "date": "2026-11-20", "note": "Hotel, 2 nights" },
+    { "type": "expense", "amount": 48.5, "category": "food", "date": "2026-11-21" },
+    { "type": "expense", "amount": 95, "category": "tickets", "date": "2026-11-22", "note": "Museum pass" },
+    { "type": "expense", "amount": 61.2, "category": "food", "date": "2026-11-22" },
+    { "type": "income", "amount": 40, "category": "refund", "date": "2026-11-23", "note": "Train delay" },
+    { "type": "expense", "amount": 22, "category": "food", "date": "2026-11-24" }
+  ]
+}

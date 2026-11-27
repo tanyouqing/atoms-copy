@@ -1,0 +1,11 @@
+interface KanbanConfig extends BaseConfig {
+  columns: { id: string; label: string; color: ThemeColor; wipLimit?: number }[];  // 2-6 列
+  cardNoun: string;                 // 卡片叫什么，如"候选人""任务"，≤6 字
+  cardFields: Field[];              // 0-5 个，卡片的额外字段（title 固定存在）
+  showOnCard: string[];             // 在卡片上直接展示的字段 key，0-3 个
+  seedCards: {                      // 4-12 张，分布在各列
+    column: string;                 // 列 id
+    title: string;                  // ≤40 字
+    fields?: Record<string, string | number | boolean>;
+  }[];
+}

@@ -1,0 +1,22 @@
+// 所有模板共享
+type ThemeColor = "indigo" | "blue" | "sky" | "teal" | "emerald" | "amber" | "orange" | "rose" | "violet" | "slate";
+
+interface BaseConfig {
+  title: string;          // 应用名，1-20 字
+  subtitle?: string;      // 副标题，≤60 字
+  emoji: string;          // 标题前的 1 个 emoji
+  locale: "zh-CN" | "en";
+  theme: { primary: ThemeColor; mode: "light" | "dark" };   // mode 默认 light
+}
+
+// 字段定义（todo/form/kanban/crud 使用）
+interface Field {
+  key: string;            // camelCase 英文，/^[a-z][a-zA-Z0-9]{0,29}$/，同一列表内唯一
+  label: string;          // 显示名，≤20 字
+  type: "text" | "textarea" | "number" | "date" | "select" | "checkbox" | "email" | "tel" | "url" | "rating";
+  required?: boolean;     // 默认 false
+  options?: string[];     // 仅 type=select 必填，2-12 项，每项 ≤20 字
+  placeholder?: string;   // ≤40 字
+  min?: number;           // number/rating 用；rating 固定 1-5
+  max?: number;
+}

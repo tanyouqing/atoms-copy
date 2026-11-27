@@ -1,0 +1,23 @@
+{
+  "title": "Content Calendar",
+  "emoji": "🗓️",
+  "locale": "en",
+  "theme": { "primary": "sky", "mode": "dark" },
+  "columns": [
+    { "id": "ideas", "label": "Ideas", "color": "slate" },
+    { "id": "writing", "label": "Writing", "color": "sky", "wipLimit": 2 },
+    { "id": "published", "label": "Published", "color": "emerald" }
+  ],
+  "cardNoun": "post",
+  "cardFields": [
+    { "key": "channel", "label": "Channel", "type": "select", "options": ["Blog", "Newsletter", "Twitter"] },
+    { "key": "due", "label": "Due", "type": "date" }
+  ],
+  "showOnCard": ["channel", "due"],
+  "seedCards": [
+    { "column": "ideas", "title": "Year in review", "fields": { "channel": "Blog" } },
+    { "column": "writing", "title": "Release 2.0 announcement", "fields": { "channel": "Newsletter", "due": "2026-12-01" } },
+    { "column": "writing", "title": "Hiring thread", "fields": { "channel": "Twitter" } },
+    { "column": "published", "title": "Onboarding guide", "fields": { "channel": "Blog" } }
+  ]
+}

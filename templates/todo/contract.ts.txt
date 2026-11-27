@@ -1,0 +1,24 @@
+interface TodoConfig extends BaseConfig {
+  mode: "task" | "habit" | "checklist";
+  // task：普通任务，支持截止日期/优先级/分类筛选
+  // habit：习惯打卡，每个条目显示最近 7 天的打卡格子和连续天数，今日一键打卡
+  // checklist：简单勾选清单（购物清单），勾选后划线并沉底
+  itemNoun: string;                 // 条目叫什么，如"任务""习惯""商品"，≤6 字
+  categories: { id: string; label: string; color: ThemeColor }[];  // 0-8 个，id 为 camelCase
+  extraFields: Field[];             // 0-4 个，task 模式下在新增表单中额外显示的字段
+  features: {
+    dueDate: boolean;               // 仅 task 模式有效
+    priority: boolean;              // 仅 task 模式有效，高/中/低
+    progressBar: boolean;           // 顶部显示完成进度
+  };
+  emptyText: string;                // 空状态文案，≤40 字
+  seedItems: {                      // 3-8 条示例
+    title: string;                  // ≤40 字
+    category?: string;              // categories 中的 id
+    done?: boolean;
+    dueDate?: string;               // YYYY-MM-DD
+    priority?: "high" | "medium" | "low";
+    extra?: Record<string, string | number | boolean>;  // key 对应 extraFields
+    checkins?: number;              // habit 模式：最近 7 天中已打卡的天数（0-7，从今天往前连续）
+  }[];
+}

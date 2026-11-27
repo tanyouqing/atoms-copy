@@ -1,0 +1,39 @@
+{
+  "title": "小家记账本",
+  "subtitle": "每一笔都清清楚楚，月底不再心慌",
+  "emoji": "💰",
+  "locale": "zh-CN",
+  "theme": { "primary": "teal", "mode": "light" },
+  "currency": "¥",
+  "categories": {
+    "expense": [
+      { "id": "food", "label": "餐饮", "emoji": "🍜" },
+      { "id": "transport", "label": "交通", "emoji": "🚇" },
+      { "id": "shopping", "label": "购物", "emoji": "🛍️" },
+      { "id": "home", "label": "居家", "emoji": "🏠" },
+      { "id": "fun", "label": "娱乐", "emoji": "🎬" },
+      { "id": "health", "label": "医疗", "emoji": "💊" }
+    ],
+    "income": [
+      { "id": "salary", "label": "工资", "emoji": "💼" },
+      { "id": "side", "label": "副业", "emoji": "💡" },
+      { "id": "gift", "label": "红包", "emoji": "🧧" }
+    ]
+  },
+  "monthlyBudget": 4000,
+  "charts": ["expenseByCategory", "dailyTrend"],
+  "noteLabel": "备注",
+  "seedEntries": [
+    { "type": "income", "amount": 12500, "category": "salary", "date": "2026-11-05", "note": "11 月工资" },
+    { "type": "expense", "amount": 1800, "category": "home", "date": "2026-11-05", "note": "房租分摊" },
+    { "type": "expense", "amount": 36.5, "category": "food", "date": "2026-11-08", "note": "午饭 + 奶茶" },
+    { "type": "expense", "amount": 128, "category": "transport", "date": "2026-11-10", "note": "交通卡充值" },
+    { "type": "expense", "amount": 299, "category": "shopping", "date": "2026-11-14", "note": "冬季外套" },
+    { "type": "expense", "amount": 86, "category": "fun", "date": "2026-11-16", "note": "周末电影两张" },
+    { "type": "income", "amount": 800, "category": "side", "date": "2026-11-18", "note": "设计稿外包" },
+    { "type": "expense", "amount": 218.8, "category": "food", "date": "2026-11-21", "note": "朋友聚餐" },
+    { "type": "expense", "amount": 45, "category": "health", "date": "2026-11-23", "note": "感冒药" },
+    { "type": "expense", "amount": 62.3, "category": "food", "date": "2026-11-25", "note": "超市买菜" },
+    { "type": "expense", "amount": 23, "category": "transport", "date": "2026-11-26", "note": "打车回家" }
+  ]
+}

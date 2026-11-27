@@ -1,0 +1,57 @@
+{
+  "title": "Focusly",
+  "emoji": "🎯",
+  "locale": "en",
+  "theme": { "primary": "violet", "mode": "dark" },
+  "brand": "Focusly",
+  "nav": ["Features", "How it works", "Pricing", "FAQ"],
+  "hero": {
+    "eyebrow": "New: team spaces",
+    "headline": "Deep work, made a habit",
+    "subheadline": "Focusly blocks distractions, plans your focus sessions and shows you where your time really goes.",
+    "primaryCta": "Start free",
+    "secondaryCta": "Learn more",
+    "visual": "mockup"
+  },
+  "sections": [
+    {
+      "type": "features",
+      "title": "Everything you need to focus",
+      "items": [
+        { "emoji": "⏱️", "title": "Smart sessions", "desc": "Pomodoro or custom blocks that adapt to your energy." },
+        { "emoji": "🚫", "title": "Site blocker", "desc": "Mute social feeds and notifications while you work." },
+        { "emoji": "📈", "title": "Weekly insights", "desc": "See trends and celebrate streaks every Monday." },
+        { "emoji": "👥", "title": "Team spaces", "desc": "Share focus hours so meetings land at the right time." }
+      ]
+    },
+    {
+      "type": "steps",
+      "title": "How it works",
+      "items": [
+        { "title": "Pick a goal", "desc": "Tell Focusly what matters today." },
+        { "title": "Start a session", "desc": "Distractions are blocked automatically." },
+        { "title": "Review", "desc": "Get a short recap and plan tomorrow." }
+      ]
+    },
+    {
+      "type": "pricing",
+      "title": "Simple pricing",
+      "plans": [
+        { "name": "Free", "price": "$0", "period": "forever", "features": ["3 sessions a day", "Basic blocker"], "highlight": false, "cta": "Get started" },
+        { "name": "Pro", "price": "$6", "period": "/month", "features": ["Unlimited sessions", "Insights", "Calendar sync"], "highlight": true, "cta": "Go Pro" },
+        { "name": "Team", "price": "$12", "period": "/user/mo", "features": ["Everything in Pro", "Team spaces", "Admin tools"], "highlight": false, "cta": "Contact us" }
+      ]
+    },
+    {
+      "type": "faq",
+      "title": "FAQ",
+      "items": [
+        { "q": "Does it work offline?", "a": "Yes, sessions and the blocker work without a connection." },
+        { "q": "Can I cancel anytime?", "a": "Of course. Plans are monthly and you can cancel in one click." },
+        { "q": "Is there a student discount?", "a": "Students get Pro for $3/month with a valid school email." }
+      ]
+    },
+    { "type": "contact", "title": "Ready to focus?", "text": "Join 20,000 people doing their best work.", "buttonText": "Join", "collectEmail": false }
+  ],
+  "footer": { "text": "Made for makers", "links": ["Privacy", "Terms", "Twitter"] }
+}

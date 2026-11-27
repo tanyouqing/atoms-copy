@@ -1,0 +1,25 @@
+{
+  "title": "Sprint Tasks",
+  "subtitle": "Everything the team ships this week",
+  "emoji": "✅",
+  "locale": "en",
+  "theme": { "primary": "indigo", "mode": "dark" },
+  "mode": "task",
+  "itemNoun": "task",
+  "categories": [
+    { "id": "work", "label": "Work", "color": "indigo" },
+    { "id": "personal", "label": "Personal", "color": "amber" }
+  ],
+  "extraFields": [
+    { "key": "owner", "label": "Owner", "type": "text", "placeholder": "Who is on it?" },
+    { "key": "estimate", "label": "Estimate (h)", "type": "number", "min": 0, "max": 40 }
+  ],
+  "features": { "dueDate": true, "priority": true, "progressBar": true },
+  "emptyText": "Nothing planned yet. Add a task.",
+  "seedItems": [
+    { "title": "Write release notes", "category": "work", "dueDate": "2026-11-28", "priority": "high", "extra": { "owner": "Ana", "estimate": 2 } },
+    { "title": "Review onboarding PR", "category": "work", "priority": "medium", "extra": { "owner": "Ben" } },
+    { "title": "Book dentist appointment", "category": "personal", "priority": "low" },
+    { "title": "Fix flaky login test", "category": "work", "done": true, "priority": "high" }
+  ]
+}

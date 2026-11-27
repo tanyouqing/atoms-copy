@@ -1,0 +1,10 @@
+{
+  "title": "经典贪吃蛇",
+  "emoji": "🐍",
+  "locale": "zh-CN",
+  "theme": { "primary": "emerald", "mode": "light" },
+  "game": { "kind": "snake", "gridSize": 18, "speedMs": 140, "wrapWalls": false, "foodEmoji": "🍎" },
+  "rulesText": "用方向键或 WASD 控制小蛇吃苹果，每吃一个得 1 分。撞到墙壁或自己的身体游戏结束。",
+  "winText": "刷新纪录啦！",
+  "loseText": "撞到了，游戏结束"
+}

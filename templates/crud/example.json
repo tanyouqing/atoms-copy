@@ -1,0 +1,37 @@
+{
+  "title": "我的书架",
+  "subtitle": "记录读过、在读和想读的每一本书",
+  "emoji": "📖",
+  "locale": "zh-CN",
+  "theme": { "primary": "orange", "mode": "light" },
+  "entity": { "singular": "书", "plural": "书单" },
+  "fields": [
+    { "key": "title", "label": "书名", "type": "text", "required": true, "placeholder": "例如：三体" },
+    { "key": "author", "label": "作者", "type": "text", "placeholder": "作者姓名" },
+    { "key": "genre", "label": "分类", "type": "select", "options": ["小说", "历史", "科普", "商业", "心理", "传记"] },
+    { "key": "status", "label": "阅读状态", "type": "select", "required": true, "options": ["想读", "在读", "读完"] },
+    { "key": "rating", "label": "评分", "type": "rating" },
+    { "key": "pages", "label": "页数", "type": "number", "min": 1, "max": 5000 },
+    { "key": "finishedOn", "label": "读完日期", "type": "date" },
+    { "key": "notes", "label": "读书笔记", "type": "textarea", "placeholder": "一句话感想" }
+  ],
+  "titleField": "title",
+  "subtitleField": "author",
+  "searchFields": ["title", "author", "notes"],
+  "filterField": "status",
+  "sortOptions": [
+    { "key": "createdAt", "label": "最近添加", "dir": "desc" },
+    { "key": "rating", "label": "评分从高到低", "dir": "desc" },
+    { "key": "finishedOn", "label": "读完日期", "dir": "desc" },
+    { "key": "title", "label": "书名", "dir": "asc" }
+  ],
+  "defaultView": "cards",
+  "seedRecords": [
+    { "title": "置身事内", "author": "兰小欢", "genre": "历史", "status": "读完", "rating": 5, "pages": 340, "finishedOn": "2026-10-12", "notes": "把地方政府和经济讲得非常透彻" },
+    { "title": "人类简史", "author": "尤瓦尔·赫拉利", "genre": "历史", "status": "读完", "rating": 4, "pages": 440, "finishedOn": "2026-08-30" },
+    { "title": "原则", "author": "瑞·达利欧", "genre": "商业", "status": "在读", "pages": 580, "notes": "第二部分的工作原则值得反复看" },
+    { "title": "三体", "author": "刘慈欣", "genre": "小说", "status": "读完", "rating": 5, "pages": 302, "finishedOn": "2026-06-18", "notes": "黑暗森林法则太震撼" },
+    { "title": "思考，快与慢", "author": "丹尼尔·卡尼曼", "genre": "心理", "status": "想读", "pages": 424 },
+    { "title": "时间简史", "author": "史蒂芬·霍金", "genre": "科普", "status": "在读", "rating": 4, "pages": 260 }
+  ]
+}
