@@ -12,7 +12,7 @@ interface TodoConfig extends BaseConfig {
     progressBar: boolean;           // 顶部显示完成进度
   };
   emptyText: string;                // 空状态文案，≤40 字
-  seedItems: {                      // 3-8 条示例
+  seedItems: {                      // 新建应用时为空数组 []（用户自己添加）；修改时保持原样
     title: string;                  // ≤40 字
     category?: string;              // categories 中的 id
     done?: boolean;

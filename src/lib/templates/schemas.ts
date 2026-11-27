@@ -79,7 +79,7 @@ export const TodoConfigSchema = z
           checkins: z.number().int().min(0).max(7).optional(),
         }),
       )
-      .min(3)
+      .min(0)
       .max(8),
   })
   .refine((c) => c.seedItems.every((s) => !s.category || c.categories.some((k) => k.id === s.category)), {
@@ -112,7 +112,7 @@ export const LedgerConfigSchema = z
           note: optStr(30),
         }),
       )
-      .min(6)
+      .min(0)
       .max(15),
   })
   .refine((c) => uniqueIds([...c.categories.expense, ...c.categories.income]), { message: "分类 id 不能重复", path: ["categories"] })
@@ -150,7 +150,7 @@ export const KanbanConfigSchema = z
     showOnCard: z.array(z.string()).max(3),
     seedCards: z
       .array(z.object({ column: z.string(), title: str(40), fields: z.record(z.string(), scalar).optional() }))
-      .min(4)
+      .min(0)
       .max(12),
   })
   .refine((c) => c.seedCards.every((s) => c.columns.some((col) => col.id === s.column)), { message: "seedCards.column 必须是列 id", path: ["seedCards"] })
@@ -278,7 +278,7 @@ export const CrudConfigSchema = z
     filterField: z.string().optional(),
     sortOptions: z.array(z.object({ key: z.string(), label: str(LOOSE), dir: z.enum(["asc", "desc"]) })).min(1).max(4),
     defaultView: z.enum(["table", "cards"]),
-    seedRecords: z.array(z.record(z.string(), scalar)).min(3).max(10),
+    seedRecords: z.array(z.record(z.string(), scalar)).max(10),
   })
   .superRefine((c, ctx) => {
     const byKey = new Map(c.fields.map((f) => [f.key, f]));

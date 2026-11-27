@@ -7,5 +7,5 @@ interface CrudConfig extends BaseConfig {
   filterField?: string;             // 用于筛选的 select 字段 key
   sortOptions: { key: string; label: string; dir: "asc" | "desc" }[];  // 1-4 个
   defaultView: "table" | "cards";
-  seedRecords: Record<string, string | number | boolean>[];  // 3-10 条
+  seedRecords: Record<string, string | number | boolean>[];  // 新建应用时为空数组 []；最多 10 条
 }
