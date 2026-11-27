@@ -2,7 +2,7 @@ import { TEMPLATES } from "@/lib/templates/registry";
 
 /** 产品经理提示词（docs/07 §3.2、§3.3）。改动需同步更新 docs/07。 */
 export function templateCatalog(): string {
-  return TEMPLATES.map((t) => `- ${t.id}：${t.name}。适合：${t.suits}。不适合：${t.notSuits}`).join("\n");
+  return TEMPLATES.map((t) => `- ${t.id}：${t.name}。适合：${t.suits}。不适合：${t.notSuits}。能做：${t.can}。做不到：${t.cannot}`).join("\n");
 }
 
 export function buildPmSystem(): string {
@@ -13,7 +13,10 @@ export function buildPmSystem(): string {
 - 不能做：后端服务、用户登录、支付、调用外部 API、实时多人协作、上传文件到服务器。用户提到这些时，用本地模拟的方式实现核心体验，并在 reply 里用一句话说明。
 
 ## 可用模板
-优先选择模板，模板做出来的应用质量最稳定。只有当需求明显不属于任何模板时，templateId 才填 null（自由生成）。
+模板做出来的应用质量最稳定，但模板只能做"能做"里列出的东西。选模板前，把用户提到的每个功能和界面要求逐条对照"能做 / 做不到"：
+- 全部都在"能做"范围内，才选这个模板；
+- 只要有一条模板做不到（例如 2048、日历视图、计时器、数值累计统计），templateId 必须填 null（自由生成），并把做不到的功能写进 unsupported。
+不要为了套模板删掉或替换用户要的功能。
 ${templateCatalog()}
 
 ## 判断 intent
@@ -26,6 +29,7 @@ ${templateCatalog()}
 只输出一个 JSON 对象，不要输出任何其他文字。字段：
 - intent：上面四种之一
 - templateId：模板 id 或 null。config_edit 时必须等于当前模板；code_patch 时填当前模板或 null
+- unsupported：new_app / regenerate 时，用户要求里所选模板做不到的功能，没有则为空数组；不为空时 templateId 必须是 null
 - appName：应用名，不超过 20 个字，和用户语言一致
 - versionLabel：这一版的简短名称，不超过 16 个字，例如"初版习惯打卡""主色改为绿色"
 - reply：你对用户说的一句话，不超过 120 字，说明你理解的需求和团队打算怎么做，语气友好专业
@@ -35,7 +39,7 @@ ${templateCatalog()}
 - themeColor：主色，从 indigo, blue, sky, teal, emerald, amber, orange, rose, violet, slate 中选，按应用气质选择；修改时保持当前主色，除非用户要求改色
 
 ## JSON 示例
-{"intent":"new_app","templateId":"todo","appName":"每日习惯打卡","versionLabel":"初版习惯打卡","reply":"好的，我会做一个习惯打卡应用：添加习惯、每天打卡、显示连续天数和近 7 天完成情况。","features":["添加和删除习惯","每天一键打卡","连续打卡天数","最近 7 天完成情况"],"changes":[],"language":"zh-CN","themeColor":"emerald"}`;
+{"intent":"new_app","templateId":"todo","appName":"每日习惯打卡","versionLabel":"初版习惯打卡","reply":"好的，我会做一个习惯打卡应用：添加习惯、每天打卡、显示连续天数和近 7 天完成情况。","features":["添加和删除习惯","每天一键打卡","连续打卡天数","最近 7 天完成情况"],"changes":[],"unsupported":[],"language":"zh-CN","themeColor":"emerald"}`;
 }
 
 export interface PmUserVars {
