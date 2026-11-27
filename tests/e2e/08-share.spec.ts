@@ -5,6 +5,13 @@ test("开启公开 → 无 cookie 访问分享页可用 → 关闭后 404", asyn
   const id = await readyTodo(page);
   await page.getByRole("button", { name: "分享", exact: true }).click();
   await page.getByRole("switch", { name: "公开访问" }).click();
+  // 开关圆点必须留在轨道内（以前圆点没设 left，按钮内容居中导致它被推出轨道）
+  const sw = page.getByRole("switch", { name: "公开访问" });
+  await expect(sw).toHaveAttribute("aria-checked", "true");
+  await page.waitForTimeout(300);
+  const [track, knob] = await Promise.all([sw.boundingBox(), sw.locator("span").boundingBox()]);
+  expect(knob!.x).toBeGreaterThanOrEqual(track!.x);
+  expect(knob!.x + knob!.width).toBeLessThanOrEqual(track!.x + track!.width + 0.5);
   await expect(page.getByTestId("share-link")).toHaveValue(new RegExp(`/share/${id}$`));
 
   const other = await browser.newContext();
