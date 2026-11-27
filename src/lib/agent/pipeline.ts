@@ -9,7 +9,7 @@ import { isTemplateId, type TemplateId } from "@/lib/templates/registry";
 import type { QaMeta, VersionSource } from "@/types/api";
 import type { RuntimeError } from "@/types/runtime";
 import { TIMEOUTS, fixOnce, generateConfig, generateFreeHtml, patchWithRetry, type StepEnv } from "./engineer";
-import { normalizeIntent } from "./intent";
+import { normalizeIntent, templateFitsPrompt } from "./intent";
 import { fmtK, type Messenger } from "./messages";
 import { buildPmSystem, buildPmUser } from "./prompts/pm";
 import { applyQaResult } from "./qa-result";
@@ -171,7 +171,13 @@ export async function runTurn(input: TurnInput, emit: Emit, msg: Messenger): Pro
   });
   const intent = normalizeIntent(pm, current);
   // 修改类意图保持当前模板；新建类以 PM 选择为准
-  const plan: PmOutput = { ...pm, intent, templateId: intent === "config_edit" ? (current?.templateId ?? null) : pm.templateId };
+  let templateIdPick = intent === "config_edit" ? (current?.templateId ?? null) : pm.templateId;
+  // 新建类：模板做不出用户点名的东西（如 2048 被套成贪吃蛇）时改走自由生成
+  if ((intent === "new_app" || intent === "regenerate") && templateIdPick && isTemplateId(templateIdPick) && !templateFitsPrompt(templateIdPick, prompt)) {
+    log.info("pm.template_rejected", { projectId: project.id, templateId: templateIdPick });
+    templateIdPick = null;
+  }
+  const plan: PmOutput = { ...pm, intent, templateId: templateIdPick };
   msg.update(pmMsg.id, { status: "done", content: pm.reply, meta: plan });
   log.info("pm.done", { projectId: project.id, intent, modelIntent: pm.intent, templateId: plan.templateId, prompt: clip(prompt) });
   if (input.isFirstTurn && !project.titleLocked) {

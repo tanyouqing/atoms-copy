@@ -25,6 +25,8 @@ PM 输出 `intent`，服务端再按下表**强制修正**（模型判断不可�
 | 模型输出 `new_app` 但已有版本 | `regenerate` |
 | 其他 | 采用模型输出 |
 
+模板选择也会修正：`new_app` / `regenerate` 选了 `game`，但用户原话没有提到四种玩法（猜数字、记忆翻牌、贪吃蛇、问答测验）中的任何一种时，`templateId` 改为 null（自由生成）。见 `src/lib/agent/intent.ts` 的 `templateFitsPrompt`。
+
 各 intent 的工程师分支：
 
 | intent | templateId | 工程师步骤 | 版本 source | 新版本 config_json |
@@ -73,7 +75,8 @@ export type PmOutput = z.infer<typeof PmOutput>;
 - 不能做：后端服务、用户登录、支付、调用外部 API、实时多人协作、上传文件到服务器。用户提到这些时，用本地模拟的方式实现核心体验，并在 reply 里用一句话说明。
 
 ## 可用模板
-优先选择模板，模板做出来的应用质量最稳定。只有当需求明显不属于任何模板时，templateId 才填 null（自由生成）。
+模板做出来的应用质量最稳定，但只有当用户要的东西和某个模板"适合"里列出的一项本质相同时才选模板。
+用户点名了具体的东西（例如 2048、俄罗斯方块、番茄钟、日历视图），而模板做不出这个东西时，templateId 必须填 null（自由生成）。不要为了套模板把用户的需求换成另一个东西。
 {{TEMPLATE_CATALOG}}
 
 ## 判断 intent
