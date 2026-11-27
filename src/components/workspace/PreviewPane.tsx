@@ -2,10 +2,11 @@
 
 import { Download, ExternalLink, Eraser, Monitor, RotateCw, Smartphone } from "lucide-react";
 import dynamic from "next/dynamic";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { AgentAvatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
+import { useMounted } from "@/hooks/useMounted";
 import { readStorageSnapshot, usePreviewBridge } from "@/hooks/usePreviewBridge";
 import { buildSrcdoc } from "@/lib/preview/build-srcdoc";
 import { cn } from "@/lib/utils";
@@ -65,13 +66,17 @@ export function PreviewPane(props: {
   const [confirmReset, setConfirmReset] = useState(false);
   const versionId = version?.id ?? null;
   const channel = useMemo(() => `${versionId}-${renderKey}-${Math.random().toString(36).slice(2)}`, [versionId, renderKey]);
-  const [srcdoc, setSrcdoc] = useState("");
-
-  useEffect(() => {
-    setSrcdoc(version ? buildSrcdoc({ html: version.html, channel, storage: readStorageSnapshot(storageKey) }) : "");
+  const mounted = useMounted();
+  // srcdoc 必须和 channel（iframe 的 key）在同一次渲染里算出来：
+  // 以前用 effect 晚一拍更新，新 iframe 会先加载上一个版本的代码再切换。
+  // 上一个版本如果有死循环，会卡住沙箱进程，新版本（包括回退后的版本）就一直空白，直到刷新页面。
+  // 只在挂载后计算：依赖 window.location 和父页面 localStorage，服务端没有。
+  const srcdoc = useMemo(
+    () => (mounted && version ? buildSrcdoc({ html: version.html, channel, storage: readStorageSnapshot(storageKey) }) : ""),
     // 只在版本或渲染次数变化时重建（channel 已包含二者）
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [channel]);
+    [channel, mounted],
+  );
 
   const { onError: pe, onReady: pr, onRemount } = props;
   const onError = useCallback((e: RuntimeError) => versionId && pe(versionId, e), [versionId, pe]);

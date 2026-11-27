@@ -60,7 +60,7 @@ export function useAutoFix(handlers: AutoFixHandlers) {
     if (jobRef.current !== job) return;
     clearTimer();
     let errors = filterNoise([...errorsRef.current, ...(ready?.errors ?? [])]);
-    if (!ready) errors = [...errors, { type: "error", message: "页面加载超时（8 秒内没有完成渲染）" }];
+    if (!ready) errors = [...errors, { type: "error", message: "页面加载超时（8 秒内没有完成渲染），可能有死循环或长时间运行的同步代码" }];
     else if (ready.blank) errors = [...errors, { type: "error", message: "页面渲染后内容为空" }];
     errors = errors.slice(0, 10);
 
