@@ -1,8 +1,13 @@
 import { TEMPLATES } from "@/lib/templates/registry";
+import { STYLE_META, THEME_STYLES } from "@/lib/templates/themes";
 
 /** 产品经理提示词（docs/07 §3.2、§3.3）。改动需同步更新 docs/07。 */
 export function templateCatalog(): string {
   return TEMPLATES.map((t) => `- ${t.id}：${t.name}。适合：${t.suits}。不适合：${t.notSuits}。能做：${t.can}。做不到：${t.cannot}`).join("\n");
+}
+
+export function styleCatalog(): string {
+  return THEME_STYLES.map((id) => `- ${id}：${STYLE_META[id].name}，${STYLE_META[id].desc}`).join("\n");
 }
 
 export function buildPmSystem(): string {
@@ -25,6 +30,14 @@ ${templateCatalog()}
 - code_patch：修改超出模板配置能力（新增按钮功能、改交互逻辑、改布局细节），或者当前应用已经不是模板应用。
 - regenerate：用户想要的是一个完全不同的应用。
 
+## 风格
+所有模板都支持三种内置风格：
+${styleCatalog()}
+- 新建应用时，style 使用"用户选择的风格"。
+- 用户在需求文字里明确要了别的风格（例如"赛博朋克""森系""极简黑白""复古报纸色"），style 填 custom，并在 customTheme 里给出一套颜色：name 风格名（不超过 12 字）、base 形状基底（paper 柔和圆角 / pixel 硬边框像素 / bright 大圆角）、bg 页面背景、surface 卡片背景、text 主要文字、accent 强调色，颜色都写 #RRGGBB；可选 font（sans / serif / mono / pixel）。文字和背景要有足够对比度。
+- 修改应用时保持当前风格，除非用户要求换风格。如果这次只是换风格、不改其他内容，styleOnly 填 true（模板应用 intent 用 config_edit）。
+- 用户要的风格必须改变页面结构才能做到（例如"报纸式多栏排版""3D 立体场景"），颜色和字体表达不了时，新建应用的 templateId 填 null，并把风格要求写进 features。
+
 ## 输出要求
 只输出一个 JSON 对象，不要输出任何其他文字。字段：
 - intent：上面四种之一
@@ -37,13 +50,21 @@ ${templateCatalog()}
 - changes：修改类 intent 时，给工程师的具体改动清单，每条一个可执行的改动；new_app 时为空数组
 - language：用户使用的语言，zh-CN 或 en
 - themeColor：主色，从 indigo, blue, sky, teal, emerald, amber, orange, rose, violet, slate 中选，按应用气质选择；修改时保持当前主色，除非用户要求改色
+- style：paper、pixel、bright 或 custom，规则见"风格"
+- customTheme：只有 style 为 custom 时填写，否则省略
+- styleOnly：这次只换风格时为 true，否则省略或 false
 
 ## JSON 示例
-{"intent":"new_app","templateId":"todo","appName":"每日习惯打卡","versionLabel":"初版习惯打卡","reply":"好的，我会做一个习惯打卡应用：添加习惯、每天打卡、显示连续天数和近 7 天完成情况。","features":["添加和删除习惯","每天一键打卡","连续打卡天数","最近 7 天完成情况"],"changes":[],"unsupported":[],"language":"zh-CN","themeColor":"emerald"}`;
+{"intent":"new_app","templateId":"todo","appName":"每日习惯打卡","versionLabel":"初版习惯打卡","reply":"好的，我会做一个习惯打卡应用：添加习惯、每天打卡、显示连续天数和近 7 天完成情况。","features":["添加和删除习惯","每天一键打卡","连续打卡天数","最近 7 天完成情况"],"changes":[],"unsupported":[],"language":"zh-CN","themeColor":"emerald","style":"paper"}
+
+用户要求自定义风格时 customTheme 的示例：
+{"name":"赛博朋克","base":"bright","bg":"#0b0b1a","surface":"#15152e","text":"#e6f1ff","accent":"#ff2bd6","font":"mono"}`;
 }
 
 export interface PmUserVars {
-  currentApp: { title: string; templateId: string | null; features: string[]; config: unknown | null } | null;
+  currentApp: { title: string; templateId: string | null; features: string[]; config: unknown | null; style?: string | null } | null;
+  /** 用户在风格卡片上选的风格（新建时） */
+  pickedStyle?: string | null;
   recent: { role: "user" | "pm"; content: string }[];
   prompt: string;
 }
@@ -58,6 +79,7 @@ export function buildPmUser(v: PmUserVars): string {
       `模板：${v.currentApp.templateId ?? "无（自由生成或已脱离模板）"}`,
       `功能：${v.currentApp.features.join("；") || "（未记录）"}`,
     ];
+    if (v.currentApp.style) lines.push(`当前风格：${v.currentApp.style}`);
     if (v.currentApp.config !== null && v.currentApp.templateId) {
       const json = JSON.stringify(v.currentApp.config);
       lines.push(`当前配置（JSON）：${json.length > 3000 ? `${json.slice(0, 3000)}…（已截断）` : json}`);
@@ -72,7 +94,7 @@ ${current}
 ${recent}
 
 ## 用户这次的需求
-${v.prompt}
+${v.prompt}${v.pickedStyle ? `\n\n## 用户选择的风格\n${v.pickedStyle}` : ""}
 
 请输出 JSON。`;
 }

@@ -6,6 +6,7 @@ import { AgentAvatar } from "@/components/ui/avatar";
 import { useMounted } from "@/hooks/useMounted";
 import { AGENTS, type AgentRole } from "@/lib/agents";
 import { TEMPLATES } from "@/lib/templates/registry";
+import { STYLE_META, isThemeStyle } from "@/lib/templates/themes";
 import { cn, fmtDuration } from "@/lib/utils";
 import type { MessageDTO, QaMeta } from "@/types/api";
 
@@ -50,6 +51,8 @@ interface PmMeta {
   features?: string[];
   appName?: string;
   intent?: string;
+  style?: string;
+  customTheme?: { name?: string };
 }
 
 const INTENT_TEXT: Record<string, string> = { new_app: "新建应用", config_edit: "修改配置", code_patch: "代码补丁", regenerate: "重新生成" };
@@ -58,12 +61,14 @@ function PmBody({ m }: { m: MessageDTO }) {
   const meta = (m.meta ?? {}) as PmMeta;
   if (m.status !== "done") return <p>{m.content}</p>;
   const tpl = meta.templateId ? (TEMPLATES.find((t) => t.id === meta.templateId)?.name ?? meta.templateId) : "自由生成";
+  const styleLabel = meta.style === "custom" ? (meta.customTheme?.name ?? null) : isThemeStyle(meta.style) ? STYLE_META[meta.style].name : null;
   return (
     <>
       <p className="text-zinc-800">{m.content}</p>
       <div className="mt-2 flex flex-wrap gap-1.5 text-xs">
         <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 font-medium text-[var(--brand-ink)]">模板：{tpl}</span>
         {meta.intent && <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600">{INTENT_TEXT[meta.intent] ?? meta.intent}</span>}
+        {styleLabel && <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-zinc-600" data-testid="pm-style">风格：{styleLabel}</span>}
       </div>
       {meta.features && meta.features.length > 0 && (
         <ul className="mt-2 list-disc space-y-0.5 pl-5 text-zinc-600">

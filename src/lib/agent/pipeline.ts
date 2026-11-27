@@ -8,13 +8,16 @@ import type { Emit } from "@/lib/sse";
 import { isTemplateId, type TemplateId } from "@/lib/templates/registry";
 import type { QaMeta, VersionSource } from "@/types/api";
 import type { RuntimeError } from "@/types/runtime";
-import { TIMEOUTS, fixOnce, generateConfig, generateFreeHtml, patchWithRetry, type StepEnv } from "./engineer";
+import type { ThemeStyle } from "@/lib/templates/themes";
+import { styleSpec } from "./design-spec";
+import { TIMEOUTS, fixOnce, generateConfig, generateFreeHtml, patchWithRetry, restyleConfig, type StepEnv } from "./engineer";
 import { normalizeIntent, templateRejection } from "./intent";
 import { fmtK, type Messenger } from "./messages";
 import { buildPmSystem, buildPmUser } from "./prompts/pm";
 import { applyQaResult } from "./qa-result";
 import { staticCheck } from "./qa-static";
 import { PmOutputSchema, type PmOutput } from "./schemas";
+import { decideStyle, sameStyle, styleName, styleOfVersion, type StylePick } from "./style";
 
 /** 服务端 turn 编排（docs/07 §10）。所有步骤写 messages 表并发 SSE，刷新后 UI 可原样恢复。 */
 
@@ -143,33 +146,78 @@ export interface TurnInput {
   turnId: string;
   signal: AbortSignal;
   isFirstTurn: boolean;
+  /** 用户在风格卡片上选的风格 */
+  style?: ThemeStyle | null;
+  /** 工作台的风格切换按钮：只换风格，模板应用不调用模型 */
+  styleOnly?: boolean;
+}
+
+const styleLabel = (p: StylePick) => (p.custom ? `custom：${p.custom.name}` : `${p.style}（${styleName(p)}）`);
+
+/** 模板应用只换风格：不调用模型，直接换 theme 重新渲染。 */
+function restyleTurn(input: TurnInput & { current: VersionRow }, currentConfig: unknown, currentPlan: PmOutput | null, pick: StylePick, emit: Emit, msg: Messenger): TurnResult {
+  const { current, project } = input;
+  const name = styleName(pick);
+  const plan: PmOutput = {
+    ...(currentPlan ?? { intent: "config_edit", templateId: current.templateId, appName: project.title.slice(0, 20), features: ["换风格"], unsupported: [], language: "zh-CN", themeColor: "indigo" }),
+    intent: "config_edit",
+    versionLabel: `换成${name}`.slice(0, 16),
+    reply: `好的，换成「${name}」，内容和数据都不变。`,
+    changes: [`风格换成${name}`],
+    style: pick.custom ? "custom" : pick.style,
+    customTheme: pick.custom,
+    styleOnly: true,
+  };
+  msg.add("pm", "pm_plan", plan.reply, { meta: plan });
+  const r = restyleConfig(current.templateId as TemplateId, currentConfig, pick);
+  msg.add("engineer", "engineer_config", `已切换为「${name}」`, { meta: { templateId: current.templateId, config: r.config } });
+  log.info("turn.restyle", { projectId: project.id, style: pick.style, custom: !!pick.custom });
+  const qa = staticCheck(r.html);
+  return deliverVersion(
+    { projectId: project.id, turnId: input.turnId, html: r.html, source: "config_edit", templateId: current.templateId, config: r.config, plan, label: plan.versionLabel, parentVersionId: current.id, errors: qa, fixRoundsUsed: 0 },
+    emit,
+    msg,
+  );
 }
 
 export async function runTurn(input: TurnInput, emit: Emit, msg: Messenger): Promise<TurnResult> {
   const { project, current, prompt, turnId, signal } = input;
   const env: StepEnv = { signal, ctx: { projectId: project.id, turnId } };
 
-  // 1. 产品经理
   const currentPlan = parseJson<PmOutput>(current?.planJson ?? null);
   const currentConfig = parseJson<unknown>(current?.configJson ?? null);
+  const currentStyle = current ? styleOfVersion(currentConfig, currentPlan) : null;
+  const canRestyle = !!current && !!current.templateId && isTemplateId(current.templateId) && currentConfig !== null;
+
+  // 0. 风格切换按钮：模板应用瞬间切换，不经过模型
+  if (input.styleOnly && input.style && current && canRestyle) {
+    return restyleTurn({ ...input, current }, currentConfig, currentPlan, { style: input.style }, emit, msg);
+  }
+
+  // 1. 产品经理
   const pmMsg = msg.start("pm", "pm_plan", "正在分析需求…");
   const pm = await callJson({
     step: "pm",
     schema: PmOutputSchema,
     system: buildPmSystem(),
     prompt: buildPmUser({
-      currentApp: current ? { title: project.title, templateId: current.configJson ? current.templateId : null, features: currentPlan?.features ?? [], config: currentConfig } : null,
+      currentApp: current ? { title: project.title, templateId: current.configJson ? current.templateId : null, features: currentPlan?.features ?? [], config: currentConfig, style: currentStyle ? styleLabel(currentStyle) : null } : null,
       recent: recentChat(project.id).slice(0, -1),
       prompt,
+      pickedStyle: !current && input.style ? styleLabel({ style: input.style }) : input.styleOnly && input.style ? styleLabel({ style: input.style }) : null,
     }),
     temperature: 0.2,
     maxOutputTokens: 800,
     timeoutMs: TIMEOUTS.pm,
     signal,
     ctx: env.ctx,
-    mock: { kind: "pm", prompt, hasCurrent: !!current, currentTemplateId: current?.templateId ?? null, currentTheme: currentPlan?.themeColor ?? null },
+    mock: { kind: "pm", prompt, hasCurrent: !!current, currentTemplateId: current?.templateId ?? null, currentTheme: currentPlan?.themeColor ?? null, pickedStyle: input.style ?? null },
   });
   const intent = normalizeIntent(pm, current);
+  const isNew = intent === "new_app" || intent === "regenerate";
+  // 工作台按钮换风格（自由生成的应用走到这里）时，以按钮为准
+  const style = input.styleOnly && input.style ? { style: input.style } : decideStyle({ pm, picked: input.style ?? null, current: currentStyle, isNew });
+  const styleChanged = !isNew && !sameStyle(currentStyle, style);
   // 修改类意图保持当前模板；新建类以 PM 选择为准
   let templateIdPick = intent === "config_edit" ? (current?.templateId ?? null) : pm.templateId;
   // 新建类：模板做不出用户点名的东西（如 2048 被套成贪吃蛇）时改走自由生成
@@ -180,7 +228,9 @@ export async function runTurn(input: TurnInput, emit: Emit, msg: Messenger): Pro
       templateIdPick = null;
     }
   }
-  const plan: PmOutput = { ...pm, intent, templateId: templateIdPick };
+  const plan: PmOutput = { ...pm, intent, templateId: templateIdPick, style: style.custom ? "custom" : style.style, customTheme: style.custom };
+  // 非模板应用换风格：把风格说明交给工程师（模板应用直接换 theme，不需要）
+  if (styleChanged && !(intent === "config_edit" && canRestyle)) plan.changes = [...plan.changes, `把整体视觉风格换成「${styleName(style)}」，只改样式不改功能和数据：\n${styleSpec(style)}`].slice(0, 8);
   msg.update(pmMsg.id, { status: "done", content: pm.reply, meta: plan });
   log.info("pm.done", { projectId: project.id, intent, modelIntent: pm.intent, templateId: plan.templateId, prompt: clip(prompt) });
   if (input.isFirstTurn && !project.titleLocked) {
@@ -188,6 +238,18 @@ export async function runTurn(input: TurnInput, emit: Emit, msg: Messenger): Pro
     if (p) emit({ type: "project", project: projectSummary(p) });
   }
   checkAborted(signal);
+
+  // PM 判断这次只换风格、且是模板应用：不再调用模型生成配置
+  if ((pm.styleOnly || input.styleOnly) && intent === "config_edit" && canRestyle && current && styleChanged) {
+    const r = restyleConfig(current.templateId as TemplateId, currentConfig, style);
+    msg.add("engineer", "engineer_config", `已切换为「${styleName(style)}」`, { meta: { templateId: current.templateId, config: r.config } });
+    const qaErrors = staticCheck(r.html);
+    return deliverVersion(
+      { projectId: project.id, turnId, html: r.html, source: "config_edit", templateId: current.templateId, config: r.config, plan, label: plan.versionLabel, parentVersionId: current.id, errors: qaErrors, fixRoundsUsed: 0 },
+      emit,
+      msg,
+    );
+  }
 
   // 2. 工程师
   let html: string;
@@ -201,7 +263,7 @@ export async function runTurn(input: TurnInput, emit: Emit, msg: Messenger): Pro
   const runFree = async (currentHtml?: string) => {
     const m = msg.start("engineer", "engineer_code", "正在编写代码…");
     const d = deltaEmitter(emit, msg, m.id, "正在编写代码…");
-    const out = await generateFreeHtml({ ...env, onDelta: d.onDelta }, { pm: plan, prompt, currentHtml });
+    const out = await generateFreeHtml({ ...env, onDelta: d.onDelta }, { pm: plan, prompt, currentHtml, style });
     d.flush();
     msg.update(m.id, { status: "done", content: `已完成代码编写（${fmtK(out.length)} 字符）`, meta: { chars: out.length } });
     return out;
@@ -211,7 +273,7 @@ export async function runTurn(input: TurnInput, emit: Emit, msg: Messenger): Pro
     const tid = (configEdit ? current?.templateId : plan.templateId) as TemplateId;
     const m = msg.start("engineer", "engineer_config", "正在填写应用配置…");
     try {
-      const r = await generateConfig(env, { templateId: tid, pm: plan, prompt, currentConfig: configEdit ? currentConfig : null });
+      const r = await generateConfig(env, { templateId: tid, pm: plan, prompt, currentConfig: configEdit ? currentConfig : null, style });
       html = r.html;
       config = r.config;
       templateId = tid;
@@ -227,7 +289,7 @@ export async function runTurn(input: TurnInput, emit: Emit, msg: Messenger): Pro
   } else if (intent === "code_patch" && current) {
     const m = msg.start("engineer", "engineer_patch", "正在修改代码…");
     const d = deltaEmitter(emit, msg, m.id, "正在修改代码…");
-    const r = await patchWithRetry({ ...env, onDelta: d.onDelta }, { html: current.html, pm: plan, prompt });
+    const r = await patchWithRetry({ ...env, onDelta: d.onDelta }, { html: current.html, pm: plan, prompt, style });
     d.flush();
     html = r.html;
     source = r.rewritten ? "free" : "patch";

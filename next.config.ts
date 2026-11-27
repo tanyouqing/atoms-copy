@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: { "/**": ["./templates/**/*", "./drizzle/**/*", "./tests/fixtures/llm/**/*"] },
   async headers() {
     return [
+      // 预览 iframe 是不带 allow-same-origin 的沙箱（origin 为 null），加载字体需要 CORS
+      { source: "/vendor/:path*", headers: [{ key: "Access-Control-Allow-Origin", value: "*" }] },
       {
         source: "/:path*",
         headers: [

@@ -9,7 +9,7 @@ import { loadExample } from "@/lib/templates/render";
  * 和真实模型走同一套 JSON 提取、zod 校验、补丁应用、静态检查流程。
  */
 export type MockCtx =
-  | { kind: "pm"; prompt: string; hasCurrent: boolean; currentTemplateId: string | null; currentTheme: string | null }
+  | { kind: "pm"; prompt: string; hasCurrent: boolean; currentTemplateId: string | null; currentTheme: string | null; pickedStyle?: string | null }
   | { kind: "config"; templateId: TemplateId; themeColor: string; currentConfig: unknown | null; prompt: string }
   | { kind: "free"; prompt: string }
   | { kind: "patch"; prompt: string }
@@ -49,6 +49,13 @@ function pm(ctx: Extract<MockCtx, { kind: "pm" }>): unknown {
   if (isBroken(p)) {
     return { ...base, intent: ctx.hasCurrent ? "regenerate" : "new_app", templateId: null, appName: "番茄专注钟", versionLabel: isBrokenHard(p) ? "番茄钟（难修）" : "番茄钟初版", reply: "好的，我会做一个番茄钟：25 分钟专注、5 分钟休息，带开始、暂停和重置。", features: ["25 分钟专注倒计时", "5 分钟休息", "开始 / 暂停 / 重置"], themeColor: "rose" };
   }
+  // 风格：文字里点名像素 / 明亮 / 纸墨时换内置风格；赛博朋克给一套自定义颜色
+  const named = /像素/.test(p) ? "pixel" : /明亮/.test(p) ? "bright" : /纸墨/.test(p) ? "paper" : null;
+  const cyber = /赛博朋克/.test(p) ? { style: "custom", customTheme: { name: "赛博朋克", base: "bright", bg: "#0b0b1a", surface: "#15152e", text: "#e6f1ff", accent: "#ff2bd6", font: "mono" } } : null;
+  if (ctx.hasCurrent && (named || cyber) && /换成|改成|风格/.test(p) && !/做一个|改成一个/.test(p)) {
+    const label = cyber ? "赛博朋克" : named === "pixel" ? "像素风" : named === "bright" ? "明亮卡片" : "暖纸墨色";
+    return { ...base, intent: "config_edit", templateId: ctx.currentTemplateId, appName: "每日习惯打卡", versionLabel: `换成${label}`, reply: `好的，整体换成${label}，内容和数据都不变。`, features: ["换风格"], changes: [`风格换成${label}`], themeColor: ctx.currentTheme ?? "indigo", styleOnly: true, ...(cyber ?? { style: named }) };
+  }
   if (ctx.hasCurrent && /改成绿色|改色|主色/.test(p)) {
     return { ...base, intent: "config_edit", templateId: ctx.currentTemplateId, appName: "每日习惯打卡", versionLabel: "主色改为绿色", reply: "好的，我会把应用的主色改成绿色，其余内容保持不变。", features: ["主色改为绿色"], changes: ["theme.primary 改为 emerald"], themeColor: "emerald" };
   }
@@ -61,7 +68,8 @@ function pm(ctx: Extract<MockCtx, { kind: "pm" }>): unknown {
   const t = pickTemplate(p);
   // 模拟 PM 发现模板做不到的功能（如日历视图）：服务端据此改走自由生成
   const unsupported = p.includes("日历") ? ["月历视图"] : [];
-  return { ...base, unsupported, intent: ctx.hasCurrent ? "regenerate" : "new_app", templateId: t, appName: NAMES[t], versionLabel: `初版${NAMES[t]}`.slice(0, 16), reply: `好的，我会用"${NAMES[t]}"的思路帮你搭建这个应用，先做出核心功能，你可以继续让我修改。`, features: ["核心功能一应俱全", "数据保存在浏览器", "手机上也能用"], themeColor: t === "todo" ? "indigo" : "violet" };
+  const styleOut = cyber ?? { style: named ?? ctx.pickedStyle ?? "paper" };
+  return { ...base, ...styleOut, unsupported, intent: ctx.hasCurrent ? "regenerate" : "new_app", templateId: t, appName: NAMES[t], versionLabel: `初版${NAMES[t]}`.slice(0, 16), reply: `好的，我会用"${NAMES[t]}"的思路帮你搭建这个应用，先做出核心功能，你可以继续让我修改。`, features: ["核心功能一应俱全", "数据保存在浏览器", "手机上也能用"], themeColor: t === "todo" ? "indigo" : "violet" };
 }
 
 function config(ctx: Extract<MockCtx, { kind: "config" }>): unknown {

@@ -42,8 +42,12 @@ describe("templates", () => {
 
   describe.each(TEMPLATE_IDS)("%s 共享交互件", (id) => {
     const tpl = fs.readFileSync(path.join(process.cwd(), "templates", id, "template.html"), "utf8");
-    it("暖色主题、可撤销提示与快捷键都在", () => {
-      expect(tpl).toContain("--color-slate-50: #f6f3ec");
+    it("风格主题占位、可撤销提示与快捷键都在", () => {
+      // 颜色、圆角、阴影来自主题变量（docs/08 §2.3），模板里不再写死纸张色
+      expect(tpl).toContain("\n__APP_THEME__\n");
+      expect(tpl).toContain("bg-[var(--surface)]");
+      expect(tpl).toContain("box-shadow: var(--card-shadow)");
+      expect(tpl).not.toMatch(/#fffdf9"?\]|--color-slate-50: #/);
       expect(tpl).toContain('id="toast-undo"');
       expect(tpl).toMatch(/const toast = \(msg, onUndo\)/);
       expect(tpl).toContain("const shortcut = (key, label, fn)");

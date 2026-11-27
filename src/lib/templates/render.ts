@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import type { TemplateId } from "./registry";
 import { TEMPLATE_SCHEMAS, type LedgerConfig } from "./schemas";
+import { buildThemeHead, type ThemeInput } from "./themes";
 
 const TEMPLATES_DIR = path.join(process.cwd(), "templates");
 const cache = new Map<string, string>();
@@ -69,7 +70,8 @@ export function shiftLedgerDates(config: LedgerConfig, now: Date = new Date()): 
 export function renderTemplate(id: TemplateId, config: unknown, now: Date = new Date()): string {
   let parsed: unknown = TEMPLATE_SCHEMAS[id].parse(config);
   if (id === "ledger") parsed = shiftLedgerDates(parsed as LedgerConfig, now);
-  const title = (parsed as { title: string }).title;
+  const { title, theme } = parsed as { title: string; theme: ThemeInput };
   const html = readCached(`${id}/template.html`);
-  return html.split("__APP_TITLE__").join(escapeHtml(title)).split("__APP_CONFIG__").join(serializeConfig(parsed));
+  // 主题样式是一行，替换后模板行号不变
+  return html.split("__APP_THEME__").join(buildThemeHead(theme)).split("__APP_TITLE__").join(escapeHtml(title)).split("__APP_CONFIG__").join(serializeConfig(parsed));
 }

@@ -6,7 +6,23 @@ interface BaseConfig {
   subtitle?: string;      // 副标题，≤60 字
   emoji: string;          // 标题前的 1 个 emoji
   locale: "zh-CN" | "en";
-  theme: { primary: ThemeColor; mode: "light" | "dark" };   // mode 默认 light
+  theme: {
+    primary: ThemeColor;
+    mode: "light" | "dark";                 // 默认 light
+    style?: "paper" | "pixel" | "bright";   // 风格：paper 暖纸墨色（默认）/ pixel 像素风 / bright 明亮卡片
+    custom?: CustomTheme;                   // 仅当用户描述了其他风格时填写，否则省略
+  };
+}
+
+// 自定义风格：在 base 风格的形状上换一套颜色。颜色都是 #RRGGBB；深色 bg 会自动用深色模式
+interface CustomTheme {
+  name: string;           // 风格名，≤12 字，如"赛博朋克"
+  base: "paper" | "pixel" | "bright";   // 形状基底：paper 柔和、pixel 硬边框像素、bright 大圆角
+  bg: string;             // 页面背景
+  surface: string;        // 卡片背景
+  text: string;           // 主要文字
+  accent?: string;        // 强调色（按钮、选中态），省略则用 primary
+  font?: "sans" | "serif" | "mono" | "pixel";
 }
 
 // 字段定义（todo/form/kanban/crud 使用）

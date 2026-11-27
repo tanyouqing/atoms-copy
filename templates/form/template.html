@@ -8,8 +8,6 @@
 <style type="text/tailwindcss">
 @custom-variant dark (&:where(.dark, .dark *));
 @theme {
-  --color-slate-50: #f6f3ec; --color-slate-100: #efeae0; --color-slate-200: #e4ded2; --color-slate-300: #d0c8b8; --color-slate-400: #a59c8a; --color-slate-500: #7b7364;
-  --color-slate-600: #5f584c; --color-slate-700: #474137; --color-slate-800: #2f2b24; --color-slate-900: #1f1c17; --color-slate-950: #15130f;
   --font-display: Georgia, "Times New Roman", "Songti SC", "STSong", serif;
 }
 @utility kbd { @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-b-2 border-slate-300 bg-slate-50 px-1 font-mono text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400; }
@@ -17,8 +15,8 @@
 @utility rise { animation: rise .28s ease-out both; }
 @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .rise { animation: none; } }
-@utility card { @apply rounded-2xl border border-slate-200 bg-[#fffdf9] p-5 shadow-[0_1px_0_rgb(31_28_23/0.03),0_10px_30px_-20px_rgb(31_28_23/0.35)] md:p-6 dark:border-slate-800 dark:bg-slate-900; }
-@utility surface { @apply bg-[#fffdf9] dark:bg-slate-900; }
+@utility card { @apply rounded-2xl border border-slate-200 bg-[var(--surface)] p-5 md:p-6 dark:border-slate-800; box-shadow: var(--card-shadow); }
+@utility surface { @apply bg-[var(--surface)]; }
 @utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
 @utility line { @apply border-slate-200 dark:border-slate-800; }
 @utility t-strong { @apply text-slate-900 dark:text-white; }
@@ -43,10 +41,11 @@
 @utility err-text { @apply mt-1 text-xs text-rose-600 dark:text-rose-400; }
 [hidden] { display: none !important; }
 </style>
+__APP_THEME__
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
 <div id="app" class="mx-auto max-w-3xl space-y-6 px-4 py-8 md:px-8"></div>
-<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#fffdf9] p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[var(--surface)] p-6 shadow-xl"></div></div>
 <div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-slate-100 dark:text-slate-900"><span id="toast-msg"></span><button type="button" id="toast-undo" class="hidden shrink-0 cursor-pointer font-semibold text-[var(--p-200)] hover:underline dark:text-[var(--p-700)]"></button></div>
 <script id="app-config" type="application/json">__APP_CONFIG__</script>
 <script>
@@ -89,7 +88,10 @@
   };
   const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
   const pal = (name) => PALETTE[name] || PALETTE.indigo;
-  const PRIMARY = pal(CONFIG.theme && CONFIG.theme.primary);
+  // 自定义风格可以带自己的强调色（主题样式里的 --accent-*），否则用主色色板
+  const CSSV = getComputedStyle(document.documentElement);
+  const ACCENT = SHADES.map((s) => CSSV.getPropertyValue("--accent-" + s).trim());
+  const PRIMARY = ACCENT[4] ? ACCENT : pal(CONFIG.theme && CONFIG.theme.primary);
   SHADES.forEach((s, i) => document.documentElement.style.setProperty("--p-" + s, PRIMARY[i]));
   document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
   if (DARK) document.documentElement.classList.add("dark");

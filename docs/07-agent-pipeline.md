@@ -42,6 +42,23 @@ PM 输出 `intent`，服务端再按下表**强制修正**（模型判断不可�
 
 `regenerate` 时，新版本的 `parent_version_id` 仍指向当前版本（便于回滚），但内容与之无关。
 
+### 2.1 风格路由（`src/lib/agent/style.ts`）
+
+应用有三种内置风格（`paper` 暖纸墨色 / `pixel` 像素风 / `bright` 明亮卡片，见 [08-templates.md](08-templates.md) §2.3），也可以是"某个内置风格的形状 + 一套自定义颜色"（`custom`）。服务端用 `decideStyle` 决定本轮风格，**不依赖模型照抄**：
+
+| 情况 | 本轮风格 |
+|---|---|
+| PM 输出 `style: "custom"` 且 `customTheme` 合法（用户在文字里描述了别的风格） | 自定义 |
+| 新建 / 重新生成 | 用户在风格卡片上的选择（`/api/generate` 的 `style`）> PM 的内置风格 > `paper` |
+| 修改 | PM 给出与当前不同的内置风格才换，否则保持当前（含自定义） |
+| 工作台风格按钮（`styleOnly: true`） | 按钮选择 |
+
+确定后：
+- 模板应用：`applyStyle` 把 `theme.style` / `theme.custom` 写进配置再渲染。
+- **只换风格的快速路径**：工作台按钮（`styleOnly`）或 PM 输出 `styleOnly: true` 且是模板应用的 `config_edit` 时，不调用 `config` 步骤，直接 `restyleConfig`（换 theme → 重新渲染），工程师消息"已切换为「X」"。按钮路径连 PM 也不调用、不计入限流，瞬间出新版本（`source=config_edit`）。
+- 自由生成 / 已脱离模板的应用：新建时把 `styleSpec(style)`（`src/lib/agent/design-spec.ts`）拼进 §6.2 的提示词；修改时风格有变化，就把"换成 X 风格 + 风格说明"追加到 `changes`，交给 patch 步骤。
+- 风格存在版本的 `plan_json`（`style` / `customTheme`）和模板配置的 `theme` 里，`styleOfVersion` 从这两处读回当前风格。
+
 ## 3. PM 步骤
 
 ### 3.1 输出 schema（`src/lib/agent/schemas.ts`）
@@ -61,6 +78,10 @@ export const PmOutput = z.object({
   unsupported: z.array(z.string().max(60)).max(8).default([]), // 所选模板做不到的功能；不为空则改走自由生成
   language: z.enum(["zh-CN", "en"]),
   themeColor: z.enum(THEME_COLORS),
+  // 风格（§2.1）。都可选，写错时 .catch(undefined) 丢弃而不是让整次输出失败，由服务端补齐
+  style: z.enum(["paper", "pixel", "bright", "custom"]).optional().catch(undefined),
+  customTheme: CustomThemeSchema.optional().catch(undefined),   // 见 08 §2.3
+  styleOnly: z.boolean().optional().catch(undefined),           // 这次只换风格
 });
 export type PmOutput = z.infer<typeof PmOutput>;
 ```
@@ -92,6 +113,14 @@ export type PmOutput = z.infer<typeof PmOutput>;
 - code_patch：修改超出模板配置能力（新增按钮功能、改交互逻辑、改布局细节），或者当前应用已经不是模板应用。
 - regenerate：用户想要的是一个完全不同的应用。
 
+## 风格
+所有模板都支持三种内置风格：
+{{STYLE_CATALOG}}
+- 新建应用时，style 使用"用户选择的风格"。
+- 用户在需求文字里明确要了别的风格（例如"赛博朋克""森系""极简黑白""复古报纸色"），style 填 custom，并在 customTheme 里给出一套颜色：name 风格名（不超过 12 字）、base 形状基底（paper 柔和圆角 / pixel 硬边框像素 / bright 大圆角）、bg 页面背景、surface 卡片背景、text 主要文字、accent 强调色，颜色都写 #RRGGBB；可选 font（sans / serif / mono / pixel）。文字和背景要有足够对比度。
+- 修改应用时保持当前风格，除非用户要求换风格。如果这次只是换风格、不改其他内容，styleOnly 填 true（模板应用 intent 用 config_edit）。
+- 用户要的风格必须改变页面结构才能做到（例如"报纸式多栏排版""3D 立体场景"），颜色和字体表达不了时，新建应用的 templateId 填 null，并把风格要求写进 features。
+
 ## 输出要求
 只输出一个 JSON 对象，不要输出任何其他文字。字段：
 - intent：上面四种之一
@@ -104,10 +133,18 @@ export type PmOutput = z.infer<typeof PmOutput>;
 - changes：修改类 intent 时，给工程师的具体改动清单，每条一个可执行的改动；new_app 时为空数组
 - language：用户使用的语言，zh-CN 或 en
 - themeColor：主色，从 indigo, blue, sky, teal, emerald, amber, orange, rose, violet, slate 中选，按应用气质选择；修改时保持当前主色，除非用户要求改色
+- style：paper、pixel、bright 或 custom，规则见"风格"
+- customTheme：只有 style 为 custom 时填写，否则省略
+- styleOnly：这次只换风格时为 true，否则省略或 false
 
 ## JSON 示例
-{"intent":"new_app","templateId":"todo","appName":"每日习惯打卡","versionLabel":"初版习惯打卡","reply":"好的，我会做一个习惯打卡应用：添加习惯、每天打卡、显示连续天数和近 7 天完成情况。","features":["添加和删除习惯","每天一键打卡","连续打卡天数","最近 7 天完成情况"],"changes":[],"unsupported":[],"language":"zh-CN","themeColor":"emerald"}
+{"intent":"new_app","templateId":"todo","appName":"每日习惯打卡","versionLabel":"初版习惯打卡","reply":"好的，我会做一个习惯打卡应用：添加习惯、每天打卡、显示连续天数和近 7 天完成情况。","features":["添加和删除习惯","每天一键打卡","连续打卡天数","最近 7 天完成情况"],"changes":[],"unsupported":[],"language":"zh-CN","themeColor":"emerald","style":"paper"}
+
+用户要求自定义风格时 customTheme 的示例：
+{"name":"赛博朋克","base":"bright","bg":"#0b0b1a","surface":"#15152e","text":"#e6f1ff","accent":"#ff2bd6","font":"mono"}
 ```
+
+`{{STYLE_CATALOG}}` 由 `STYLE_META` 生成（每种风格一行：`- <id>：<名称>，<描述>`）。
 
 ### 3.3 User 提示词
 
@@ -121,6 +158,9 @@ export type PmOutput = z.infer<typeof PmOutput>;
 ## 用户这次的需求
 {{PROMPT}}
 
+## 用户选择的风格        ← 仅新建时用户选了风格卡片，或工作台风格按钮（自由生成应用）时出现
+{{PICKED_STYLE}}         （如 "pixel（像素风）"）
+
 请输出 JSON。
 ```
 
@@ -130,6 +170,7 @@ export type PmOutput = z.infer<typeof PmOutput>;
   模板：<templateId 或 "无（自由生成或已脱离模板）">
   功能：<plan.features 用 "；" 连接>
   当前配置（JSON）：<config_json，最多 3000 字符，超出截断并注明>   ← 仅模板版本
+  当前风格：<"bright（明亮卡片）" 或 "custom：赛博朋克">                ← 能读出风格时
   ```
 - `{{RECENT_MESSAGES}}`：最近 6 条 user 消息和 pm 消息的 content，格式 `用户：…` / `Mia：…`，每条最多 200 字。无则"（无）"。
 
@@ -197,6 +238,7 @@ async function callJson<T>(opts: {
 4. 新建应用时，seed 开头的字段一律输出空数组 []：应用从空白状态开始，由用户自己添加数据；空状态文案（如 emptyText）要写清楚下一步该做什么。
 5. theme.primary 使用 {{THEME_COLOR}}。
 6. 字段 key 只用小写英文字母开头的 camelCase，例如 dueDate、amount。
+7. theme.style 和 theme.custom（风格）由系统根据用户选择填写：新建时省略，修改时照抄当前值。
 ```
 
 ### 5.2 User 提示词
@@ -228,7 +270,7 @@ async function callJson<T>(opts: {
 
 ### 5.3 之后
 
-`schema` 用该模板的 zod schema（`src/lib/templates/schemas.ts`）。校验通过 → `renderTemplate(templateId, config)` → 静态检查（§9）→ 入库。工程师消息 `kind=engineer_config`，`meta={templateId, config}`。
+`schema` 用该模板的 zod schema（`src/lib/templates/schemas.ts`）。校验通过 → `applyStyle(config, style)`（§2.1）→ `renderTemplate(templateId, config)` → 静态检查（§9）→ 入库。工程师消息 `kind=engineer_config`，`meta={templateId, config}`。
 
 ## 6. 自由生成步骤（`free`）
 
@@ -275,8 +317,13 @@ async function callJson<T>(opts: {
 功能要点：
 {{FEATURES}}
 
+## 风格（优先于设计规范里的颜色、字体、圆角和阴影）
+{{STYLE_SPEC}}
+
 请输出完整 HTML。
 ```
+
+`{{STYLE_SPEC}}` 由 `styleSpec(style)`（`src/lib/agent/design-spec.ts`）生成，内容与 [08-templates.md](08-templates.md) §2.3 的主题变量一致（像素风会给出唯一允许的像素字体样式表地址）。System 提示词技术约束第 3 条相应写为"除这两个以外（以及"风格"里给出的像素字体样式表），不要引用任何外部脚本、样式、字体或图片"。
 
 整页重写（补丁失败后的降级，或 `code_patch` 回退）：
 
@@ -448,10 +495,15 @@ export async function runTurn(ctx: TurnCtx, emit: Emit) {
   const { project, current, prompt, signal } = ctx;
   let fixRoundsUsed = 0;
 
+  // 0. 工作台风格按钮 + 模板应用：不调用模型，直接换 theme 出新版本（§2.1）
+  if (ctx.styleOnly && ctx.style && canRestyle) return restyleTurn(...);
+
   // 1. PM
   const pmMsg = msg.start("pm", "pm_plan", "正在分析需求…");
   const pm = await callJson({ step: "pm", schema: PmOutput, ... });
   const intent = normalizeIntent(pm, current);           // §2
+  const style = decideStyle({ pm, picked: ctx.style, current: styleOfVersion(...), isNew });   // §2.1
+  if ((pm.styleOnly || ctx.styleOnly) && intent === "config_edit" && canRestyle && styleChanged) return restyle(...);
   msg.done(pmMsg, { content: pm.reply, meta: { ...pm, intent } });
   if (isFirstTurn && !project.titleLocked) updateTitle(pm.appName) && emit project;
 
@@ -519,7 +571,7 @@ export async function runTurn(ctx: TurnCtx, emit: Emit) {
 ## 12. LLM_MOCK 模式（`src/lib/llm/mock.ts`）
 
 `LLM_MOCK=1` 时：
-- `callJson("pm")`：根据 prompt 关键词返回固定 `PmOutput`：含"看板"→ kanban；"记账"→ ledger；"游戏/翻牌"→ game；"改成绿色/改色"→ config_edit（themeColor=emerald）；"导出"→ code_patch；其他 → todo。
+- `callJson("pm")`：根据 prompt 关键词返回固定 `PmOutput`：含"看板"→ kanban；"记账"→ ledger；"游戏/翻牌"→ game；"改成绿色/改色"→ config_edit（themeColor=emerald）；"导出"→ code_patch；其他 → todo。风格：新建时回显用户选择的风格；已有应用且提示词含"换成/风格"和"像素/明亮/纸墨"→ `styleOnly` 的 config_edit；含"赛博朋克"→ `style: "custom"` 加一套示例颜色。
 - `callJson("config")`：返回 `templates/<id>/example.json`（config_edit 时把 theme.primary 改成 PM 的 themeColor）。
 - `streamCode("free")`：分 20 段、每段间隔 50ms 输出 `tests/fixtures/llm/free.html`。
 - `streamCode("patch")`：返回 `tests/fixtures/llm/patch.txt`（在 `</body>` 前插入一个"导出"按钮的补丁；针对模板渲染结果设计，SEARCH 为 `</body>` 那一行）。

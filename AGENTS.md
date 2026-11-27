@@ -32,7 +32,7 @@
 1. **沙箱**：预览 iframe 永远不加 `allow-same-origin`。
 2. **模型**：只调用 `DEEPSEEK_MODEL`（默认 `deepseek-flash`），Base URL `https://api.deepseek.com`，每个请求体注入 `thinking: {type: "disabled"}`。模型名、地址、Key 只从环境变量读。
 3. **密钥**：API Key 只在服务端；不提交 `.env`、`data/`；日志不打印 Key 和提示词全文。
-4. **生成物**：单文件 HTML；外部脚本只允许 `src/lib/vendor.ts` 白名单中的 Tailwind Browser 和 Chart.js；原生 JS，无 module / 框架 / 网络请求。
+4. **生成物**：单文件 HTML；外部脚本只允许 `src/lib/vendor.ts` 白名单中的 Tailwind Browser 和 Chart.js，外部样式表只允许其中的像素字体（像素风主题）；原生 JS，无 module / 框架 / 网络请求。
 5. **提示词**：只放在 `src/lib/agent/prompts/`，内容以 07 文档中的原文为准；改动提示词需同步更新 07。
 6. **模型输出不可信**：所有 JSON 用 zod 校验；意图按 07 §2 规则修正；HTML 必须过静态检查。
 7. **修复预算**：每个 turn 最多 2 轮修复；用尽则回退到最近 `ok` 版本，没有则提示重新生成。

@@ -14,7 +14,8 @@ ${v.example}
 3. 所有界面文案使用 ${v.language}，文案要具体、贴合用户场景，不要出现"示例""Lorem ipsum"之类的占位词。
 4. 新建应用时，seed 开头的字段一律输出空数组 []：应用从空白状态开始，由用户自己添加数据；空状态文案（如 emptyText）要写清楚下一步该做什么。
 5. theme.primary 使用 ${v.themeColor}。
-6. 字段 key 只用小写英文字母开头的 camelCase，例如 dueDate、amount。`;
+6. 字段 key 只用小写英文字母开头的 camelCase，例如 dueDate、amount。
+7. theme.style 和 theme.custom（风格）由系统根据用户选择填写：新建时省略，修改时照抄当前值。`;
 }
 
 const bullets = (xs: string[]) => (xs.length ? xs.map((x) => `- ${x}`).join("\n") : "- （无）");

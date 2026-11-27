@@ -5,7 +5,7 @@
 ## 1. 生成物通用约束（模板和自由生成都适用）
 
 - 单个 HTML 文件，`<!DOCTYPE html>` 开头，`lang` 属性按配置语言（`zh-CN` / `en`）。
-- 只引用两个外部脚本：Tailwind Browser 和（需要时）Chart.js，地址严格等于 `src/lib/vendor.ts` 中的 CDN 地址。
+- 只引用两个外部脚本：Tailwind Browser 和（需要时）Chart.js，地址严格等于 `src/lib/vendor.ts` 中的 CDN 地址。唯一允许的外部样式表是像素风用的像素字体（`PIXEL_FONT_CSS`，§2.3）。
 - 原生 JavaScript，单个 `<script>` 放在 `<body>` 末尾；不使用 module、import、框架。
 - 数据存 localStorage，键名前缀 `app:`；所有读写 try/catch。
 - 响应式：375px 宽可用；内容最大宽度 `max-w-3xl`（工具类）或 `max-w-6xl`（看板、仪表盘、落地页）。
@@ -64,6 +64,28 @@ function save(key,val){try{localStorage.setItem(key,JSON.stringify(val));}catch(
 </script>
 ```
 
+### 2.3 风格主题（`src/lib/templates/themes.ts`）
+
+"一套模板 × 多套主题"：模板里的颜色、字体、圆角、阴影都引用 CSS 变量，每种风格就是一组变量值，加少量结构样式。配置里只多一个 `theme.style` 字段（可选 `theme.custom`），模型只需要选一个词，8 个模板不用复制三份。
+
+| 风格 | 名称 | 灰阶（`--color-slate-*`） | 卡片 `--surface` | 字体 | 结构差异 |
+|---|---|---|---|---|---|
+| `paper`（默认） | 暖纸墨色 | 暖石色 `#f6f3ec … #15130f` | `#fffdf9` / 深色 `#1f1c17` | 标题 Georgia / 宋体，正文系统字体 | 柔和阴影 |
+| `pixel` | 像素风 | 冷灰蓝 `#eef1f6 … #0e1119` | `#ffffff` / 深色 `#1b2030` | Fusion Pixel 12px（全部文字） | 全部直角；卡片、按钮、输入框 2px 深色描边 + 硬投影（4px / 3px），按钮按下位移；24px 网格背景；字号取 12 / 18 / 24 …（12 的整数倍或 1.5 倍最清晰）；分步过渡 |
+| `bright` | 明亮卡片 | Tailwind 原生 slate | `#ffffff` / 深色 `#0f172a` | 系统无衬线，标题加粗紧排 | 大圆角（卡片 1.5rem）、卡片无边框只用大阴影、按钮和分段控件胶囊形、主按钮主色渐变 + 同色投影、背景两团主色径向光晕 |
+
+**变量约定**（模板只引用这些，不写死颜色）：`--color-slate-50 … 950`（覆盖 Tailwind 灰阶，所有 `bg-slate-*`、`text-slate-*` 随之变化）、`--surface`（卡片 / 弹窗底色）、`--card-shadow`、`--font-sans`、`--font-display`、`--font-mono`、`--radius-*`、`--text-*`（像素风调整字号）、`--px-line` / `--px-shadow` / `--px-grid`（像素风描边、投影、网格）、`--accent-50 … 700`（自定义强调色，见下）。
+
+**注入方式**：`renderTemplate` 把模板 head 里单独一行的 `__APP_THEME__` 替换为 `buildThemeHead(theme)` 生成的**一行**内容：像素风时先放像素字体 `<link>`，再放 `<style id="app-theme">…</style>`。这是普通（非 layer）样式，优先级高于 Tailwind 生成的 `@layer` 样式，所以能覆盖主题变量和 `.card` / `.btn` 等工具类，而不需要 `!important`（像素风的"全部直角"除外）。不引入换行，行号与模板一致。
+
+**自定义风格**：用户在文字里描述了别的风格（"赛博朋克""森系"…）时，PM 输出一组颜色 `CustomTheme { name, base, bg, surface, text, accent?, font? }`（类型见 §4.0）。`base` 决定形状（沿用对应内置风格的结构样式），颜色生成整套灰阶（浅色：50=背景、900=文字；深色背景时自动切深色模式：950=背景、50=文字），`accent` 生成 `--accent-*` 六档，模板 JS 发现这些变量时用它们代替 `theme.primary` 色板。安全修正（`safeCustom`）：文字与背景、卡片的对比度都要 ≥ 4.5，不够时换成深 / 浅墨色；仍不够（如深背景配白卡片）时卡片改成背景的轻微变体；白字在强调色上的对比度 < 4 时逐步加深强调色。颜色格式不合法时整组丢弃，回退到 `style`。
+
+**像素字体**：Fusion Pixel 12px Proportional 简体中文（OFL-1.1，`public/vendor/fusion-pixel/`，含 `OFL.txt`）。按 unicode-range 拆成 78 个约 30KB 的 woff2，页面只下载用到的字。存储 / 下载的 HTML 写 jsDelivr 地址，预览与分享时和 vendor 脚本一样换成本站 `/vendor/fusion-pixel/…`（沙箱 iframe 的 origin 是 null，`/vendor/*` 响应带 `Access-Control-Allow-Origin: *`）。
+
+**自由生成**：同一套风格用文字描述（`styleSpec`，见 07 §6.2），让自由生成的应用和模板应用风格一致。
+
+**切换**：工作台输入框上方有一排风格按钮。模板应用点按钮时不调用模型，只换 `theme` 重新渲染，瞬间出新版本；对话里说"换成像素风"也走同样的快速路径（07 §2.1）。
+
 ## 3. 模板清单与选择规则
 
 `src/lib/templates/registry.ts` 导出：
@@ -116,7 +138,23 @@ interface BaseConfig {
   subtitle?: string;      // 副标题，≤60 字
   emoji: string;          // 标题前的 1 个 emoji
   locale: "zh-CN" | "en";
-  theme: { primary: ThemeColor; mode: "light" | "dark" };   // mode 默认 light
+  theme: {
+    primary: ThemeColor;
+    mode: "light" | "dark";                 // 默认 light
+    style?: "paper" | "pixel" | "bright";   // 风格：paper 暖纸墨色（默认）/ pixel 像素风 / bright 明亮卡片
+    custom?: CustomTheme;                   // 仅当用户描述了其他风格时填写，否则省略
+  };
+}
+
+// 自定义风格：在 base 风格的形状上换一套颜色。颜色都是 #RRGGBB；深色 bg 会自动用深色模式
+interface CustomTheme {
+  name: string;           // 风格名，≤12 字，如"赛博朋克"
+  base: "paper" | "pixel" | "bright";   // 形状基底：paper 柔和、pixel 硬边框像素、bright 大圆角
+  bg: string;             // 页面背景
+  surface: string;        // 卡片背景
+  text: string;           // 主要文字
+  accent?: string;        // 强调色（按钮、选中态），省略则用 primary
+  font?: "sans" | "serif" | "mono" | "pixel";
 }
 
 // 字段定义（todo/form/kanban/crud 使用）
@@ -354,7 +392,8 @@ templates/<id>/
 <title>__APP_TITLE__</title>
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.x.y"></script>
 <!-- 需要图表的模板：<script src="https://cdn.jsdelivr.net/npm/chart.js@4.x.y/dist/chart.umd.min.js"></script> -->
-<style type="text/tailwindcss"> /* 主题变量与少量自定义样式 */ </style>
+<style type="text/tailwindcss"> /* 工具类（card、btn、input…），颜色 / 圆角 / 阴影只引用主题变量 */ </style>
+__APP_THEME__
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900">
 <div id="app"></div>
@@ -371,14 +410,14 @@ templates/<id>/
 ```
 
 规则：
-1. 占位符只有两个：`__APP_TITLE__`（HTML 转义后的 title）和 `__APP_CONFIG__`（`JSON.stringify(config)` 后把 `<` 替换为 `<`、` `/` ` 转义）。`render.ts` 用 `split/join` 替换，不用正则。
-2. 主题色：模板内置 10 种 ThemeColor 的色值表（Tailwind 默认调色板的 50/100/200/500/600/700 六档十六进制值），启动时写入 `document.documentElement.style` 的 CSS 变量 `--p-50 … --p-700`，样式中用 `bg-[var(--p-600)]` 这类写法。dark 模式时 body 改为 `bg-slate-950 text-slate-100`，卡片改为 `bg-slate-900 border-slate-800`。
+1. 占位符有三个：`__APP_THEME__`（单独一行，替换为一行主题样式，§2.3）、`__APP_TITLE__`（HTML 转义后的 title）和 `__APP_CONFIG__`（`JSON.stringify(config)` 后把 `<` 替换为 `<`、` `/` ` 转义）。`render.ts` 用 `split/join` 替换，不用正则。
+2. 主题色：模板内置 10 种 ThemeColor 的色值表（Tailwind 默认调色板的 50/100/200/500/600/700 六档十六进制值），启动时写入 `document.documentElement.style` 的 CSS 变量 `--p-50 … --p-700`，样式中用 `bg-[var(--p-600)]` 这类写法。dark 模式时 body 改为 `bg-slate-950 text-slate-100`，卡片边框 `border-slate-800`，卡片底色统一用 `bg-[var(--surface)]`（深浅两种取值由主题给出）。启动时先读主题样式里的 `--accent-*`（自定义强调色），有则代替主色色板；图表的文字、网格颜色和字体也从主题变量读取。
 3. 文案国际化：模板内置 `I18N = { "zh-CN": {...}, en: {...} }`，所有非配置文案（按钮"添加""删除""取消"、空状态等）从这里取，按 `CONFIG.locale` 选择。
 4. 数据存储：键名 `app:<templateId>:data`（例如 `app:todo:data`），值为 `{ version: 1, items: [...] }`。**首次加载（键不存在）时用 seed 数据初始化并写入**；之后只读存储。另提供 `app:<templateId>:meta` 存最好成绩、视图偏好等。例外：`dashboard` 没有逐条数据，值为 `{ version: 1, base, edited, metrics, charts }`，`base` 是配置中 metrics/charts 的哈希；配置被修改（新版本）后 `base` 不一致，以新配置为准重新初始化。`landing` 的 items 是收集到的邮箱，`game` 的 items 是最近 50 局战绩。
 5. 日期统一用本地时区 `YYYY-MM-DD`，工具函数 `today()`、`addDays(date, n)` 写在模板内。
 6. 防 XSS：所有用户输入和配置文案插入 DOM 时用 `textContent` 或转义函数 `esc()`，不直接拼接 `innerHTML`。
 7. 代码风格：模板内 JS 使用 `const/let`、箭头函数、模板字符串；渲染采用"状态对象 + `render()` 整体重绘"的简单模式。每个模板 JS 控制在 700 行以内（打磨后 todo 最长，约 660 行）。
-9. 视觉基调与网站一致（暖白纸面 + 墨色文字）：`<style type="text/tailwindcss">` 里用 `@theme` 把 slate 灰阶整体换成偏暖的石色（`--color-slate-50 … 950`），卡片和弹窗底色 `#fffdf9`；`font-display`（Georgia / 宋体回退，不加载网络字体）用于应用标题和大数字（工具类 `num` = `font-display tabular-nums`）；`rise` 为列表项和卡片的入场动效，`prefers-reduced-motion` 时关闭。
+9. 视觉基调由风格主题决定（§2.3）：模板里不写死灰阶和纸张色，`@theme` 只保留 `--font-display` 的默认值以生成 `font-display` 工具类；卡片和弹窗底色 `bg-[var(--surface)]`，卡片阴影 `box-shadow: var(--card-shadow)`；`font-display`（纸墨风为 Georgia / 宋体，像素风为像素字体）用于应用标题和大数字（工具类 `num` = `font-display tabular-nums`）；`rise` 为列表项和卡片的入场动效，`prefers-reduced-motion` 时关闭。
 10. 共享交互件（8 个模板相同的前置代码）：`toast(msg, onUndo)` 传 `onUndo` 时显示"撤销"按钮 5 秒；单条删除一律"直接删除 + 可撤销"，批量 / 清空类操作"确认弹窗 + 可撤销"；`shortcut(key, label, fn)` 注册单键快捷键（焦点在输入框或弹窗打开时不触发），按 `?` 弹出快捷键说明，页面底部 `keysHint()` 显示入口。
 8. 每个模板必须在 `theme.mode` 两种模式、`locale` 两种语言下都正常显示。
 
@@ -397,4 +436,5 @@ export function renderTemplate(id: TemplateId, config: unknown): string;
 - 手动走一遍 §4 的"功能要求"每一条。
 - 刷新后数据仍在；清空 localStorage 后回到 seed 数据。
 - 375px 宽度无横向溢出（kanban 列区域除外）。
-- 单元测试：`tests/unit/templates.test.ts` 遍历 8 个模板，校验 example、渲染、`staticCheck(html)` 返回空数组。
+- 三种风格和自定义风格都过一遍：`VERIFY_STYLE=pixel|bright|paper|custom npm run verify:templates`（截图在 `.verify/<style>/`）；E2E `13-styles.spec.ts` 在 375px 下逐个模板切换三种风格检查横向溢出。
+- 单元测试：`tests/unit/templates.test.ts` 遍历 8 个模板，校验 example、渲染、`staticCheck(html)` 返回空数组；`tests/unit/themes.test.ts` 遍历 8 个模板 × 4 种风格，校验渲染、静态检查、主题只占一行（行数不变），以及自定义颜色的对比度修正和回退。

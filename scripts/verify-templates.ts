@@ -7,6 +7,7 @@
  *   4. 输出 375px 与 1280px 截图到 .verify/ 供人工查看。
  *
  * 用法：npm run verify:templates [-- <case 名称过滤>]
+ * 风格主题：VERIFY_STYLE=pixel|bright|paper|custom 把所有用例换成该风格（custom 用一套赛博朋克示例颜色），截图在 .verify/<style>/。
  */
 import fs from "node:fs";
 import http from "node:http";
@@ -18,17 +19,27 @@ import { TEMPLATE_IDS, type TemplateId } from "@/lib/templates/registry";
 import { loadExample, renderTemplate } from "@/lib/templates/render";
 
 const ROOT = process.cwd();
-const OUT = path.join(ROOT, ".verify");
+const STYLE = process.env.VERIFY_STYLE ?? "";
+const OUT = path.join(ROOT, ".verify", STYLE);
+const SAMPLE_CUSTOM = { name: "赛博朋克", base: "bright", bg: "#0b0b1a", surface: "#15152e", text: "#e6f1ff", accent: "#ff2bd6", font: "mono" };
+
+/** 把配置换成 VERIFY_STYLE 指定的风格。 */
+function withStyle(config: unknown): unknown {
+  if (!STYLE || !config || typeof config !== "object") return config;
+  const c = config as { theme?: Record<string, unknown> };
+  const theme = STYLE === "custom" ? { ...c.theme, custom: SAMPLE_CUSTOM } : { ...c.theme, style: STYLE };
+  return { ...c, theme };
+}
 const FIXTURES = path.join(ROOT, "tests/fixtures/templates");
 
 interface Case { name: string; id: TemplateId; html: string }
 
 function collectCases(): Case[] {
-  const cases: Case[] = TEMPLATE_IDS.map((id) => ({ name: id, id, html: renderTemplate(id, loadExample(id)) }));
+  const cases: Case[] = TEMPLATE_IDS.map((id) => ({ name: id, id, html: renderTemplate(id, withStyle(loadExample(id))) }));
   for (const file of fs.readdirSync(FIXTURES).filter((f) => f.endsWith(".json")).sort()) {
     const id = file.split("-")[0] as TemplateId;
     const config: unknown = JSON.parse(fs.readFileSync(path.join(FIXTURES, file), "utf8"));
-    cases.push({ name: file.replace(/\.json$/, ""), id, html: renderTemplate(id, config) });
+    cases.push({ name: file.replace(/\.json$/, ""), id, html: renderTemplate(id, withStyle(config)) });
   }
   return cases;
 }
@@ -69,7 +80,9 @@ function startServer(cases: Map<string, Case>): Promise<http.Server> {
     if (url.pathname.startsWith("/vendor/")) {
       const file = path.join(ROOT, "public", url.pathname);
       if (!fs.existsSync(file)) return void res.writeHead(404).end();
-      res.writeHead(200, { "content-type": "text/javascript" });
+      const type = file.endsWith(".css") ? "text/css" : file.endsWith(".woff2") ? "font/woff2" : "text/javascript";
+      // 沙箱 iframe 的 origin 是 null，加载字体需要 CORS（与 next.config 的 /vendor 头一致）
+      res.writeHead(200, { "content-type": type, "access-control-allow-origin": "*" });
       return void fs.createReadStream(file).pipe(res);
     }
     if (url.pathname === "/host") return void res.writeHead(200, { "content-type": "text/html; charset=utf-8" }).end(HOST_PAGE);
