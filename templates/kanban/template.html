@@ -383,7 +383,7 @@ __APP_THEME__
     const cards = all.filter(visibleCard);
     const over = col.wipLimit && all.length > col.wipLimit;
     const adding = state.adding === col.id;
-    return '<section data-col="' + esc(col.id) + '" class="flex w-72 shrink-0 flex-col rounded-2xl border line bg-slate-100/70 p-3 dark:bg-slate-900/60">' +
+    return '<section data-col="' + esc(col.id) + '" class="flex min-w-0 flex-col rounded-2xl border line bg-slate-100/70 p-3 dark:bg-slate-900/60">' +
       '<div class="mb-3 flex items-center gap-2 px-1"><span class="h-2.5 w-2.5 rounded-full" style="background:' + pal(col.color)[3] + '"></span><h2 class="text-sm font-semibold t-strong">' + esc(col.label) + "</h2>" +
       '<span class="ml-auto rounded-full px-2 py-0.5 text-xs font-medium ' + (over ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300" : "bg-white t-muted dark:bg-slate-800") + '"' + (over ? ' title="' + esc(t("wip", { n: col.wipLimit })) + '"' : "") + ">" +
       (cards.length !== all.length ? cards.length + "/" : "") + all.length + (col.wipLimit ? " / " + col.wipLimit : "") + "</span></div>" +
@@ -413,10 +413,17 @@ __APP_THEME__
     return '<div class="flex flex-wrap items-center gap-3">' + search + tags + summary() + "</div>";
   };
 
+  /** 看板列数：按可用宽度（每列至少 200px）决定一行放几列，多行时尽量均分，不需要横向滚动。 */
+  const boardCols = () => {
+    const vw = document.documentElement.clientWidth || window.innerWidth;
+    const w = Math.min(vw, 1152) - (vw >= 768 ? 64 : 32);
+    const per = Math.max(1, Math.min(COLS.length, Math.floor((w + 16) / 216)));
+    return Math.ceil(COLS.length / Math.ceil(COLS.length / per));
+  };
   const render = () => keepFocus(() => {
     $("#app").innerHTML = header('<span class="self-center text-xs t-faint">' + esc(t("total", { n: data.items.length })) + "</span>") + toolbar() +
       '<p class="hidden text-xs t-faint sm:block">💡 ' + esc(t("hint")) + "</p>" +
-      '<div class="-mx-4 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8"><div class="flex items-start gap-4">' + COLS.map(columnHtml).join("") + "</div></div>" + keysHint();
+      '<div class="grid items-start gap-4 pb-4" style="grid-template-columns:repeat(' + boardCols() + ',minmax(0,1fr))">' + COLS.map(columnHtml).join("") + "</div>" + keysHint();
     if (state.adding) { const q = document.getElementById("quick-" + state.adding); if (q) q.focus(); }
   });
 
@@ -542,6 +549,8 @@ __APP_THEME__
   });
 
   render();
+  let lastCols = boardCols();
+  window.addEventListener("resize", () => { if (boardCols() !== lastCols) { lastCols = boardCols(); render(); } });
 })();
 </script>
 </body>

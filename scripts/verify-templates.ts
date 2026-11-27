@@ -2,7 +2,7 @@
  * 模板浏览器自检（docs/08 §5.4）：在与工作台相同的沙箱 iframe（无 allow-same-origin，
  * runtime 注入 + localStorage 垫片 + 父页面存储桥接）中逐个渲染模板，检查：
  *   1. 控制台 / runtime 无报错，页面非空白；
- *   2. 375px 宽度无横向溢出（kanban 列区域除外）；
+ *   2. 375 / 760（工作台预览常见宽度）/ 1024 / 1280px 均无横向溢出（含 kanban，列会自动换行）；
  *   3. 典型交互后刷新，数据仍在；清空父页面存储后回到 seed 数据；
  *   4. 输出 375px 与 1280px 截图到 .verify/ 供人工查看。
  *
@@ -310,7 +310,7 @@ async function main() {
 
   for (const c of all) {
     const problems: string[] = [];
-    for (const width of [375, 1280]) {
+    for (const width of [375, 760, 1024, 1280]) {
       const context = await browser.newContext({ viewport: { width, height: Number(process.env.VERIFY_HEIGHT ?? 900) } });
       const page = await context.newPage();
       page.on("pageerror", (e) => problems.push(`host pageerror: ${e.message}`));
@@ -321,7 +321,7 @@ async function main() {
       for (const e of r.errors) problems.push(`${width}px: runtime 报错 ${JSON.stringify(e)}`);
 
       const frame = page.frames().find((f) => f !== page.mainFrame());
-      if (frame && width === 375 && c.id !== "kanban") {
+      if (frame) {
         const overflow = await frame.evaluate(() => {
           const w = document.documentElement.clientWidth;
           const px = document.documentElement.scrollWidth - w;
@@ -329,9 +329,14 @@ async function main() {
             .filter((el) => el.getBoundingClientRect().right > w + 1 && el.children.length === 0)
             .slice(0, 3)
             .map((el) => `<${el.tagName.toLowerCase()} class="${(el.getAttribute("class") ?? "").slice(0, 60)}">`);
-          return { px, culprits };
+          const inner = Array.from(document.querySelectorAll("body *"))
+            .filter((el) => { const ox = getComputedStyle(el).overflowX; return (ox === "auto" || ox === "scroll") && el.scrollWidth > el.clientWidth + 1; })
+            .slice(0, 3)
+            .map((el) => `<${el.tagName.toLowerCase()} class="${(el.getAttribute("class") ?? "").slice(0, 60)}"> +${el.scrollWidth - el.clientWidth}px`);
+          return { px, culprits, inner };
         });
-        if (overflow.px > 1) problems.push(`375px: 横向溢出 ${overflow.px}px ${overflow.culprits.join(" ")}`);
+        if (overflow.px > 1) problems.push(`${width}px: 横向溢出 ${overflow.px}px ${overflow.culprits.join(" ")}`);
+        if (overflow.inner.length) problems.push(`${width}px: 内部横向滚动 ${overflow.inner.join(" ")}`);
       }
       await page.screenshot({ path: path.join(OUT, `${c.name}-${width}.png`), fullPage: false });
 
