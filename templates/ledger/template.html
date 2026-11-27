@@ -8,8 +8,18 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 <style type="text/tailwindcss">
 @custom-variant dark (&:where(.dark, .dark *));
-@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
-@utility surface { @apply bg-white dark:bg-slate-900; }
+@theme {
+  --color-slate-50: #f6f3ec; --color-slate-100: #efeae0; --color-slate-200: #e4ded2; --color-slate-300: #d0c8b8; --color-slate-400: #a59c8a; --color-slate-500: #7b7364;
+  --color-slate-600: #5f584c; --color-slate-700: #474137; --color-slate-800: #2f2b24; --color-slate-900: #1f1c17; --color-slate-950: #15130f;
+  --font-display: Georgia, "Times New Roman", "Songti SC", "STSong", serif;
+}
+@utility kbd { @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-b-2 border-slate-300 bg-slate-50 px-1 font-mono text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400; }
+@utility num { @apply font-display tabular-nums; }
+@utility rise { animation: rise .28s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .rise { animation: none; } }
+@utility card { @apply rounded-2xl border border-slate-200 bg-[#fffdf9] p-5 shadow-[0_1px_0_rgb(31_28_23/0.03),0_10px_30px_-20px_rgb(31_28_23/0.35)] md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-[#fffdf9] dark:bg-slate-900; }
 @utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
 @utility line { @apply border-slate-200 dark:border-slate-800; }
 @utility t-strong { @apply text-slate-900 dark:text-white; }
@@ -37,8 +47,8 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
 <div id="app" class="mx-auto max-w-3xl space-y-6 px-4 py-8 md:px-8"></div>
-<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
-<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#fffdf9] p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-slate-100 dark:text-slate-900"><span id="toast-msg"></span><button type="button" id="toast-undo" class="hidden shrink-0 cursor-pointer font-semibold text-[var(--p-200)] hover:underline dark:text-[var(--p-700)]"></button></div>
 <script id="app-config" type="application/json">__APP_CONFIG__</script>
 <script>
 (function () {
@@ -51,6 +61,9 @@
       submit: "保存这笔", amountErr: "请输入大于 0 的金额", catErr: "请选择分类", monthLabel: "{y} 年 {m} 月", prev: "上个月", next: "下个月", thisMonth: "回到本月",
       records: "流水", emptyMonth: "这个月还没有记录，记下第一笔吧", byCategory: "支出构成", dailyTrend: "每日支出", delConfirm: "确定删除这笔 {v} 的记录吗？",
       noExpense: "本月暂无支出", count: "{n} 笔", week: ["周日", "周一", "周二", "周三", "周四", "周五", "周六"], todayTag: "今天",
+      vsPrev: "较上月", perDay: "日均可花 {v}", dailyAvg: "日均 {v}", saveRate: "结余率 {n}%", exportCsv: "导出 CSV", exported: "已导出本月流水", ranking: "支出排行",
+      searchPh: "搜索分类、备注或金额", allTypes: "全部", noMatch: "没有符合条件的记录", countOf: "{n} / {total} 笔", editEntry: "编辑记录", deletedEntry: "已删除一笔 {v}",
+      typeLabel: "类型", keySearch: "搜索流水",
     },
     en: {
       expense: "Expense", income: "Income", balance: "Balance", monthExpense: "Spent", monthIncome: "Income", monthBalance: "Net",
@@ -58,6 +71,9 @@
       submit: "Save entry", amountErr: "Enter an amount greater than 0", catErr: "Pick a category", monthLabel: "{mn} {y}", prev: "Previous month", next: "Next month", thisMonth: "This month",
       records: "Transactions", emptyMonth: "No entries this month yet", byCategory: "Spending by category", dailyTrend: "Daily spending", delConfirm: "Delete this {v} entry?",
       noExpense: "No spending this month", count: "{n} entries", week: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], todayTag: "Today",
+      vsPrev: "vs last month", perDay: "{v}/day left", dailyAvg: "{v}/day avg", saveRate: "Saved {n}%", exportCsv: "Export CSV", exported: "Exported this month", ranking: "Top spending",
+      searchPh: "Search category, note or amount", allTypes: "All", noMatch: "No matching entries", countOf: "{n} of {total}", editEntry: "Edit entry", deletedEntry: "Deleted a {v} entry",
+      typeLabel: "Type", keySearch: "Search entries",
     },
   };
   const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
@@ -74,7 +90,7 @@
     orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
     rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
     violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
-    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+    slate: ["#f8fafc", "#f1f5f9", "#e4ded2", "#7b7364", "#475569", "#334155"],
   };
   const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
   const pal = (name) => PALETTE[name] || PALETTE.indigo;
@@ -83,8 +99,8 @@
   document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
   if (DARK) document.documentElement.classList.add("dark");
   const BASE_I18N = {
-    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
-    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+    "zh-CN": { undo: "撤销", undone: "已撤销", shortcuts: "键盘快捷键", confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { undo: "Undo", undone: "Undone", shortcuts: "Keyboard shortcuts", confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
   };
   const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
   const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
@@ -114,7 +130,21 @@
   const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
   const saveMeta = (m) => save(META_KEY, m);
 
-  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+  let undoFn = null;
+  const hideToast = () => { const el = $("#toast"); el.style.opacity = "0"; el.classList.add("pointer-events-none"); undoFn = null; };
+  /** 轻提示；传 onUndo 时显示「撤销」按钮，5 秒内可撤销。 */
+  const toast = (msg, onUndo) => {
+    const el = $("#toast");
+    $("#toast-msg").textContent = msg;
+    undoFn = onUndo || null;
+    $("#toast-undo").textContent = t("undo");
+    $("#toast-undo").classList.toggle("hidden", !undoFn);
+    el.classList.toggle("pointer-events-none", !undoFn);
+    el.style.opacity = "1";
+    clearTimeout(el._h);
+    el._h = setTimeout(hideToast, undoFn ? 5000 : 2000);
+  };
+  $("#toast-undo").addEventListener("click", () => { const fn = undoFn; hideToast(); if (fn) { fn(); toast(t("undone")); } });
 
   let modalClose = null;
   const openModal = (html, onClose) => {
@@ -146,6 +176,21 @@
   };
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+  /** 单键快捷键（docs/08 §5.2）：焦点在输入框或弹窗打开时不触发；按 ? 查看全部。 */
+  const KEYS = [];
+  const shortcut = (key, label, fn) => KEYS.push({ key, label, fn });
+  const showKeys = () => openModal('<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("shortcuts")) + '</div><ul class="space-y-2 text-sm t-body">' +
+    KEYS.concat([{ key: "?", label: t("shortcuts") }, { key: "Esc", label: t("close") }]).map((k) => '<li class="flex items-center justify-between gap-4"><span>' + esc(k.label) + '</span><span class="kbd">' + esc(({ " ": "Space", ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓", Enter: "Enter" })[k.key] || k.key.toUpperCase()) + "</span></li>").join("") +
+    '</ul><div class="flex justify-end"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + "</button></div></div>");
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || !$("#modal").classList.contains("hidden")) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
+    if (e.key === "?" && KEYS.length) { e.preventDefault(); showKeys(); return; }
+    const k = KEYS.find((x) => x.key === e.key);
+    if (k) { e.preventDefault(); k.fn(e); }
+  });
+  const keysHint = () => KEYS.length ? '<footer class="pt-2 text-center text-xs t-faint"><button type="button" data-act="keys" class="cursor-pointer hover:text-[var(--p-600)]"><span class="kbd">?</span> ' + esc(t("shortcuts")) + "</button></footer>" : "";
 
   /** 整体重绘时保留输入框焦点与光标位置。 */
   const keepFocus = (fn) => {
@@ -162,7 +207,7 @@
   };
 
   /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
-  const ACTIONS = { "modal-close": () => closeModal() };
+  const ACTIONS = { "modal-close": () => closeModal(), keys: () => showKeys() };
   const delegate = (type) => document.addEventListener(type, (e) => {
     const el = e.target.closest && e.target.closest("[data-" + type + "]");
     if (!el) return;
@@ -180,7 +225,7 @@
   const header = (extra) =>
     '<header class="flex flex-wrap items-start justify-between gap-4">' +
     '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
-    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    '<div class="min-w-0"><h1 class="font-display text-[1.65rem] leading-tight font-semibold tracking-tight t-strong">' + esc(CONFIG.title) + "</h1>" +
     (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
     (extra || "") + "</header>";
   const emptyState = (emoji, text, btn) =>
@@ -192,15 +237,15 @@
   const seriesColors = (n) => Array.from({ length: n }, (_, i) => {
     const w = n <= 1 ? 0 : i / (n - 1);
     const c = mixHex(PRIMARY[5], PRIMARY[2], w);
-    return n > 6 && i % 2 === 1 ? mixHex(c, "#64748b", 0.45) : c;
+    return n > 6 && i % 2 === 1 ? mixHex(c, "#7b7364", 0.45) : c;
   });
-  const LINE_COLORS = [PRIMARY[4], "#94a3b8", PRIMARY[2]];
+  const LINE_COLORS = [PRIMARY[4], "#a59c8a", PRIMARY[2]];
   const charts = [];
   const destroyCharts = () => { while (charts.length) { try { charts.pop().destroy(); } catch (e) {} } };
   const makeChart = (canvas, cfg) => {
     if (typeof Chart === "undefined" || !canvas) return null;
-    Chart.defaults.color = DARK ? "#94a3b8" : "#64748b";
-    Chart.defaults.borderColor = DARK ? "#1e293b" : "#e2e8f0";
+    Chart.defaults.color = DARK ? "#a59c8a" : "#7b7364";
+    Chart.defaults.borderColor = DARK ? "#2f2b24" : "#e4ded2";
     Chart.defaults.font.family = "ui-sans-serif, system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif";
     const chart = new Chart(canvas, cfg);
     charts.push(chart);
@@ -227,59 +272,93 @@
   // 本月没有记录时，默认打开最近一个有记录的月份
   const latest = data.items.reduce((m, e) => (e.date > m ? e.date : m), "");
   const startMonth = data.items.some((e) => ym(e.date) === ym(today())) || !latest ? ym(today()) : ym(latest);
-  const state = { month: startMonth, type: "expense", category: (CATS.expense[0] || {}).id || "" };
+  const csvCell = (v) => { const s = String(v ?? ""); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const toCsv = (rows) => rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
+  const downloadFile = (name, text) => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\uFEFF" + text], { type: "text/csv;charset=utf-8" }));
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1000);
+  };
+  const state = { month: startMonth, type: "expense", category: (CATS.expense[0] || {}).id || "", view: "all", q: "" };
 
   const monthItems = () => data.items.filter((e) => ym(e.date) === state.month);
   const sum = (list, type) => round2(list.filter((e) => e.type === type).reduce((s, e) => s + e.amount, 0));
+  const shortMoney = (n) => (Math.abs(n) >= 100000 ? CUR + (n / (LOC === "en" ? 1000 : 10000)).toFixed(1) + (LOC === "en" ? "k" : "万") : money(n));
 
-  const statCard = (label, value, cls) =>
-    '<div class="card min-w-0 p-3 sm:p-5"><div class="truncate text-xs t-faint">' + esc(label) + '</div><div class="mt-1 truncate text-base font-bold sm:text-3xl ' + cls + '" title="' + esc(value) + '">' + esc(value) + "</div></div>";
+  const statCard = (label, value, cls, sub) =>
+    '<div class="card min-w-0 p-3 sm:p-5"><div class="truncate text-xs t-faint">' + esc(label) + '</div><div class="num mt-1 truncate text-lg font-semibold sm:text-3xl ' + cls + '" title="' + esc(value) + '">' + esc(value) + "</div>" +
+    (sub ? '<div class="mt-1 truncate text-[11px] t-faint">' + sub + "</div>" : "") + "</div>";
+
+  /** 剩余天数：本月含今天；过去的月份为 0。 */
+  const daysLeft = () => { const p = state.month.split("-").map(Number); return state.month === ym(today()) ? new Date(p[0], p[1], 0).getDate() - new Date().getDate() + 1 : 0; };
+  const daysElapsed = () => { const p = state.month.split("-").map(Number); return state.month === ym(today()) ? new Date().getDate() : new Date(p[0], p[1], 0).getDate(); };
 
   const statsBlock = (list) => {
     const out = sum(list, "expense"), inc = sum(list, "income"), bal = round2(inc - out);
+    const prevOut = sum(data.items.filter((e) => ym(e.date) === shiftMonth(state.month, -1)), "expense");
+    const delta = prevOut > 0 ? Math.round(((out - prevOut) / prevOut) * 100) : null;
+    const deltaHtml = delta === null ? "" : '<span class="' + (delta > 0 ? "text-rose-600 dark:text-rose-400" : "text-emerald-600 dark:text-emerald-400") + '">' + (delta > 0 ? "↑" : "↓") + Math.abs(delta) + "%</span> " + esc(t("vsPrev"));
     let budget = "";
     if (BUDGET && state.month === ym(today())) {
       const pct = Math.min(100, Math.round((out / BUDGET) * 100));
       const ratio = out / BUDGET;
       const bar = ratio > 1 ? "bg-rose-500" : ratio > 0.8 ? "bg-orange-500" : "bg-[var(--p-500)]";
-      budget = '<section class="card space-y-3"><div class="flex flex-wrap items-end justify-between gap-2"><div><div class="text-xs t-faint">' + esc(t("budget")) + '</div><div class="mt-1 text-lg font-semibold t-strong">' +
+      const perDay = ratio < 1 && daysLeft() ? '<span class="t-faint"> · ' + esc(t("perDay", { v: money(round2((BUDGET - out) / daysLeft())) })) + "</span>" : "";
+      budget = '<section class="card space-y-3"><div class="flex flex-wrap items-end justify-between gap-2"><div><div class="text-xs t-faint">' + esc(t("budget")) + '</div><div class="num mt-1 text-xl font-semibold t-strong">' +
         esc(money(out)) + ' <span class="text-sm font-normal t-faint">/ ' + esc(money(BUDGET)) + '</span></div></div><div class="text-sm ' + (ratio > 1 ? "font-medium text-rose-600" : ratio > 0.8 ? "font-medium text-orange-600" : "t-muted") + '">' +
-        esc(ratio > 1 ? t("budgetOver", { v: money(round2(out - BUDGET)) }) : t("budgetLeft", { v: money(round2(BUDGET - out)) })) + "</div></div>" +
-        '<div class="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div class="h-full rounded-full transition-all ' + bar + '" style="width:' + pct + '%"></div></div></section>';
+        esc(ratio > 1 ? t("budgetOver", { v: money(round2(out - BUDGET)) }) : t("budgetLeft", { v: money(round2(BUDGET - out)) })) + perDay + "</div></div>" +
+        '<div class="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div class="h-full rounded-full transition-all duration-500 ' + bar + '" style="width:' + pct + '%"></div></div></section>';
     }
-    return '<div class="grid grid-cols-3 gap-2 sm:gap-3">' + statCard(t("monthExpense"), money(out), "t-strong") + statCard(t("monthIncome"), money(inc), "text-emerald-600 dark:text-emerald-400") +
-      statCard(t("monthBalance"), (bal < 0 ? "-" : "") + money(Math.abs(bal)), bal < 0 ? "text-rose-600" : "t-strong") + "</div>" + budget;
+    const avg = out ? t("dailyAvg", { v: esc(shortMoney(round2(out / Math.max(1, daysElapsed())))) }) : "";
+    return '<div class="grid grid-cols-3 gap-2 sm:gap-3">' + statCard(t("monthExpense"), shortMoney(out), "t-strong", deltaHtml || avg) + statCard(t("monthIncome"), shortMoney(inc), "text-emerald-600 dark:text-emerald-400", "") +
+      statCard(t("monthBalance"), (bal < 0 ? "-" : "") + shortMoney(Math.abs(bal)), bal < 0 ? "text-rose-600" : "t-strong", inc > 0 ? esc(t("saveRate", { n: Math.round((bal / inc) * 100) })) : "") + "</div>" + budget;
   };
 
   const monthBar = () => {
     const isNow = state.month === ym(today());
     return '<div class="flex items-center justify-between gap-2"><div class="flex items-center gap-1"><button type="button" data-act="month" data-n="-1" class="icon-btn" aria-label="' + esc(t("prev")) + '">‹</button>' +
-      '<div class="min-w-28 text-center text-lg font-semibold t-strong">' + esc(monthName(state.month)) + '</div><button type="button" data-act="month" data-n="1" class="icon-btn" aria-label="' + esc(t("next")) + '">›</button></div>' +
-      (isNow ? "" : '<button type="button" data-act="month" data-n="0" class="btn btn-ghost">' + esc(t("thisMonth")) + "</button>") + "</div>";
+      '<div class="min-w-28 text-center font-display text-xl font-semibold t-strong">' + esc(monthName(state.month)) + '</div><button type="button" data-act="month" data-n="1" class="icon-btn" aria-label="' + esc(t("next")) + '">›</button></div>' +
+      '<div class="flex items-center gap-1">' + (isNow ? "" : '<button type="button" data-act="month" data-n="0" class="btn btn-ghost">' + esc(t("thisMonth")) + "</button>") +
+      (monthItems().length ? '<button type="button" data-act="export" class="btn btn-ghost">↓ <span class="hidden sm:inline">' + esc(t("exportCsv")) + "</span></button>" : "") + "</div></div>";
   };
 
-  const formBlock = () => {
-    const cats = CATS[state.type];
-    return '<section class="card space-y-4"><div class="flex items-center justify-between gap-3"><h2 class="text-lg font-semibold t-strong">✍️ ' + esc(t("newEntry")) + "</h2>" +
+  const catPicker = (type, current) => '<div class="flex flex-wrap gap-2">' + CATS[type].map((c) => '<button type="button" data-act="pick" data-v="' + esc(c.id) + '" class="inline-flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-1.5 text-sm transition ' +
+    (current === c.id ? "border-[var(--p-500)] bg-[var(--p-50)] font-medium text-[var(--p-700)] dark:bg-[var(--p-700)]/30 dark:text-[var(--p-200)]" : "line t-body hover:border-slate-300") + '">' + esc(c.emoji) + " " + esc(c.label) + "</button>").join("") + "</div>";
+
+  const formBlock = () => '<section class="card space-y-4"><div class="flex items-center justify-between gap-3"><h2 class="text-lg font-semibold t-strong">✍️ ' + esc(t("newEntry")) + "</h2>" +
       '<div class="seg">' + ["expense", "income"].map((k) => '<button type="button" data-act="type" data-v="' + k + '" class="' + (state.type === k ? "seg-on" : "seg-btn") + '">' + esc(t(k)) + "</button>").join("") + "</div></div>" +
       '<form id="entry-form" data-submit="add" class="space-y-4" novalidate>' +
       '<div class="grid gap-3 sm:grid-cols-2"><div class="space-y-1"><label class="field-label block" for="f-amount">' + esc(t("amount")) + '</label><div class="relative"><span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm t-faint">' + esc(CUR) + "</span>" +
-      '<input id="f-amount" type="number" inputmode="decimal" step="0.01" min="0" class="input pl-12 text-lg font-semibold" placeholder="0.00"></div><div class="err-text" id="err-amount" hidden></div></div>' +
+      '<input id="f-amount" type="number" inputmode="decimal" step="0.01" min="0" class="input num pl-12 text-lg font-semibold" placeholder="0.00"></div><div class="err-text" id="err-amount" hidden></div></div>' +
       '<div class="space-y-1"><label class="field-label block" for="f-date">' + esc(t("date")) + '</label><input id="f-date" type="date" class="input" value="' + today() + '"></div></div>' +
-      '<div class="space-y-1"><div class="field-label">' + esc(t("category")) + '</div><div class="flex flex-wrap gap-2">' +
-      cats.map((c) => '<button type="button" data-act="pick" data-v="' + esc(c.id) + '" class="inline-flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-1.5 text-sm transition ' +
-        (state.category === c.id ? "border-[var(--p-500)] bg-[var(--p-50)] font-medium text-[var(--p-700)] dark:bg-[var(--p-700)]/30 dark:text-[var(--p-200)]" : "line t-body hover:border-slate-300") + '">' + esc(c.emoji) + " " + esc(c.label) + "</button>").join("") +
-      '</div><div class="err-text" id="err-cat" hidden></div></div>' +
+      '<div class="space-y-1"><div class="field-label">' + esc(t("category")) + "</div>" + catPicker(state.type, state.category) + '<div class="err-text" id="err-cat" hidden></div></div>' +
       '<div class="flex flex-col gap-3 sm:flex-row"><input id="f-note" class="input" maxlength="30" placeholder="' + esc(CONFIG.noteLabel || "") + '"><button type="submit" class="btn btn-primary shrink-0">💾 ' + esc(t("submit")) + "</button></div></form></section>";
+
+  /** 支出排行：纯 CSS 条形，不依赖图表库。 */
+  const ranking = (list) => {
+    const exp = list.filter((e) => e.type === "expense");
+    const total = sum(exp, "expense");
+    if (!total) return "";
+    const byCat = {};
+    exp.forEach((e) => { byCat[e.category] = round2((byCat[e.category] || 0) + e.amount); });
+    const keys = Object.keys(byCat).sort((a, b) => byCat[b] - byCat[a]).slice(0, 5);
+    return '<ul class="space-y-2.5">' + keys.map((k) => {
+      const pct = Math.round((byCat[k] / total) * 100);
+      return '<li><button type="button" data-act="find-cat" data-v="' + esc(k) + '" class="block w-full cursor-pointer text-left"><div class="flex items-center justify-between text-sm"><span class="t-body">' + esc(catOf(k).emoji) + " " + esc(catOf(k).label) +
+        '</span><span class="num t-strong">' + esc(money(byCat[k])) + ' <span class="text-xs t-faint">' + pct + '%</span></span></div><div class="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div class="h-full rounded-full bg-[var(--p-500)]" style="width:' + pct + '%"></div></div></button></li>';
+    }).join("") + "</ul>";
   };
 
   const chartsBlock = (list) => {
-    if (!CHARTS.length) return "";
     const hasExp = list.some((e) => e.type === "expense");
-    const box = (id, title) => '<section class="card min-w-0"><h2 class="mb-3 text-sm font-semibold t-strong">' + esc(title) + "</h2>" +
-      (hasExp ? '<div class="relative h-56"><canvas id="' + id + '"></canvas></div>' : emptyState("📊", t("noExpense"))) + "</section>";
-    return '<div class="grid gap-4 ' + (CHARTS.length > 1 ? "md:grid-cols-2" : "") + '">' +
-      CHARTS.map((c) => (c === "expenseByCategory" ? box("chart-cat", t("byCategory")) : box("chart-daily", t("dailyTrend")))).join("") + "</div>";
+    if (!CHARTS.length) return hasExp ? '<section class="card"><h2 class="mb-3 text-sm font-semibold t-strong">' + esc(t("ranking")) + "</h2>" + ranking(list) + "</section>" : "";
+    const box = (id, title, extra) => '<section class="card min-w-0"><h2 class="mb-3 text-sm font-semibold t-strong">' + esc(title) + "</h2>" +
+      (hasExp ? '<div class="relative h-56"><canvas id="' + id + '"></canvas></div>' + (extra ? '<div class="mt-4 border-t line pt-4">' + extra + "</div>" : "") : emptyState("📊", t("noExpense"))) + "</section>";
+    return '<div class="grid items-start gap-4 ' + (CHARTS.length > 1 ? "md:grid-cols-2" : "") + '">' +
+      CHARTS.map((c) => (c === "expenseByCategory" ? box("chart-cat", t("byCategory"), ranking(list)) : box("chart-daily", t("dailyTrend")))).join("") + "</div>";
   };
 
   const drawCharts = (list) => {
@@ -291,7 +370,7 @@
     const keys = Object.keys(byCat).sort((a, b) => byCat[b] - byCat[a]);
     makeChart($("#chart-cat"), {
       type: "doughnut",
-      data: { labels: keys.map((k) => catOf(k).emoji + " " + catOf(k).label), datasets: [{ data: keys.map((k) => byCat[k]), backgroundColor: seriesColors(keys.length), borderWidth: 2, borderColor: DARK ? "#0f172a" : "#fff" }] },
+      data: { labels: keys.map((k) => catOf(k).emoji + " " + catOf(k).label), datasets: [{ data: keys.map((k) => byCat[k]), backgroundColor: seriesColors(keys.length), borderWidth: 2, borderColor: DARK ? "#1f1c17" : "#fffdf9" }] },
       options: { responsive: true, maintainAspectRatio: false, cutout: "62%", plugins: { legend: { position: window.innerWidth < 640 ? "bottom" : "right", labels: { boxWidth: 10, boxHeight: 10 } }, tooltip: { callbacks: { label: (c) => " " + c.label + " " + money(c.raw) } } } },
     });
     const p = state.month.split("-").map(Number);
@@ -306,25 +385,35 @@
     });
   };
 
-  const listBlock = (list) => {
-    if (!list.length) return '<section class="card">' + emptyState("🧾", t("emptyMonth")) + "</section>";
+  const filtered = (list) => {
+    const q = state.q.trim().toLowerCase();
+    return list.filter((e) => (state.view === "all" || e.type === state.view) && (!q || (catOf(e.category).label + " " + e.note + " " + e.amount).toLowerCase().includes(q)));
+  };
+
+  const listBlock = (all) => {
+    if (!all.length) return '<section class="card">' + emptyState("🧾", t("emptyMonth"), '<button type="button" data-act="focus-amount" class="btn btn-primary mt-4">✍️ ' + esc(t("newEntry")) + "</button>") + "</section>";
+    const list = filtered(all);
     const groups = {};
     list.forEach((e) => { (groups[e.date] = groups[e.date] || []).push(e); });
     const dates = Object.keys(groups).sort().reverse();
-    return '<section class="card space-y-5"><div class="flex items-center justify-between"><h2 class="text-lg font-semibold t-strong">' + esc(t("records")) + '</h2><span class="text-xs t-faint">' + esc(t("count", { n: list.length })) + "</span></div>" +
-      dates.map((d) => {
-        const g = groups[d].sort((a, b) => b.createdAt - a.createdAt);
-        const out = sum(g, "expense"), inc = sum(g, "income");
-        return '<div><div class="mb-1 flex items-center justify-between text-xs t-faint"><span>' + esc(d.slice(5)) + " " + esc(L.week[parseDate(d).getDay()]) + (d === today() ? " · " + esc(t("todayTag")) : "") + "</span><span>" +
-          (out ? esc(t("expense")) + " " + esc(money(out)) : "") + (out && inc ? " · " : "") + (inc ? esc(t("income")) + " " + esc(money(inc)) : "") + "</span></div>" +
-          '<ul class="divide-y divide-slate-100 dark:divide-slate-800">' + g.map((e) => {
-            const c = catOf(e.category);
-            return '<li class="group flex items-center gap-3 py-2.5"><div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-lg dark:bg-slate-800">' + esc(c.emoji) + "</div>" +
-              '<div class="min-w-0 flex-1"><div class="text-sm font-medium t-strong">' + esc(c.label) + "</div>" + (e.note ? '<div class="truncate text-xs t-muted">' + esc(e.note) + "</div>" : "") + "</div>" +
-              '<div class="shrink-0 text-sm font-semibold ' + (e.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "t-strong") + '">' + (e.type === "income" ? "+" : "-") + esc(money(e.amount)) + "</div>" +
-              '<button type="button" data-act="del" data-id="' + e.id + '" class="icon-btn shrink-0" aria-label="' + esc(t("delete")) + '">🗑</button></li>';
-          }).join("") + "</ul></div>";
-      }).join("") + "</section>";
+    const tools = '<div class="flex flex-wrap items-center gap-2"><div class="relative min-w-[9rem] flex-1"><span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm t-faint">⌕</span><input id="q" data-input="q" class="input pl-8" autocomplete="off" placeholder="' +
+      esc(t("searchPh")) + '" value="' + esc(state.q) + '"></div><div class="seg">' + ["all", "expense", "income"].map((k) => '<button type="button" data-act="view" data-v="' + k + '" class="' + (state.view === k ? "seg-on" : "seg-btn") + '">' + esc(t(k === "all" ? "allTypes" : k)) + "</button>").join("") + "</div></div>";
+    const body = !list.length ? emptyState("🔍", t("noMatch")) : dates.map((d) => {
+      const g = groups[d].sort((a, b) => b.createdAt - a.createdAt);
+      const out = sum(g, "expense"), inc = sum(g, "income");
+      return '<div><div class="mb-1 flex items-center justify-between text-xs t-faint"><span>' + esc(d.slice(5)) + " " + esc(L.week[parseDate(d).getDay()]) + (d === today() ? " · " + esc(t("todayTag")) : "") + "</span><span>" +
+        (out ? esc(t("expense")) + " " + esc(money(out)) : "") + (out && inc ? " · " : "") + (inc ? esc(t("income")) + " " + esc(money(inc)) : "") + "</span></div>" +
+        '<ul class="divide-y divide-slate-100 dark:divide-slate-800">' + g.map((e) => {
+          const c = catOf(e.category);
+          return '<li class="group flex items-center gap-1"><button type="button" data-act="open" data-id="' + e.id + '" class="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl py-2.5 pr-2 text-left transition hover:bg-slate-50 dark:hover:bg-slate-800/50">' +
+            '<span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-lg dark:bg-slate-800">' + esc(c.emoji) + "</span>" +
+            '<span class="min-w-0 flex-1"><span class="block text-sm font-medium t-strong">' + esc(c.label) + "</span>" + (e.note ? '<span class="block truncate text-xs t-muted">' + esc(e.note) + "</span>" : "") + "</span>" +
+            '<span class="num shrink-0 text-base font-semibold ' + (e.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "t-strong") + '">' + (e.type === "income" ? "+" : "-") + esc(money(e.amount)) + "</span></button>" +
+            '<button type="button" data-act="del" data-id="' + e.id + '" class="icon-btn shrink-0 sm:opacity-50 sm:group-hover:opacity-100" aria-label="' + esc(t("delete")) + '">🗑</button></li>';
+        }).join("") + "</ul></div>";
+    }).join("");
+    return '<section class="card space-y-5"><div class="flex items-center justify-between"><h2 class="text-lg font-semibold t-strong">' + esc(t("records")) + '</h2><span class="text-xs t-faint">' +
+      esc(list.length === all.length ? t("count", { n: all.length }) : t("countOf", { n: list.length, total: all.length })) + "</span></div>" + tools + body + "</section>";
   };
 
   const render = () => keepFocus(() => {
@@ -333,12 +422,45 @@
     const amount = $("#f-amount") ? $("#f-amount").value : "";
     const date = $("#f-date") ? $("#f-date").value : "";
     destroyCharts();
-    $("#app").innerHTML = header() + monthBar() + statsBlock(list) + formBlock() + chartsBlock(list) + listBlock(list);
+    $("#app").innerHTML = header() + monthBar() + statsBlock(list) + formBlock() + chartsBlock(list) + listBlock(list) + keysHint();
     if (note) $("#f-note").value = note;
     if (amount) $("#f-amount").value = amount;
     if (date) $("#f-date").value = date;
     drawCharts(list);
   });
+
+  const find = (id) => data.items.find((e) => e.id === id);
+  /** 编辑弹窗：可改类型、金额、分类、日期、备注。分类选择在弹窗内用 data-act="pick-edit"。 */
+  const openEdit = (item, draft) => {
+    const d = draft || { type: item.type, category: item.category };
+    openModal('<form data-submit="save-edit" data-id="' + item.id + '" class="space-y-4" novalidate><div class="flex items-center justify-between gap-3"><div class="text-lg font-semibold t-strong">' + esc(t("editEntry")) + '</div><div class="seg">' +
+      ["expense", "income"].map((k) => '<button type="button" data-act="type-edit" data-v="' + k + '" class="' + (d.type === k ? "seg-on" : "seg-btn") + '">' + esc(t(k)) + "</button>").join("") + "</div></div>" +
+      '<div class="grid gap-3 sm:grid-cols-2"><div class="space-y-1"><label class="field-label block" for="e-amount">' + esc(t("amount")) + '</label><input id="e-amount" type="number" step="0.01" min="0" class="input num text-lg font-semibold" value="' + esc(d.amount ?? item.amount) + '"><div class="err-text" id="err-e-amount" hidden></div></div>' +
+      '<div class="space-y-1"><label class="field-label block" for="e-date">' + esc(t("date")) + '</label><input id="e-date" type="date" class="input" value="' + esc(d.date ?? item.date) + '"></div></div>' +
+      '<div class="space-y-1"><div class="field-label">' + esc(t("category")) + "</div>" + catPicker(d.type, d.category).replace(/data-act="pick"/g, 'data-act="pick-edit"') + "</div>" +
+      '<input id="e-note" class="input" maxlength="30" placeholder="' + esc(CONFIG.noteLabel || "") + '" value="' + esc(d.note ?? item.note) + '">' +
+      '<div class="flex items-center justify-between gap-2"><button type="button" class="btn btn-ghost !text-rose-600" data-act="del" data-id="' + item.id + '">🗑 ' + esc(t("delete")) + '</button><div class="flex gap-2"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("cancel")) +
+      '</button><button type="submit" class="btn btn-primary">' + esc(t("save")) + "</button></div></div></form>");
+    state.draft = d;
+  };
+  const editDraft = () => Object.assign(state.draft, { amount: $("#e-amount").value, date: $("#e-date").value, note: $("#e-note").value });
+  ACTIONS.open = (el) => { const item = find(el.getAttribute("data-id")); if (item) openEdit(item); };
+  ACTIONS["type-edit"] = (el) => { const d = editDraft(); const item = find($("#modal form").getAttribute("data-id")); d.type = el.getAttribute("data-v"); if (!CATS[d.type].some((c) => c.id === d.category)) d.category = (CATS[d.type][0] || {}).id || ""; openEdit(item, d); };
+  ACTIONS["pick-edit"] = (el) => { const d = editDraft(); d.category = el.getAttribute("data-v"); openEdit(find($("#modal form").getAttribute("data-id")), d); };
+  ACTIONS["save-edit"] = (form, e) => {
+    e.preventDefault();
+    const item = find(form.getAttribute("data-id"));
+    if (!item) return closeModal();
+    const d = editDraft();
+    const amount = round2(Number(d.amount));
+    if (!(amount > 0)) { const er = $("#err-e-amount"); er.textContent = t("amountErr"); er.hidden = false; $("#e-amount").focus(); return; }
+    Object.assign(item, { type: d.type, category: d.category, amount, date: d.date || item.date, note: String(d.note || "").trim().slice(0, 30) });
+    persist();
+    closeModal();
+    state.month = ym(item.date);
+    render();
+    toast(t("saved"));
+  };
 
   ACTIONS.type = (el) => {
     state.type = el.getAttribute("data-v");
@@ -346,6 +468,10 @@
     render();
   };
   ACTIONS.pick = (el) => { state.category = el.getAttribute("data-v"); render(); };
+  ACTIONS.view = (el) => { state.view = el.getAttribute("data-v"); render(); };
+  ACTIONS.q = (el) => { state.q = el.value; render(); };
+  ACTIONS["find-cat"] = (el) => { state.q = catOf(el.getAttribute("data-v")).label; state.view = "expense"; render(); const q = $("#q"); if (q) q.scrollIntoView({ behavior: "smooth", block: "center" }); };
+  ACTIONS["focus-amount"] = () => { $("#f-amount").focus(); $("#f-amount").scrollIntoView({ behavior: "smooth", block: "center" }); };
   ACTIONS.month = (el) => {
     const n = Number(el.getAttribute("data-n"));
     state.month = n === 0 ? ym(today()) : shiftMonth(state.month, n);
@@ -368,19 +494,30 @@
     $("#f-note").value = "";
     state.month = ym(date);
     render();
+    $("#f-amount").focus();
     toast(t("saved") + " · " + (state.type === "income" ? "+" : "-") + money(amount));
   };
   ACTIONS.del = (el) => {
-    const item = data.items.find((e) => e.id === el.getAttribute("data-id"));
+    const item = find(el.getAttribute("data-id"));
     if (!item) return;
-    confirmBox(t("delConfirm", { v: money(item.amount) }), () => {
-      data.items = data.items.filter((e) => e.id !== item.id);
-      persist();
-      render();
-      toast(t("deleted"));
-    });
+    if (!$("#modal").classList.contains("hidden")) closeModal();
+    const idx = data.items.indexOf(item);
+    data.items.splice(idx, 1);
+    persist();
+    render();
+    toast(t("deletedEntry", { v: money(item.amount) }), () => { data.items.splice(Math.min(idx, data.items.length), 0, item); persist(); render(); });
+  };
+  ACTIONS.export = () => {
+    const rows = [[t("date"), t("typeLabel"), t("category"), t("amount"), CONFIG.noteLabel || "note"]].concat(
+      monthItems().sort((a, b) => a.date.localeCompare(b.date)).map((e) => [e.date, t(e.type), catOf(e.category).label, e.type === "income" ? e.amount : -e.amount, e.note]));
+    downloadFile(CONFIG.title + "-" + state.month + ".csv", toCsv(rows));
+    toast(t("exported"));
   };
 
+  shortcut("n", t("newEntry"), () => ACTIONS["focus-amount"]());
+  shortcut("/", t("keySearch"), () => { const q = $("#q"); if (q) q.focus(); });
+  shortcut("ArrowLeft", t("prev"), () => { state.month = shiftMonth(state.month, -1); render(); });
+  shortcut("ArrowRight", t("next"), () => { state.month = shiftMonth(state.month, 1); render(); });
   render();
 })();
 </script>

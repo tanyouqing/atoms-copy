@@ -7,8 +7,20 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
 <style type="text/tailwindcss">
 @custom-variant dark (&:where(.dark, .dark *));
-@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
-@utility surface { @apply bg-white dark:bg-slate-900; }
+@theme {
+  --color-slate-50: #f6f3ec; --color-slate-100: #efeae0; --color-slate-200: #e4ded2; --color-slate-300: #d0c8b8; --color-slate-400: #a59c8a; --color-slate-500: #7b7364;
+  --color-slate-600: #5f584c; --color-slate-700: #474137; --color-slate-800: #2f2b24; --color-slate-900: #1f1c17; --color-slate-950: #15130f;
+  --font-display: Georgia, "Times New Roman", "Songti SC", "STSong", serif;
+}
+@utility kbd { @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-b-2 border-slate-300 bg-slate-50 px-1 font-mono text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400; }
+@utility num { @apply font-display tabular-nums; }
+@utility rise { animation: rise .28s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes fall { 0% { transform: translateY(-10vh) rotate(0); opacity: 1; } 100% { transform: translateY(105vh) rotate(540deg); opacity: .9; } }
+@utility confetti { position: fixed; top: 0; z-index: 70; pointer-events: none; animation: fall 1.8s cubic-bezier(.2,.6,.4,1) forwards; }
+@media (prefers-reduced-motion: reduce) { .rise { animation: none; } .confetti { display: none; } }
+@utility card { @apply rounded-2xl border border-slate-200 bg-[#fffdf9] p-5 shadow-[0_1px_0_rgb(31_28_23/0.03),0_10px_30px_-20px_rgb(31_28_23/0.35)] md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-[#fffdf9] dark:bg-slate-900; }
 @utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
 @utility line { @apply border-slate-200 dark:border-slate-800; }
 @utility t-strong { @apply text-slate-900 dark:text-white; }
@@ -36,8 +48,8 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
 <div id="app" class="mx-auto max-w-3xl space-y-6 px-4 py-8 md:px-8"></div>
-<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
-<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#fffdf9] p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-slate-100 dark:text-slate-900"><span id="toast-msg"></span><button type="button" id="toast-undo" class="hidden shrink-0 cursor-pointer font-semibold text-[var(--p-200)] hover:underline dark:text-[var(--p-700)]"></button></div>
 <script id="app-config" type="application/json">__APP_CONFIG__</script>
 <script>
 (function () {
@@ -50,7 +62,9 @@
       guessPh: "输入 {min}-{max} 之间的整数", guess: "猜", tooBig: "大了", tooSmall: "小了", correct: "猜中了", rangeErr: "请输入 {min}-{max} 之间的整数", repeatErr: "这个数已经猜过了",
       answerWas: "答案是 {n}", attemptsUnit: "{n} 次", movesUnit: "{n} 步", secUnit: "{n} 秒", pointsUnit: "{n} 分", next: "下一题", finish: "查看结果", right: "回答正确", wrong: "回答错误", timeout: "时间到",
       review: "错题回顾", yourAnswer: "你的答案", rightAnswer: "正确答案", allRight: "全部答对，太厉害了！", noAnswer: "未作答", timeLeft: "剩余时间", quit: "放弃", quitConfirm: "确定放弃本局吗？",
-      result: "本局成绩", controls: "方向键 / WASD 控制，空格暂停",
+      result: "本局成绩", difficulty: "难度", d_easy: "简单", d_normal: "标准", d_hard: "困难", changeDiff: "换个难度", historyTitle: "我的战绩", clearHistory: "清空战绩",
+      clearConfirm: "确定清空所有战绩和最好成绩吗？", cleared: "战绩已清空", games: "局数", winRate: "胜率", avg: "平均成绩", older: "较早", latest: "最近",
+      controls: "方向键 / WASD 控制，空格暂停",
     },
     en: {
       rules: "How to play", start: "Start", again: "Play again", best: "Best", played: "{n} games played", none: "—", newBest: "🎉 New record!",
@@ -58,7 +72,9 @@
       guessPh: "Enter a whole number {min}-{max}", guess: "Guess", tooBig: "Too high", tooSmall: "Too low", correct: "Correct", rangeErr: "Enter a whole number between {min} and {max}", repeatErr: "You already tried that number",
       answerWas: "The answer was {n}", attemptsUnit: "{n} tries", movesUnit: "{n} moves", secUnit: "{n}s", pointsUnit: "{n} pts", next: "Next", finish: "See results", right: "Correct", wrong: "Wrong", timeout: "Time's up",
       review: "Review", yourAnswer: "Your answer", rightAnswer: "Correct answer", allRight: "Perfect score!", noAnswer: "No answer", timeLeft: "Time left", quit: "Quit", quitConfirm: "Quit this round?",
-      result: "This round", controls: "Arrow keys / WASD to move, Space to pause",
+      result: "This round", difficulty: "Difficulty", d_easy: "Easy", d_normal: "Normal", d_hard: "Hard", changeDiff: "Change difficulty", historyTitle: "Your record", clearHistory: "Clear record",
+      clearConfirm: "Clear all games and best scores?", cleared: "Record cleared", games: "Games", winRate: "Win rate", avg: "Average", older: "Older", latest: "Latest",
+      controls: "Arrow keys / WASD to move, Space to pause",
     },
   };
   const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
@@ -75,7 +91,7 @@
     orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
     rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
     violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
-    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+    slate: ["#f8fafc", "#f1f5f9", "#e4ded2", "#7b7364", "#475569", "#334155"],
   };
   const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
   const pal = (name) => PALETTE[name] || PALETTE.indigo;
@@ -84,8 +100,8 @@
   document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
   if (DARK) document.documentElement.classList.add("dark");
   const BASE_I18N = {
-    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
-    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+    "zh-CN": { undo: "撤销", undone: "已撤销", shortcuts: "键盘快捷键", confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { undo: "Undo", undone: "Undone", shortcuts: "Keyboard shortcuts", confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
   };
   const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
   const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
@@ -115,7 +131,21 @@
   const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
   const saveMeta = (m) => save(META_KEY, m);
 
-  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+  let undoFn = null;
+  const hideToast = () => { const el = $("#toast"); el.style.opacity = "0"; el.classList.add("pointer-events-none"); undoFn = null; };
+  /** 轻提示；传 onUndo 时显示「撤销」按钮，5 秒内可撤销。 */
+  const toast = (msg, onUndo) => {
+    const el = $("#toast");
+    $("#toast-msg").textContent = msg;
+    undoFn = onUndo || null;
+    $("#toast-undo").textContent = t("undo");
+    $("#toast-undo").classList.toggle("hidden", !undoFn);
+    el.classList.toggle("pointer-events-none", !undoFn);
+    el.style.opacity = "1";
+    clearTimeout(el._h);
+    el._h = setTimeout(hideToast, undoFn ? 5000 : 2000);
+  };
+  $("#toast-undo").addEventListener("click", () => { const fn = undoFn; hideToast(); if (fn) { fn(); toast(t("undone")); } });
 
   let modalClose = null;
   const openModal = (html, onClose) => {
@@ -147,6 +177,21 @@
   };
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+  /** 单键快捷键（docs/08 §5.2）：焦点在输入框或弹窗打开时不触发；按 ? 查看全部。 */
+  const KEYS = [];
+  const shortcut = (key, label, fn) => KEYS.push({ key, label, fn });
+  const showKeys = () => openModal('<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("shortcuts")) + '</div><ul class="space-y-2 text-sm t-body">' +
+    KEYS.concat([{ key: "?", label: t("shortcuts") }, { key: "Esc", label: t("close") }]).map((k) => '<li class="flex items-center justify-between gap-4"><span>' + esc(k.label) + '</span><span class="kbd">' + esc(({ " ": "Space", ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓", Enter: "Enter" })[k.key] || k.key.toUpperCase()) + "</span></li>").join("") +
+    '</ul><div class="flex justify-end"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + "</button></div></div>");
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || !$("#modal").classList.contains("hidden")) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
+    if (e.key === "?" && KEYS.length) { e.preventDefault(); showKeys(); return; }
+    const k = KEYS.find((x) => x.key === e.key);
+    if (k) { e.preventDefault(); k.fn(e); }
+  });
+  const keysHint = () => KEYS.length ? '<footer class="pt-2 text-center text-xs t-faint"><button type="button" data-act="keys" class="cursor-pointer hover:text-[var(--p-600)]"><span class="kbd">?</span> ' + esc(t("shortcuts")) + "</button></footer>" : "";
 
   /** 整体重绘时保留输入框焦点与光标位置。 */
   const keepFocus = (fn) => {
@@ -163,7 +208,7 @@
   };
 
   /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
-  const ACTIONS = { "modal-close": () => closeModal() };
+  const ACTIONS = { "modal-close": () => closeModal(), keys: () => showKeys() };
   const delegate = (type) => document.addEventListener(type, (e) => {
     const el = e.target.closest && e.target.closest("[data-" + type + "]");
     if (!el) return;
@@ -181,12 +226,13 @@
   const header = (extra) =>
     '<header class="flex flex-wrap items-start justify-between gap-4">' +
     '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
-    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    '<div class="min-w-0"><h1 class="font-display text-[1.65rem] leading-tight font-semibold tracking-tight t-strong">' + esc(CONFIG.title) + "</h1>" +
     (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
     (extra || "") + "</header>";
   const emptyState = (emoji, text, btn) =>
     '<div class="py-12 text-center"><div class="text-4xl">' + esc(emoji) + '</div><p class="mt-2 text-sm t-muted">' + esc(text) + "</p>" + (btn || "") + "</div>";
-  const G = CONFIG.game || { kind: "guessNumber", min: 1, max: 100, maxAttempts: 7 };
+  const G0 = CONFIG.game || { kind: "guessNumber", min: 1, max: 100, maxAttempts: 7 };
+  const G = Object.assign({}, G0);
   const KIND_EMOJI = { guessNumber: "🔢", memory: "🃏", snake: "🐍", quiz: "🧠" };
   // 越小越好：猜数字（次数）、翻牌（步数）；越大越好：贪吃蛇、问答（得分）
   const LOWER_BETTER = G.kind === "guessNumber" || G.kind === "memory";
@@ -196,23 +242,72 @@
   const shuffle = (arr) => { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const unit = (n) => t({ guessNumber: "attemptsUnit", memory: "movesUnit", snake: "pointsUnit", quiz: "pointsUnit" }[G.kind], { n });
   let S = { phase: "start" };
+  /** 难度：只调整参数（次数 / 时限 / 速度 / 对数），每档单独记最好成绩。问答没有难度。 */
+  const DIFFS = G0.kind === "quiz" ? [] : ["easy", "normal", "hard"];
+  let diff = DIFFS.includes(meta.diff) ? meta.diff : "normal";
+  const BK = () => (diff === "normal" ? "best" : "best_" + diff);
+  const applyDiff = () => {
+    Object.assign(G, G0);
+    const k = diff === "easy" ? 1 : diff === "hard" ? -1 : 0;
+    if (!k) return;
+    if (G.kind === "guessNumber") G.maxAttempts = Math.max(3, Math.min(20, G0.maxAttempts + (k > 0 ? 3 : -2)));
+    if (G.kind === "snake") G.speedMs = Math.round(Math.max(60, G0.speedMs * (k > 0 ? 1.35 : 0.7)));
+    if (G.kind === "memory") {
+      const uniq = new Set(G0.symbols || []).size;
+      G.pairs = Math.max(4, Math.min(12, uniq, G0.pairs + (k > 0 ? -2 : 2)));
+      if (G0.timeLimitSec) G.timeLimitSec = Math.max(10, Math.round(G0.timeLimitSec * (k > 0 ? 1.5 : 0.7)));
+    }
+  };
+  const diffPicker = () => !DIFFS.length ? "" : '<div class="inline-flex flex-col items-center gap-1.5"><span class="text-xs t-faint">' + esc(t("difficulty")) + '</span><div class="seg">' +
+    DIFFS.map((d) => '<button type="button" data-act="diff" data-v="' + d + '" class="' + (diff === d ? "seg-on" : "seg-btn") + '">' + esc(t("d_" + d)) + "</button>").join("") + "</div></div>";
+  /** 战绩：胜率、平均成绩和最近 12 局的条形图（越高越好时柱子越高，越低越好时反过来）。 */
+  const history = () => {
+    const games = data.items;
+    if (!games.length) return "";
+    const wins = games.filter((g) => g.won).length;
+    const recent = games.slice(-12);
+    const max = Math.max(1, ...recent.map((g) => g.score));
+    const minWon = Math.max(1, Math.min(...recent.filter((g) => g.won).map((g) => g.score).concat([max])));
+    const avg = games.reduce((s2, g) => s2 + g.score, 0) / games.length;
+    const cell = (label, value) => '<div class="rounded-xl surface-2 px-3 py-2"><div class="num text-xl font-semibold t-strong">' + esc(value) + '</div><div class="text-xs t-muted">' + esc(label) + "</div></div>";
+    return '<section class="card space-y-4"><div class="flex items-center justify-between"><h3 class="text-sm font-semibold t-strong">' + esc(t("historyTitle")) + '</h3><button type="button" data-act="clear-history" class="text-xs t-faint hover:text-rose-600">' + esc(t("clearHistory")) + "</button></div>" +
+      '<div class="grid grid-cols-3 gap-2">' + cell(t("games"), games.length) + cell(t("winRate"), Math.round((wins / games.length) * 100) + "%") + cell(t("avg"), unit(Math.round(avg * 10) / 10)) + "</div>" +
+      '<div class="flex h-20 items-end gap-1.5">' + Array.from({ length: 12 - recent.length }, () => '<div class="h-1 flex-1 rounded-full bg-slate-100 dark:bg-slate-800"></div>').join("") + recent.map((g) => {
+        const h = LOWER_BETTER ? (g.won ? Math.max(0.15, minWon / Math.max(1, g.score)) : 0.08) : Math.max(0.08, g.score / max);
+        return '<div class="flex-1 rounded-t-md ' + (g.won ? "bg-[var(--p-500)]" : "bg-slate-300 dark:bg-slate-700") + '" style="height:' + Math.round(h * 100) + '%" title="' + esc((g.won ? "✓ " : "✗ ") + unit(g.score) + " · " + fmtDate(new Date(g.at))) + '"></div>';
+      }).join("") + '</div><div class="flex justify-between text-[10px] t-faint"><span>' + esc(t("older")) + "</span><span>" + esc(t("latest")) + "</span></div></section>";
+  };
+  const confetti = () => {
+    const bits = ["🎉", "✨", "🎊", "⭐", CONFIG.emoji];
+    for (let i = 0; i < 26; i++) {
+      const el = document.createElement("span");
+      el.className = "confetti";
+      el.textContent = bits[i % bits.length];
+      el.style.left = Math.random() * 100 + "vw";
+      el.style.fontSize = 14 + Math.random() * 16 + "px";
+      el.style.animationDelay = Math.random() * 0.5 + "s";
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 2600);
+    }
+  };
   let timer = null;
   const stopTimer = () => { if (timer) { clearInterval(timer); timer = null; } };
   const elapsed = () => Math.floor(((S.endAt || Date.now()) - S.startAt) / 1000);
 
   const bestLine = () => '<div class="flex flex-wrap items-center justify-center gap-3 text-sm t-muted"><span class="tag tag-primary px-3 py-1">🏆 ' + esc(t("best")) + esc(t("colon")) +
-    esc(meta.best === undefined ? t("none") : unit(meta.best)) + "</span><span>" + esc(t("played", { n: data.items.length })) + "</span></div>";
+    esc(meta[BK()] === undefined ? t("none") : unit(meta[BK()])) + "</span><span>" + esc(t("played", { n: data.items.length })) + "</span></div>";
   const stat = (label, value, id) => '<div class="min-w-0 rounded-xl surface-2 px-3 py-2 text-center"><div class="text-xs t-faint">' + esc(label) + '</div><div class="text-lg font-bold t-strong tabular-nums"' + (id ? ' id="' + id + '"' : "") + ">" + esc(value) + "</div></div>";
 
   const finish = (won, score, extra) => {
     stopTimer();
     S.endAt = Date.now();
-    const better = meta.best === undefined || (LOWER_BETTER ? score < meta.best : score > meta.best);
+    const better = meta[BK()] === undefined || (LOWER_BETTER ? score < meta[BK()] : score > meta[BK()]);
     // 猜数字 / 翻牌只有获胜时才计入最好成绩
     const counts = LOWER_BETTER ? won : true;
     S.newBest = counts && better && (!LOWER_BETTER || won);
-    if (S.newBest) { meta.best = score; saveMeta(meta); }
-    data.items.push({ at: Date.now(), won, score, time: elapsed() });
+    if (S.newBest) { meta[BK()] = score; saveMeta(meta); }
+    data.items.push({ at: Date.now(), won, score, time: elapsed(), diff });
+    if (won) setTimeout(confetti, 50);
     if (data.items.length > 50) data.items = data.items.slice(-50);
     persist();
     S.phase = "end";
@@ -229,7 +324,7 @@
       '<form data-submit="guess" class="flex gap-2" novalidate><input id="guess" type="number" inputmode="numeric" class="input text-lg" placeholder="' + esc(t("guessPh", { min: G.min, max: G.max })) + '"><button type="submit" class="btn btn-primary shrink-0 px-6">' + esc(t("guess")) + "</button></form>" +
       (S.err ? '<div class="err-text">' + esc(S.err) + "</div>" : "") +
       '<ul class="space-y-2">' + S.history.slice().reverse().map((h, i) => '<li class="flex items-center justify-between rounded-xl surface-2 px-4 py-2.5 text-sm"><span class="t-faint">#' + (S.history.length - i) + '</span><span class="text-lg font-bold t-strong">' + h.n + "</span>" +
-        '<span class="tag ' + (h.r === 0 ? "tag-primary" : "tag-muted") + '">' + (h.r > 0 ? "⬇️ " + esc(t("tooBig")) : h.r < 0 ? "⬆️ " + esc(t("tooSmall")) : "🎯 " + esc(t("correct"))) + "</span></li>").join("") + "</ul>",
+        '<span class="tag ' + (h.r === 0 ? "tag-primary" : "tag-muted") + '">' + (h.r > 0 ? "↓ " + esc(t("tooBig")) : h.r < 0 ? "↑ " + esc(t("tooSmall")) : "🎯 " + esc(t("correct"))) + "</span></li>").join("") + "</ul>",
     after: () => { const g = $("#guess"); if (g) g.focus(); },
   };
   ACTIONS.guess = (form, e) => {
@@ -319,7 +414,7 @@
       for (let x = 0; x < G.gridSize; x++) for (let y = 0; y < G.gridSize; y++) if (!S.snake.some((p) => p[0] === x && p[1] === y)) free.push([x, y]);
       return free[Math.floor(Math.random() * free.length)] || [0, 0];
     },
-    view: () => '<div class="grid grid-cols-2 gap-3">' + stat(t("score"), S.points, "points") + stat(t("best"), meta.best === undefined ? t("none") : meta.best) + "</div>" +
+    view: () => '<div class="grid grid-cols-2 gap-3">' + stat(t("score"), S.points, "points") + stat(t("best"), meta[BK()] === undefined ? t("none") : meta[BK()]) + "</div>" +
       '<div class="relative mx-auto w-full max-w-[420px]"><canvas id="board" class="block aspect-square w-full rounded-2xl border line surface-2"></canvas>' +
       '<div id="pause-mask" class="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 p-6 text-center text-sm font-medium text-white"' + (S.paused ? "" : " hidden") + ">" + esc(t("paused")) + "</div></div>" +
       '<div class="mx-auto grid w-44 grid-cols-3 gap-2 sm:hidden">' + [["", ""], ["up", "▲"], ["", ""], ["left", "◀"], ["pause", "⏯"], ["right", "▶"], ["", ""], ["down", "▼"], ["", ""]].map(([d, l]) =>
@@ -467,7 +562,7 @@
     if (S.phase === "start") {
       body = '<section class="card space-y-6 py-10 text-center"><div class="text-6xl">' + esc(KIND_EMOJI[G.kind] || CONFIG.emoji) + "</div>" +
         '<div class="mx-auto max-w-md space-y-2"><h2 class="text-lg font-semibold t-strong">' + esc(t("rules")) + '</h2><p class="text-sm leading-relaxed whitespace-pre-line t-body">' + esc(CONFIG.rulesText) + "</p></div>" +
-        '<button type="button" data-act="start" class="btn btn-primary px-8 py-3 text-base">▶ ' + esc(t("start")) + "</button>" + bestLine() + "</section>";
+        diffPicker() + '<div><button type="button" data-act="start" class="btn btn-primary px-8 py-3 text-base">▶ ' + esc(t("start")) + '</button><p class="mt-2 text-xs t-faint"><span class="kbd">Enter</span> ' + esc(t("start")) + "</p></div>" + bestLine() + "</section>" + history();
     } else if (S.phase === "play") {
       body = '<section class="card space-y-5">' + GAME.view() + '<div class="text-center"><button type="button" data-act="quit" class="text-xs t-faint hover:text-rose-600">' + esc(t("quit")) + "</button></div></section>";
     } else {
@@ -475,13 +570,26 @@
         (S.newBest ? '<div class="tag tag-primary px-3 py-1 text-sm">' + esc(t("newBest")) + "</div>" : "") +
         '<div class="mx-auto grid max-w-xs grid-cols-2 gap-3">' + stat(t("result"), unit(S.score)) + stat(t("time"), t("secUnit", { n: elapsed() })) + "</div>" +
         (S.extra ? '<p class="text-sm t-muted">' + esc(S.extra) + "</p>" : "") + (G.kind === "quiz" ? '<div class="mx-auto max-w-xl">' + quizReview() + "</div>" : "") +
-        '<button type="button" data-act="start" class="btn btn-primary px-8 py-3 text-base">🔄 ' + esc(t("again")) + "</button>" + bestLine() + "</section>";
+        '<div class="flex flex-wrap items-center justify-center gap-2"><button type="button" data-act="start" class="btn btn-primary px-8 py-3 text-base">🔄 ' + esc(t("again")) + "</button>" +
+        (DIFFS.length ? '<button type="button" data-act="home" class="btn btn-secondary px-5 py-3 text-base">' + esc(t("changeDiff")) + "</button>" : "") + "</div>" + bestLine() + "</section>" + history();
     }
-    $("#app").innerHTML = header() + body;
+    $("#app").innerHTML = header(DIFFS.length && S.phase !== "start" ? '<span class="tag tag-muted self-center">' + esc(t("difficulty")) + esc(t("colon")) + esc(t("d_" + diff)) + "</span>" : "") + body + keysHint();
     if (S.phase === "play" && GAME.after) GAME.after();
   });
 
-  ACTIONS.start = () => { stopTimer(); S = { phase: "play", startAt: Date.now() }; GAME.init(); render(); };
+  ACTIONS.start = () => { stopTimer(); applyDiff(); S = { phase: "play", startAt: Date.now() }; GAME.init(); render(); };
+  ACTIONS.diff = (el) => { diff = el.getAttribute("data-v"); meta.diff = diff; saveMeta(meta); render(); };
+  ACTIONS.home = () => { stopTimer(); S = { phase: "start" }; render(); };
+  ACTIONS["clear-history"] = () => confirmBox(t("clearConfirm"), () => {
+    const before = { items: data.items.slice(), meta: Object.assign({}, meta) };
+    data.items = [];
+    ["best", "best_easy", "best_hard"].forEach((k) => delete meta[k]);
+    persist();
+    saveMeta(meta);
+    render();
+    toast(t("cleared"), () => { data.items = before.items; Object.assign(meta, before.meta); persist(); saveMeta(meta); render(); });
+  }, t("clearHistory"));
+  shortcut("Enter", t("start"), () => { if (S.phase !== "play") ACTIONS.start(); });
   ACTIONS.quit = () => {
     const wasPaused = S.paused;
     S.paused = true;

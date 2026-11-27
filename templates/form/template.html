@@ -7,8 +7,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
 <style type="text/tailwindcss">
 @custom-variant dark (&:where(.dark, .dark *));
-@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
-@utility surface { @apply bg-white dark:bg-slate-900; }
+@theme {
+  --color-slate-50: #f6f3ec; --color-slate-100: #efeae0; --color-slate-200: #e4ded2; --color-slate-300: #d0c8b8; --color-slate-400: #a59c8a; --color-slate-500: #7b7364;
+  --color-slate-600: #5f584c; --color-slate-700: #474137; --color-slate-800: #2f2b24; --color-slate-900: #1f1c17; --color-slate-950: #15130f;
+  --font-display: Georgia, "Times New Roman", "Songti SC", "STSong", serif;
+}
+@utility kbd { @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-b-2 border-slate-300 bg-slate-50 px-1 font-mono text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400; }
+@utility num { @apply font-display tabular-nums; }
+@utility rise { animation: rise .28s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .rise { animation: none; } }
+@utility card { @apply rounded-2xl border border-slate-200 bg-[#fffdf9] p-5 shadow-[0_1px_0_rgb(31_28_23/0.03),0_10px_30px_-20px_rgb(31_28_23/0.35)] md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-[#fffdf9] dark:bg-slate-900; }
 @utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
 @utility line { @apply border-slate-200 dark:border-slate-800; }
 @utility t-strong { @apply text-slate-900 dark:text-white; }
@@ -36,8 +46,8 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
 <div id="app" class="mx-auto max-w-3xl space-y-6 px-4 py-8 md:px-8"></div>
-<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
-<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#fffdf9] p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-slate-100 dark:text-slate-900"><span id="toast-msg"></span><button type="button" id="toast-undo" class="hidden shrink-0 cursor-pointer font-semibold text-[var(--p-200)] hover:underline dark:text-[var(--p-700)]"></button></div>
 <script id="app-config" type="application/json">__APP_CONFIG__</script>
 <script>
 (function () {
@@ -48,11 +58,17 @@
       fill: "填写", collected: "{title}（{n}）", again: "再填一份", submitted: "已提交", exportCsv: "导出 CSV", exported: "已导出 CSV",
       submittedAt: "提交时间", actions: "操作", noResponses: "还没有收到提交", delConfirm: "确定删除这条提交吗？", requiredHint: "带 * 的为必填项",
       fixErrors: "请检查标红的项目", total: "共 {n} 份", backToForm: "返回填写",
+      stepOf: "第 {i} / {n} 题", next: "下一题", back: "上一题", filled: "已填写 {n} / {total} 项", draftHint: "填写内容会自动保存为草稿", yourAnswers: "查看我提交的内容",
+      tabList: "列表", tabStats: "统计", searchPh: "搜索提交内容", noMatch: "没有匹配的提交", answered: "{n} 人作答", avgOf: "平均分 · {n} 人评分", avg: "平均", min: "最小", max: "最大",
+      last7: "最近 7 天提交", totalShort: "份", detailTitle: "提交详情",
     },
     en: {
       fill: "Fill in", collected: "{title} ({n})", again: "Submit another response", submitted: "Submitted", exportCsv: "Export CSV", exported: "CSV exported",
       submittedAt: "Submitted at", actions: "Actions", noResponses: "No responses yet", delConfirm: "Delete this response?", requiredHint: "Fields marked * are required",
       fixErrors: "Please fix the highlighted fields", total: "{n} responses", backToForm: "Back to form",
+      stepOf: "Question {i} of {n}", next: "Next", back: "Back", filled: "{n} of {total} answered", draftHint: "Your answers are saved as a draft", yourAnswers: "Review my answers",
+      tabList: "List", tabStats: "Summary", searchPh: "Search responses", noMatch: "No matching responses", answered: "{n} answered", avgOf: "average · {n} ratings", avg: "Average", min: "Min", max: "Max",
+      last7: "Last 7 days", totalShort: "total", detailTitle: "Response details",
     },
   };
   const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
@@ -69,7 +85,7 @@
     orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
     rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
     violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
-    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+    slate: ["#f8fafc", "#f1f5f9", "#e4ded2", "#7b7364", "#475569", "#334155"],
   };
   const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
   const pal = (name) => PALETTE[name] || PALETTE.indigo;
@@ -78,8 +94,8 @@
   document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
   if (DARK) document.documentElement.classList.add("dark");
   const BASE_I18N = {
-    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
-    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+    "zh-CN": { undo: "撤销", undone: "已撤销", shortcuts: "键盘快捷键", confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { undo: "Undo", undone: "Undone", shortcuts: "Keyboard shortcuts", confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
   };
   const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
   const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
@@ -109,7 +125,21 @@
   const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
   const saveMeta = (m) => save(META_KEY, m);
 
-  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+  let undoFn = null;
+  const hideToast = () => { const el = $("#toast"); el.style.opacity = "0"; el.classList.add("pointer-events-none"); undoFn = null; };
+  /** 轻提示；传 onUndo 时显示「撤销」按钮，5 秒内可撤销。 */
+  const toast = (msg, onUndo) => {
+    const el = $("#toast");
+    $("#toast-msg").textContent = msg;
+    undoFn = onUndo || null;
+    $("#toast-undo").textContent = t("undo");
+    $("#toast-undo").classList.toggle("hidden", !undoFn);
+    el.classList.toggle("pointer-events-none", !undoFn);
+    el.style.opacity = "1";
+    clearTimeout(el._h);
+    el._h = setTimeout(hideToast, undoFn ? 5000 : 2000);
+  };
+  $("#toast-undo").addEventListener("click", () => { const fn = undoFn; hideToast(); if (fn) { fn(); toast(t("undone")); } });
 
   let modalClose = null;
   const openModal = (html, onClose) => {
@@ -141,6 +171,21 @@
   };
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+  /** 单键快捷键（docs/08 §5.2）：焦点在输入框或弹窗打开时不触发；按 ? 查看全部。 */
+  const KEYS = [];
+  const shortcut = (key, label, fn) => KEYS.push({ key, label, fn });
+  const showKeys = () => openModal('<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("shortcuts")) + '</div><ul class="space-y-2 text-sm t-body">' +
+    KEYS.concat([{ key: "?", label: t("shortcuts") }, { key: "Esc", label: t("close") }]).map((k) => '<li class="flex items-center justify-between gap-4"><span>' + esc(k.label) + '</span><span class="kbd">' + esc(({ " ": "Space", ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓", Enter: "Enter" })[k.key] || k.key.toUpperCase()) + "</span></li>").join("") +
+    '</ul><div class="flex justify-end"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + "</button></div></div>");
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || !$("#modal").classList.contains("hidden")) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
+    if (e.key === "?" && KEYS.length) { e.preventDefault(); showKeys(); return; }
+    const k = KEYS.find((x) => x.key === e.key);
+    if (k) { e.preventDefault(); k.fn(e); }
+  });
+  const keysHint = () => KEYS.length ? '<footer class="pt-2 text-center text-xs t-faint"><button type="button" data-act="keys" class="cursor-pointer hover:text-[var(--p-600)]"><span class="kbd">?</span> ' + esc(t("shortcuts")) + "</button></footer>" : "";
 
   /** 整体重绘时保留输入框焦点与光标位置。 */
   const keepFocus = (fn) => {
@@ -157,7 +202,7 @@
   };
 
   /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
-  const ACTIONS = { "modal-close": () => closeModal() };
+  const ACTIONS = { "modal-close": () => closeModal(), keys: () => showKeys() };
   const delegate = (type) => document.addEventListener(type, (e) => {
     const el = e.target.closest && e.target.closest("[data-" + type + "]");
     if (!el) return;
@@ -175,7 +220,7 @@
   const header = (extra) =>
     '<header class="flex flex-wrap items-start justify-between gap-4">' +
     '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
-    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    '<div class="min-w-0"><h1 class="font-display text-[1.65rem] leading-tight font-semibold tracking-tight t-strong">' + esc(CONFIG.title) + "</h1>" +
     (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
     (extra || "") + "</header>";
   const emptyState = (emoji, text, btn) =>
@@ -306,65 +351,173 @@
   const data = loadData(seed);
   const meta = loadMeta();
   const persist = () => save(KEY, data);
-  const state = { view: meta.view === "admin" && ADMIN.enabled ? "admin" : "form", done: !CONFIG.allowMultiple && !!meta.submitted };
+  const STEPPED = !!CONFIG.stepByStep && FIELDS.length > 1;
+  const state = { view: meta.view === "admin" && ADMIN.enabled ? "admin" : "form", done: !CONFIG.allowMultiple && !!meta.submitted, tab: meta.tab || "list", q: "", step: 0, last: null };
+  const draft = () => (meta.draft && typeof meta.draft === "object" ? meta.draft : {});
+  const saveDraft = (vals) => { meta.draft = Object.assign({}, draft(), vals); saveMeta(meta); };
+  const filledCount = (vals) => FIELDS.filter((f) => !isEmpty(vals[f.key]) && vals[f.key] !== false && !(f.type === "rating" && !vals[f.key])).length;
 
   const tabs = () => !ADMIN.enabled ? "" :
     '<div class="seg">' + [["form", t("fill")], ["admin", t("collected", { title: ADMIN.title, n: data.items.length })]].map(([v, label]) =>
       '<button type="button" data-act="view" data-v="' + v + '" class="' + (state.view === v ? "seg-on" : "seg-btn") + '">' + esc(label) + "</button>").join("") + "</div>";
 
+  const progressBar = (pct, label) => '<div class="space-y-1.5"><div class="flex items-center justify-between text-xs t-faint"><span id="fill-label">' + esc(label) + '</span><span id="fill-pct" class="num">' + pct + '%</span></div>' +
+    '<div class="h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div id="fill-bar" class="h-full rounded-full bg-[var(--p-500)] transition-all duration-300" style="width:' + pct + '%"></div></div></div>';
+
+  const recap = (vals) => '<details class="mx-auto mt-6 max-w-md rounded-xl surface-2 px-4 py-3 text-left"><summary class="cursor-pointer text-sm font-medium t-body">' + esc(t("yourAnswers")) + "</summary>" +
+    '<dl class="mt-3 space-y-2 text-sm">' + FIELDS.map((f) => '<div class="flex gap-3"><dt class="w-28 shrink-0 t-faint">' + esc(f.label) + '</dt><dd class="min-w-0 break-words t-body">' + (esc(fmtValue(f, vals[f.key])) || "—") + "</dd></div>").join("") + "</dl></details>";
+
   const formView = () => {
     if (state.done) {
-      return '<section class="card py-12 text-center"><div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--p-50)] text-3xl dark:bg-[var(--p-700)]/30">✅</div>' +
-        '<h2 class="mt-4 text-2xl font-bold t-strong">' + esc(CONFIG.successTitle) + '</h2><p class="mx-auto mt-2 max-w-md text-sm t-body">' + esc(CONFIG.successText) + "</p>" +
+      return '<section class="card rise py-12 text-center"><div class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-[var(--p-50)] text-3xl dark:bg-[var(--p-700)]/30">✅</div>' +
+        '<h2 class="mt-4 font-display text-2xl font-semibold t-strong">' + esc(CONFIG.successTitle) + '</h2><p class="mx-auto mt-2 max-w-md text-sm t-body">' + esc(CONFIG.successText) + "</p>" +
+        (state.last ? recap(state.last) : "") +
         (CONFIG.allowMultiple ? '<button type="button" data-act="again" class="btn btn-primary mt-6">📝 ' + esc(t("again")) + "</button>" : '<div class="mt-6"><span class="tag tag-primary">' + esc(t("submitted")) + "</span></div>") + "</section>";
     }
+    const vals = draft();
     const hasReq = FIELDS.some((f) => f.required);
-    return '<section class="card space-y-6">' + (CONFIG.intro ? '<p class="text-sm leading-relaxed whitespace-pre-line t-body">' + esc(CONFIG.intro) + "</p>" : "") +
-      '<form id="main-form" data-submit="submit" class="space-y-5" novalidate>' + FIELDS.map((f) => fieldBlock(f, "", "f-")).join("") +
+    const intro = CONFIG.intro ? '<p class="text-sm leading-relaxed whitespace-pre-line t-body">' + esc(CONFIG.intro) + "</p>" : "";
+    if (STEPPED) {
+      const i = Math.min(state.step, FIELDS.length - 1);
+      const last = i === FIELDS.length - 1;
+      return '<section class="card space-y-6">' + (i === 0 ? intro : "") + progressBar(Math.round((i / FIELDS.length) * 100), t("stepOf", { i: i + 1, n: FIELDS.length })) +
+        '<form id="main-form" data-submit="submit" class="rise space-y-5" novalidate><div class="text-base">' + fieldBlock(FIELDS[i], vals[FIELDS[i].key], "f-") + "</div>" +
+        '<div class="flex items-center justify-between gap-3 border-t line pt-5">' + (i > 0 ? '<button type="button" data-act="step-back" class="btn btn-secondary">← ' + esc(t("back")) + "</button>" : "<span></span>") +
+        '<button type="submit" class="btn btn-primary px-6">' + esc(last ? CONFIG.submitText : t("next")) + (last ? "" : " →") + "</button></div></form></section>";
+    }
+    const n = filledCount(vals);
+    return '<section class="card space-y-6">' + intro + (FIELDS.length > 3 ? progressBar(Math.round((n / FIELDS.length) * 100), t("filled", { n, total: FIELDS.length })) : "") +
+      '<form id="main-form" data-submit="submit" data-input="draft" data-change="draft" class="space-y-5" novalidate>' + FIELDS.map((f) => fieldBlock(f, vals[f.key], "f-")).join("") +
       '<div class="flex flex-col-reverse items-stretch gap-3 border-t line pt-5 sm:flex-row sm:items-center sm:justify-between">' +
-      (hasReq ? '<span class="text-xs t-faint">' + esc(t("requiredHint")) + "</span>" : "<span></span>") +
+      '<span class="text-xs t-faint">' + (hasReq ? esc(t("requiredHint")) + " · " : "") + esc(t("draftHint")) + "</span>" +
       '<button type="submit" class="btn btn-primary px-6">' + esc(CONFIG.submitText) + "</button></div></form></section>";
   };
 
+  const bar = (label, count, total) => {
+    const pct = total ? Math.round((count / total) * 100) : 0;
+    return '<li><div class="flex items-center justify-between gap-3 text-sm"><span class="min-w-0 truncate t-body">' + esc(label) + '</span><span class="num shrink-0 t-strong">' + count + ' <span class="text-xs t-faint">' + pct + "%</span></span></div>" +
+      '<div class="mt-1 h-1.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div class="h-full rounded-full bg-[var(--p-500)]" style="width:' + pct + '%"></div></div></li>';
+  };
+  /** 单个字段的汇总：选择题看分布，评分看均值，数字看均值/最小/最大，文本看最近的回答。 */
+  const fieldStats = (f) => {
+    const vals = data.items.map((r) => r.values[f.key]).filter((v) => !isEmpty(v));
+    const total = data.items.length;
+    let body;
+    if (f.type === "select") {
+      const opts = (f.options || []).slice();
+      vals.forEach((v) => { if (!opts.includes(String(v))) opts.push(String(v)); });
+      body = '<ul class="space-y-2.5">' + opts.map((o) => bar(o, vals.filter((v) => String(v) === o).length, vals.length)).join("") + "</ul>";
+    } else if (f.type === "checkbox") {
+      const yes = vals.filter((v) => v === true || v === "true").length;
+      body = '<ul class="space-y-2.5">' + bar(t("yes"), yes, total) + bar(t("no"), total - yes, total) + "</ul>";
+    } else if (f.type === "rating") {
+      const nums = vals.map(Number).filter((v) => v > 0);
+      const avg = nums.length ? (nums.reduce((s, v) => s + v, 0) / nums.length).toFixed(1) : "—";
+      body = '<div class="mb-3 flex items-baseline gap-2"><span class="num text-3xl font-semibold t-strong">' + avg + '</span><span class="text-amber-400">★</span><span class="text-xs t-faint">' + esc(t("avgOf", { n: nums.length })) + "</span></div>" +
+        '<ul class="space-y-2">' + [5, 4, 3, 2, 1].map((s) => bar("★".repeat(s), nums.filter((v) => v === s).length, nums.length)).join("") + "</ul>";
+    } else if (f.type === "number") {
+      const nums = vals.map(Number).filter((v) => !isNaN(v));
+      const fmt = (v) => (Math.round(v * 100) / 100).toLocaleString(LOC);
+      const cell = (l, v) => '<div class="rounded-xl surface-2 px-3 py-2"><div class="num text-lg font-semibold t-strong">' + (nums.length ? fmt(v) : "—") + '</div><div class="text-xs t-muted">' + esc(t(l)) + "</div></div>";
+      body = '<div class="grid grid-cols-3 gap-2">' + cell("avg", nums.reduce((s, v) => s + v, 0) / (nums.length || 1)) + cell("min", Math.min.apply(null, nums)) + cell("max", Math.max.apply(null, nums)) + "</div>";
+    } else {
+      const recent = data.items.slice().sort((a, b) => b.submittedAt - a.submittedAt).map((r) => r.values[f.key]).filter((v) => !isEmpty(v)).slice(0, 3);
+      body = recent.length ? '<ul class="space-y-1.5 text-sm t-body">' + recent.map((v) => '<li class="truncate rounded-lg surface-2 px-3 py-1.5">' + esc(fmtValue(f, v)) + "</li>").join("") + "</ul>" : '<p class="text-sm t-faint">—</p>';
+    }
+    return '<section class="card min-w-0 space-y-3"><div class="flex items-center justify-between gap-2"><h3 class="truncate text-sm font-semibold t-strong">' + esc(f.label) + '</h3><span class="shrink-0 text-xs t-faint">' + esc(t("answered", { n: vals.length })) + "</span></div>" + body + "</section>";
+  };
+
+  const trend = () => {
+    const days = Array.from({ length: 7 }, (_, k) => addDays(today(), k - 6));
+    const counts = days.map((d) => data.items.filter((r) => fmtDate(new Date(r.submittedAt)) === d).length);
+    const max = Math.max(1, ...counts);
+    return '<section class="card space-y-3"><div class="flex items-center justify-between"><h3 class="text-sm font-semibold t-strong">' + esc(t("last7")) + '</h3><span class="num text-2xl font-semibold t-strong">' + data.items.length + ' <span class="font-sans text-xs font-normal t-faint">' + esc(t("totalShort")) + "</span></span></div>" +
+      '<div class="flex h-24 items-end gap-2">' + counts.map((c, i) => '<div class="flex flex-1 flex-col items-center gap-1"><span class="text-[10px] t-faint">' + (c || "") + '</span><div class="w-full rounded-md bg-[var(--p-500)]" style="height:' + Math.max(3, (c / max) * 64) + 'px;opacity:' + (c ? 1 : 0.25) + '"></div><span class="text-[10px] t-faint">' + esc(days[i].slice(5)) + "</span></div>").join("") + "</div></section>";
+  };
+
   const adminView = () => {
-    const rows = data.items.slice().sort((a, b) => b.submittedAt - a.submittedAt);
-    const head = '<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-lg font-semibold t-strong">' + esc(ADMIN.title) + '</h2><p class="text-xs t-faint">' + esc(t("total", { n: rows.length })) + "</p></div>" +
-      (ADMIN.exportCsv && rows.length ? '<button type="button" data-act="export" class="btn btn-secondary">⬇️ ' + esc(t("exportCsv")) + "</button>" : "") + "</div>";
-    if (!rows.length) return '<section class="card space-y-4">' + head + emptyState("📭", t("noResponses"), '<button type="button" data-act="view" data-v="form" class="btn btn-primary mt-4">' + esc(t("backToForm")) + "</button>") + "</section>";
-    return '<section class="card min-w-0 space-y-4">' + head + '<div class="-mx-5 overflow-x-auto px-5 md:-mx-6 md:px-6"><table class="w-full min-w-max text-sm"><thead class="text-left text-xs t-faint"><tr>' +
+    const all = data.items.slice().sort((a, b) => b.submittedAt - a.submittedAt);
+    const q = state.q.trim().toLowerCase();
+    const rows = q ? all.filter((r) => FIELDS.some((f) => String(fmtValue(f, r.values[f.key])).toLowerCase().includes(q))) : all;
+    const head = '<div class="flex flex-wrap items-center justify-between gap-3"><div><h2 class="text-lg font-semibold t-strong">' + esc(ADMIN.title) + '</h2><p class="text-xs t-faint">' + esc(t("total", { n: all.length })) + "</p></div>" +
+      '<div class="flex items-center gap-2">' + (all.length ? '<div class="seg">' + [["list", t("tabList")], ["stats", t("tabStats")]].map(([v, l]) => '<button type="button" data-act="tab" data-v="' + v + '" class="' + (state.tab === v ? "seg-on" : "seg-btn") + '">' + esc(l) + "</button>").join("") + "</div>" : "") +
+      (ADMIN.exportCsv && all.length ? '<button type="button" data-act="export" class="btn btn-secondary">↓ <span class="hidden sm:inline">' + esc(t("exportCsv")) + "</span></button>" : "") + "</div></div>";
+    if (!all.length) return '<section class="card space-y-4">' + head + emptyState("📭", t("noResponses"), '<button type="button" data-act="view" data-v="form" class="btn btn-primary mt-4">' + esc(t("backToForm")) + "</button>") + "</section>";
+    if (state.tab === "stats") return '<section class="card">' + head + '</section><div class="space-y-4">' + trend() + '<div class="grid gap-4 md:grid-cols-2">' + FIELDS.map(fieldStats).join("") + "</div></div>";
+    const search = '<div class="relative"><span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm t-faint">⌕</span><input id="q" data-input="q" class="input pl-8" autocomplete="off" placeholder="' + esc(t("searchPh")) + '" value="' + esc(state.q) + '"></div>';
+    const table = !rows.length ? emptyState("🔍", t("noMatch")) : '<div class="-mx-5 overflow-x-auto px-5 md:-mx-6 md:px-6"><table class="w-full min-w-max text-sm"><thead class="text-left text-xs t-faint"><tr>' +
       FIELDS.map((f) => '<th class="py-2 pr-4 font-medium">' + esc(f.label) + "</th>").join("") + '<th class="py-2 pr-4 font-medium">' + esc(t("submittedAt")) + '</th><th class="py-2"></th></tr></thead>' +
       '<tbody class="divide-y divide-slate-100 dark:divide-slate-800">' + rows.map((r) =>
-        "<tr>" + FIELDS.map((f) => '<td class="max-w-64 truncate py-2.5 pr-4 t-body" title="' + esc(fmtValue(f, r.values[f.key])) + '">' + (esc(fmtValue(f, r.values[f.key])) || '<span class="t-faint">—</span>') + "</td>").join("") +
+        '<tr data-act="detail" data-id="' + r.id + '" class="cursor-pointer transition hover:bg-slate-50 dark:hover:bg-slate-800/50">' + FIELDS.map((f) => '<td class="max-w-64 truncate py-2.5 pr-4 t-body" title="' + esc(fmtValue(f, r.values[f.key])) + '">' + (esc(fmtValue(f, r.values[f.key])) || '<span class="t-faint">—</span>') + "</td>").join("") +
         '<td class="py-2.5 pr-4 text-xs whitespace-nowrap t-faint">' + esc(fmtTime(r.submittedAt)) + '</td><td class="py-2.5 text-right"><button type="button" data-act="del" data-id="' + r.id + '" class="icon-btn" aria-label="' + esc(t("delete")) + '">🗑</button></td></tr>').join("") +
-      "</tbody></table></div></section>";
+      "</tbody></table></div>";
+    return '<section class="card min-w-0 space-y-4">' + head + search + table + "</section>";
   };
 
   const render = () => keepFocus(() => {
-    $("#app").innerHTML = header(tabs()) + (state.view === "admin" && ADMIN.enabled ? adminView() : formView());
+    $("#app").innerHTML = header(tabs()) + (state.view === "admin" && ADMIN.enabled ? adminView() : formView()) + keysHint();
   });
 
+  /** 草稿：输入时实时保存，只更新进度条，不整体重绘。 */
+  ACTIONS.draft = (form) => {
+    const vals = readFields(FIELDS, form);
+    saveDraft(vals);
+    const bar = $("#fill-bar");
+    if (!bar || STEPPED) return;
+    const n = filledCount(vals);
+    const pct = Math.round((n / FIELDS.length) * 100);
+    bar.style.width = pct + "%";
+    $("#fill-pct").textContent = pct + "%";
+    $("#fill-label").textContent = t("filled", { n, total: FIELDS.length });
+  };
+  const baseRate = ACTIONS.rate;
+  ACTIONS.rate = (el, e) => { baseRate(el, e); const form = el.closest("form"); if (form && form.id === "main-form") ACTIONS.draft(form); };
   ACTIONS.view = (el) => { state.view = el.getAttribute("data-v"); meta.view = state.view; saveMeta(meta); render(); };
-  ACTIONS.again = () => { state.done = false; render(); window.scrollTo(0, 0); };
+  ACTIONS.tab = (el) => { state.tab = el.getAttribute("data-v"); meta.tab = state.tab; saveMeta(meta); render(); };
+  ACTIONS.q = (el) => { state.q = el.value; render(); };
+  ACTIONS.again = () => { state.done = false; state.step = 0; state.last = null; render(); window.scrollTo(0, 0); };
+  ACTIONS["step-back"] = () => { const f = FIELDS[state.step]; saveDraft(readFields([f], $("#main-form"))); state.step = Math.max(0, state.step - 1); render(); };
   ACTIONS.submit = (form, e) => {
     e.preventDefault();
-    const vals = validateForm(FIELDS, form);
+    if (STEPPED) {
+      const f = FIELDS[state.step];
+      const one = validateForm([f], form);
+      if (!one) return;
+      saveDraft(one);
+      if (state.step < FIELDS.length - 1) { state.step++; render(); const n = $("#main-form input, #main-form textarea, #main-form select"); if (n) n.focus(); return; }
+    }
+    const vals = STEPPED ? Object.assign({}, ...FIELDS.map((f) => ({ [f.key]: draft()[f.key] ?? (f.type === "checkbox" ? false : "") }))) : validateForm(FIELDS, form);
+    if (STEPPED) { const bad = FIELDS.findIndex((f) => validateField(f, vals[f.key])); if (bad >= 0) { state.step = bad; render(); validateForm([FIELDS[bad]], $("#main-form")); return; } }
     if (!vals) { toast(t("fixErrors")); return; }
     data.items.push({ id: uid(), submittedAt: Date.now(), values: vals });
     persist();
-    if (!CONFIG.allowMultiple) { meta.submitted = true; saveMeta(meta); }
+    delete meta.draft;
+    if (!CONFIG.allowMultiple) meta.submitted = true;
+    saveMeta(meta);
     state.done = true;
+    state.last = vals;
     render();
     window.scrollTo(0, 0);
     toast(CONFIG.successTitle);
   };
+  const find = (id) => data.items.find((r) => r.id === id);
+  ACTIONS.detail = (el, e) => {
+    if (e.target.closest("[data-act=del]")) return;
+    const r = find(el.getAttribute("data-id"));
+    if (!r) return;
+    openModal('<div class="space-y-4"><div><div class="text-lg font-semibold t-strong">' + esc(t("detailTitle")) + '</div><div class="text-xs t-faint">' + esc(fmtTime(r.submittedAt)) + "</div></div>" +
+      '<dl class="divide-y divide-slate-100 text-sm dark:divide-slate-800">' + FIELDS.map((f) => '<div class="grid grid-cols-3 gap-3 py-2"><dt class="t-faint">' + esc(f.label) + '</dt><dd class="col-span-2 break-words whitespace-pre-line t-body">' + (esc(fmtValue(f, r.values[f.key])) || "—") + "</dd></div>").join("") + "</dl>" +
+      '<div class="flex justify-between gap-2"><button type="button" class="btn btn-ghost !text-rose-600" data-act="del" data-id="' + r.id + '">🗑 ' + esc(t("delete")) + '</button><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + "</button></div></div>");
+  };
   ACTIONS.del = (el) => {
-    const id = el.getAttribute("data-id");
-    confirmBox(t("delConfirm"), () => {
-      data.items = data.items.filter((r) => r.id !== id);
-      persist();
-      render();
-      toast(t("deleted"));
-    });
+    const r = find(el.getAttribute("data-id"));
+    if (!r) return;
+    if (!$("#modal").classList.contains("hidden")) closeModal();
+    const idx = data.items.indexOf(r);
+    data.items.splice(idx, 1);
+    persist();
+    render();
+    toast(t("deleted"), () => { data.items.splice(Math.min(idx, data.items.length), 0, r); persist(); render(); });
   };
   ACTIONS.export = () => {
     const rows = [FIELDS.map((f) => f.label).concat(t("submittedAt"))].concat(
@@ -373,6 +526,11 @@
     toast(t("exported"));
   };
 
+  if (ADMIN.enabled) {
+    shortcut("f", t("fill"), () => { state.view = "form"; meta.view = "form"; saveMeta(meta); render(); });
+    shortcut("a", ADMIN.title, () => { state.view = "admin"; meta.view = "admin"; saveMeta(meta); render(); });
+    shortcut("/", t("searchPh"), () => { if (state.view !== "admin") { state.view = "admin"; state.tab = "list"; render(); } const q = $("#q"); if (q) q.focus(); });
+  }
   render();
 })();
 </script>

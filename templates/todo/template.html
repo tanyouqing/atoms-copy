@@ -7,8 +7,18 @@
 <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
 <style type="text/tailwindcss">
 @custom-variant dark (&:where(.dark, .dark *));
-@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
-@utility surface { @apply bg-white dark:bg-slate-900; }
+@theme {
+  --color-slate-50: #f6f3ec; --color-slate-100: #efeae0; --color-slate-200: #e4ded2; --color-slate-300: #d0c8b8; --color-slate-400: #a59c8a; --color-slate-500: #7b7364;
+  --color-slate-600: #5f584c; --color-slate-700: #474137; --color-slate-800: #2f2b24; --color-slate-900: #1f1c17; --color-slate-950: #15130f;
+  --font-display: Georgia, "Times New Roman", "Songti SC", "STSong", serif;
+}
+@utility kbd { @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-b-2 border-slate-300 bg-slate-50 px-1 font-mono text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400; }
+@utility num { @apply font-display tabular-nums; }
+@utility rise { animation: rise .28s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .rise { animation: none; } }
+@utility card { @apply rounded-2xl border border-slate-200 bg-[#fffdf9] p-5 shadow-[0_1px_0_rgb(31_28_23/0.03),0_10px_30px_-20px_rgb(31_28_23/0.35)] md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-[#fffdf9] dark:bg-slate-900; }
 @utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
 @utility line { @apply border-slate-200 dark:border-slate-800; }
 @utility t-strong { @apply text-slate-900 dark:text-white; }
@@ -36,8 +46,8 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
 <div id="app" class="mx-auto max-w-3xl space-y-6 px-4 py-8 md:px-8"></div>
-<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
-<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#fffdf9] p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-slate-100 dark:text-slate-900"><span id="toast-msg"></span><button type="button" id="toast-undo" class="hidden shrink-0 cursor-pointer font-semibold text-[var(--p-200)] hover:underline dark:text-[var(--p-700)]"></button></div>
 <script id="app-config" type="application/json">__APP_CONFIG__</script>
 <script>
 (function () {
@@ -52,6 +62,11 @@
       overdue: "已逾期", dueToday: "今天到期", delConfirm: "确定删除「{title}」吗？", noMatch: "没有符合条件的{noun}",
       addFirst: "添加第一条", checkedIn: "打卡成功", unchecked: "已取消打卡", editHint: "点击编辑", total: "共 {n} 条",
       week: ["日", "一", "二", "三", "四", "五", "六"],
+      searchPh: "搜索{noun}…", sortBy: "排序", sort_smart: "智能排序", sort_due: "按截止日期", sort_priority: "按优先级", sort_newest: "最新添加", sort_title: "按名称",
+      statToday: "今日打卡", statBest: "最长连续", stat30: "近 30 天完成率", statNow: "当前连续", statTotal: "累计打卡", daysN: "{n} 天", timesN: "{n} 次",
+      history: "打卡记录", details: "详情", editTitle: "编辑{noun}", titleLabel: "标题", note: "备注", notePh: "补充说明、链接或下一步…", createdAt: "创建于 {d}",
+      habitHint: "点格子可以补打卡或取消，未来日期不可打卡。", deletedOne: "已删除「{title}」", shown: "显示 {n} / {total} 条", resetView: "清除筛选",
+      allDone: "全部完成，干得漂亮 🎉", keyAdd: "新建{noun}", keySearch: "搜索", keyFilter: "只看{f}",
     },
     en: {
       addPh: "Add a {noun} and press Enter", more: "More options", less: "Less", all: "All", active: "Active", completed: "Done",
@@ -61,6 +76,11 @@
       overdue: "Overdue", dueToday: "Due today", delConfirm: "Delete \"{title}\"?", noMatch: "No matching {noun}",
       addFirst: "Add the first one", checkedIn: "Checked in", unchecked: "Check-in removed", editHint: "Click to edit", total: "{n} total",
       week: ["S", "M", "T", "W", "T", "F", "S"],
+      searchPh: "Search {noun}s…", sortBy: "Sort", sort_smart: "Smart order", sort_due: "Due date", sort_priority: "Priority", sort_newest: "Newest", sort_title: "Name",
+      statToday: "Checked in today", statBest: "Best streak", stat30: "30-day rate", statNow: "Current streak", statTotal: "Total check-ins", daysN: "{n} d", timesN: "{n}",
+      history: "History", details: "Details", editTitle: "Edit {noun}", titleLabel: "Title", note: "Notes", notePh: "Details, links or next steps…", createdAt: "Created {d}",
+      habitHint: "Tap a day to add or remove a check-in. Future days are locked.", deletedOne: "Deleted \"{title}\"", shown: "Showing {n} of {total}", resetView: "Clear filters",
+      allDone: "All done, nice work 🎉", keyAdd: "New {noun}", keySearch: "Search", keyFilter: "Show {f}",
     },
   };
   const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
@@ -77,7 +97,7 @@
     orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
     rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
     violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
-    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+    slate: ["#f8fafc", "#f1f5f9", "#e4ded2", "#7b7364", "#475569", "#334155"],
   };
   const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
   const pal = (name) => PALETTE[name] || PALETTE.indigo;
@@ -86,8 +106,8 @@
   document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
   if (DARK) document.documentElement.classList.add("dark");
   const BASE_I18N = {
-    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
-    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+    "zh-CN": { undo: "撤销", undone: "已撤销", shortcuts: "键盘快捷键", confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { undo: "Undo", undone: "Undone", shortcuts: "Keyboard shortcuts", confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
   };
   const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
   const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
@@ -117,7 +137,21 @@
   const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
   const saveMeta = (m) => save(META_KEY, m);
 
-  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+  let undoFn = null;
+  const hideToast = () => { const el = $("#toast"); el.style.opacity = "0"; el.classList.add("pointer-events-none"); undoFn = null; };
+  /** 轻提示；传 onUndo 时显示「撤销」按钮，5 秒内可撤销。 */
+  const toast = (msg, onUndo) => {
+    const el = $("#toast");
+    $("#toast-msg").textContent = msg;
+    undoFn = onUndo || null;
+    $("#toast-undo").textContent = t("undo");
+    $("#toast-undo").classList.toggle("hidden", !undoFn);
+    el.classList.toggle("pointer-events-none", !undoFn);
+    el.style.opacity = "1";
+    clearTimeout(el._h);
+    el._h = setTimeout(hideToast, undoFn ? 5000 : 2000);
+  };
+  $("#toast-undo").addEventListener("click", () => { const fn = undoFn; hideToast(); if (fn) { fn(); toast(t("undone")); } });
 
   let modalClose = null;
   const openModal = (html, onClose) => {
@@ -149,6 +183,21 @@
   };
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+  /** 单键快捷键（docs/08 §5.2）：焦点在输入框或弹窗打开时不触发；按 ? 查看全部。 */
+  const KEYS = [];
+  const shortcut = (key, label, fn) => KEYS.push({ key, label, fn });
+  const showKeys = () => openModal('<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("shortcuts")) + '</div><ul class="space-y-2 text-sm t-body">' +
+    KEYS.concat([{ key: "?", label: t("shortcuts") }, { key: "Esc", label: t("close") }]).map((k) => '<li class="flex items-center justify-between gap-4"><span>' + esc(k.label) + '</span><span class="kbd">' + esc(({ " ": "Space", ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓", Enter: "Enter" })[k.key] || k.key.toUpperCase()) + "</span></li>").join("") +
+    '</ul><div class="flex justify-end"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + "</button></div></div>");
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || !$("#modal").classList.contains("hidden")) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
+    if (e.key === "?" && KEYS.length) { e.preventDefault(); showKeys(); return; }
+    const k = KEYS.find((x) => x.key === e.key);
+    if (k) { e.preventDefault(); k.fn(e); }
+  });
+  const keysHint = () => KEYS.length ? '<footer class="pt-2 text-center text-xs t-faint"><button type="button" data-act="keys" class="cursor-pointer hover:text-[var(--p-600)]"><span class="kbd">?</span> ' + esc(t("shortcuts")) + "</button></footer>" : "";
 
   /** 整体重绘时保留输入框焦点与光标位置。 */
   const keepFocus = (fn) => {
@@ -165,7 +214,7 @@
   };
 
   /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
-  const ACTIONS = { "modal-close": () => closeModal() };
+  const ACTIONS = { "modal-close": () => closeModal(), keys: () => showKeys() };
   const delegate = (type) => document.addEventListener(type, (e) => {
     const el = e.target.closest && e.target.closest("[data-" + type + "]");
     if (!el) return;
@@ -183,7 +232,7 @@
   const header = (extra) =>
     '<header class="flex flex-wrap items-start justify-between gap-4">' +
     '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
-    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    '<div class="min-w-0"><h1 class="font-display text-[1.65rem] leading-tight font-semibold tracking-tight t-strong">' + esc(CONFIG.title) + "</h1>" +
     (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
     (extra || "") + "</header>";
   const emptyState = (emoji, text, btn) =>
@@ -322,7 +371,7 @@
   });
   const data = loadData(seed);
   const meta = loadMeta();
-  const state = { filter: meta.filter || "all", cat: meta.cat || "", editing: null, expanded: false };
+  const state = { filter: meta.filter || "all", cat: meta.cat || "", sort: meta.sort || "smart", q: "", editing: null, expanded: false, detail: null };
   const persist = () => save(KEY, data);
 
   const streak = (item) => {
@@ -332,65 +381,106 @@
     while (set.has(d)) { n++; d = addDays(d, -1); }
     return n;
   };
+  const bestStreak = (item) => {
+    let best = 0, cur = 0, prev = "";
+    (item.checkins || []).slice().sort().forEach((d) => { cur = prev && addDays(prev, 1) === d ? cur + 1 : 1; best = Math.max(best, cur); prev = d; });
+    return best;
+  };
+  const rate30 = () => {
+    if (!data.items.length) return 0;
+    const from = addDays(today(), -29);
+    const hits = data.items.reduce((s, i) => s + (i.checkins || []).filter((d) => d >= from && d <= today()).length, 0);
+    return Math.round((hits / (data.items.length * 30)) * 100);
+  };
+  const isOverdue = (i) => USE_DUE && !i.done && !!i.dueDate && i.dueDate < today();
+  const textOf = (i) => [i.title, i.note].concat(EXTRA.map((f) => fmtValue(f, i.extra && i.extra[f.key]))).join(" ").toLowerCase();
+
+  const SORTS = {
+    smart: (a, b) => (USE_PRI ? (PRI_RANK[a.priority] ?? 3) - (PRI_RANK[b.priority] ?? 3) : 0) || (USE_DUE ? (a.dueDate || "9999").localeCompare(b.dueDate || "9999") : 0) || (a.createdAt - b.createdAt),
+    due: (a, b) => (a.dueDate || "9999").localeCompare(b.dueDate || "9999") || (a.createdAt - b.createdAt),
+    priority: (a, b) => (PRI_RANK[a.priority] ?? 3) - (PRI_RANK[b.priority] ?? 3) || (a.createdAt - b.createdAt),
+    newest: (a, b) => b.createdAt - a.createdAt,
+    title: (a, b) => a.title.localeCompare(b.title, LOC),
+  };
+  const sortKeys = () => ["smart"].concat(USE_DUE ? ["due"] : [], USE_PRI ? ["priority"] : [], ["newest", "title"]);
 
   const visible = () => {
-    let list = data.items.slice();
+    const q = state.q.trim().toLowerCase();
+    let list = data.items.filter((i) => !q || textOf(i).includes(q));
     if (state.cat) list = list.filter((i) => i.category === state.cat);
     if (MODE !== "habit") {
       if (state.filter === "active") list = list.filter((i) => !i.done);
       if (state.filter === "done") list = list.filter((i) => i.done);
+      if (state.filter === "overdue") list = list.filter(isOverdue);
     }
     if (MODE === "checklist") list.sort((a, b) => (a.done - b.done) || (a.createdAt - b.createdAt));
-    if (MODE === "task")
-      list.sort((a, b) => (a.done - b.done) ||
-        (USE_PRI ? (PRI_RANK[a.priority] ?? 3) - (PRI_RANK[b.priority] ?? 3) : 0) ||
-        (USE_DUE ? (a.dueDate || "9999").localeCompare(b.dueDate || "9999") : 0) || (a.createdAt - b.createdAt));
+    if (MODE === "task") list.sort((a, b) => (a.done - b.done) || (SORTS[state.sort] || SORTS.smart)(a, b));
     return list;
   };
 
-  const progressBlock = () => {
-    if (!FEAT.progressBar || !data.items.length) return "";
+  const statBox = (label, value, filter, tone) =>
+    '<button type="button"' + (filter ? ' data-act="filter" data-v="' + filter + '"' : " disabled") + ' class="rounded-xl surface-2 px-3 py-2.5 text-left transition ' +
+    (filter ? "cursor-pointer hover:ring-1 hover:ring-[var(--p-500)]" + (state.filter === filter ? " ring-1 ring-[var(--p-500)]" : "") : "cursor-default") + '">' +
+    '<div class="num text-2xl font-semibold ' + (tone || "t-strong") + '">' + esc(value) + '</div><div class="mt-0.5 text-xs t-muted">' + esc(label) + "</div></button>";
+
+  const statsBlock = () => {
+    if (!data.items.length) return "";
     const total = data.items.length;
     const done = MODE === "habit" ? data.items.filter((i) => (i.checkins || []).includes(today())).length : data.items.filter((i) => i.done).length;
     const pct = Math.round((done / total) * 100);
-    return '<section class="card space-y-3"><div class="flex items-end justify-between"><div class="text-sm t-muted">' +
-      esc(t(MODE === "habit" ? "habitProgress" : "progress", { done, total })) + '</div><div class="text-3xl font-bold t-strong">' + pct + '%</div></div>' +
-      '<div class="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div class="h-full rounded-full bg-[var(--p-500)] transition-all" style="width:' + pct + '%"></div></div></section>';
+    const bar = FEAT.progressBar ? '<div class="flex items-end justify-between"><div class="text-sm t-muted">' + esc(t(MODE === "habit" ? "habitProgress" : "progress", { done, total })) +
+      '</div><div class="num text-3xl font-semibold t-strong">' + pct + '%</div></div><div class="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div class="h-full rounded-full bg-[var(--p-500)] transition-all duration-500" style="width:' + pct + '%"></div></div>' : "";
+    let boxes;
+    if (MODE === "habit") {
+      const best = data.items.reduce((m, i) => Math.max(m, bestStreak(i)), 0);
+      boxes = [FEAT.progressBar ? statBox(t("statTotal"), t("timesN", { n: data.items.reduce((s, i) => s + (i.checkins || []).length, 0) })) : statBox(t("statToday"), done + "/" + total), statBox(t("statBest"), t("daysN", { n: best })), statBox(t("stat30"), rate30() + "%")];
+    } else {
+      const over = data.items.filter(isOverdue).length;
+      boxes = [statBox(t("all"), total, "all"), statBox(t("active"), total - data.items.filter((i) => i.done).length, "active"), statBox(t("completed"), data.items.filter((i) => i.done).length, "done")];
+      if (USE_DUE) boxes.push(statBox(t("overdue"), over, "overdue", over ? "text-rose-600 dark:text-rose-400" : ""));
+    }
+    return '<section class="card space-y-4">' + bar + '<div class="grid gap-2 ' + (boxes.length === 4 ? "grid-cols-2 sm:grid-cols-4" : "grid-cols-3") + '">' + boxes.join("") + "</div></section>";
   };
 
   const catSelect = (id, value) => CATS.length
     ? '<select id="' + id + '" class="input"><option value="">' + esc(t("category")) + esc(t("colon")) + esc(t("none")) + "</option>" +
       CATS.map((c) => '<option value="' + esc(c.id) + '"' + (c.id === value ? " selected" : "") + ">" + esc(c.label) + "</option>").join("") + "</select>"
     : "";
+  const priSelect = (id, value) => '<select id="' + id + '" class="input"><option value="">' + esc(t("none")) + "</option>" +
+    ["high", "medium", "low"].map((p) => '<option value="' + p + '"' + (p === value ? " selected" : "") + ">" + esc(t(p)) + "</option>").join("") + "</select>";
+  const labeled = (id, label, control) => '<div class="space-y-1"><label class="field-label block" for="' + id + '">' + esc(label) + "</label>" + control + "</div>";
 
   const addForm = () => {
     const hasMore = MODE === "task" && (USE_DUE || USE_PRI || CATS.length || EXTRA.length);
     let more = "";
     if (hasMore && state.expanded) {
       more = '<div class="grid gap-3 border-t line pt-4 sm:grid-cols-2">' +
-        (USE_DUE ? '<div class="space-y-1"><label class="field-label block" for="new-due">' + esc(t("dueDate")) + '</label><input id="new-due" type="date" class="input"></div>' : "") +
-        (USE_PRI ? '<div class="space-y-1"><label class="field-label block" for="new-pri">' + esc(t("priority")) + '</label><select id="new-pri" class="input"><option value="">' + esc(t("none")) + "</option>" +
-          ["high", "medium", "low"].map((p) => '<option value="' + p + '"' + (p === "medium" ? " selected" : "") + ">" + esc(t(p)) + "</option>").join("") + "</select></div>" : "") +
-        (CATS.length ? '<div class="space-y-1"><label class="field-label block" for="new-cat">' + esc(t("category")) + "</label>" + catSelect("new-cat", state.cat) + "</div>" : "") +
+        (USE_DUE ? labeled("new-due", t("dueDate"), '<input id="new-due" type="date" class="input">') : "") +
+        (USE_PRI ? labeled("new-pri", t("priority"), priSelect("new-pri", "medium")) : "") +
+        (CATS.length ? labeled("new-cat", t("category"), catSelect("new-cat", state.cat)) : "") +
         EXTRA.map((f) => fieldBlock(f, "", "new-x-")).join("") + "</div>";
     }
-    const inlineCat = MODE !== "task" && CATS.length ? '<div class="w-36 shrink-0">' + catSelect("new-cat", state.cat) + "</div>" : "";
+    const inlineCat = MODE !== "task" && CATS.length ? '<div class="w-32 shrink-0 sm:w-36">' + catSelect("new-cat", state.cat) + "</div>" : "";
     return '<section class="card space-y-4"><form id="add-form" data-submit="add" class="flex gap-2" novalidate>' +
       '<input id="new-title" class="input" maxlength="80" autocomplete="off" placeholder="' + esc(t("addPh", { noun: NOUN })) + '">' + inlineCat +
-      '<button type="submit" class="btn btn-primary shrink-0">➕ <span class="hidden sm:inline">' + esc(t("add")) + "</span></button></form>" +
+      '<button type="submit" class="btn btn-primary shrink-0">＋ <span class="hidden sm:inline">' + esc(t("add")) + "</span></button></form>" +
       (hasMore ? '<button type="button" data-act="toggle-more" class="text-xs font-medium t-primary hover:underline">' + esc(state.expanded ? t("less") : t("more")) + " " + (state.expanded ? "▲" : "▼") + "</button>" : "") +
       more + "</section>";
   };
 
-  const filters = () => {
+  const toolbar = () => {
+    if (!data.items.length) return "";
+    const search = '<div class="relative min-w-[10rem] flex-1"><span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm t-faint">⌕</span>' +
+      '<input id="q" data-input="q" class="input pl-8" autocomplete="off" placeholder="' + esc(t("searchPh", { noun: NOUN })) + '" value="' + esc(state.q) + '"></div>';
+    const sort = MODE === "task" ? '<select id="sort" data-change="sort" class="input w-auto" aria-label="' + esc(t("sortBy")) + '">' +
+      sortKeys().map((k) => '<option value="' + k + '"' + (state.sort === k ? " selected" : "") + ">" + esc(t("sort_" + k)) + "</option>").join("") + "</select>" : "";
     const segs = MODE === "habit" ? "" : '<div class="seg">' + [["all", "all"], ["active", "active"], ["done", "completed"]].map(([v, k]) =>
       '<button type="button" data-act="filter" data-v="' + v + '" class="' + (state.filter === v ? "seg-on" : "seg-btn") + '">' + esc(t(k)) + "</button>").join("") + "</div>";
     const cats = CATS.length ? '<div class="flex flex-wrap gap-2">' + [{ id: "", label: t("all") }].concat(CATS).map((c) =>
       '<button type="button" data-act="cat" data-v="' + esc(c.id) + '" class="tag cursor-pointer border transition ' +
       (state.cat === c.id ? "border-[var(--p-500)] tag-primary" : "line t-muted hover:border-slate-300") + '"' +
       (c.color && state.cat !== c.id ? ' style="' + chip(c.color) + '"' : "") + ">" + esc(c.label) + "</button>").join("") + "</div>" : "";
-    if (!segs && !cats) return "";
-    return '<div class="flex flex-wrap items-center justify-between gap-3">' + cats + segs + "</div>";
+    return '<div class="space-y-3"><div class="flex flex-wrap items-center gap-2">' + search + sort + segs + "</div>" + cats + "</div>";
   };
 
   const titleHtml = (item) => {
@@ -406,58 +496,62 @@
     if (c) bits.push('<span class="tag" style="' + chip(c.color) + '">' + esc(c.label) + "</span>");
     if (USE_PRI && item.priority) bits.push('<span class="tag" style="' + PRI_STYLE[item.priority] + '">' + esc(t(item.priority)) + "</span>");
     if (USE_DUE && item.dueDate) {
-      const late = !item.done && item.dueDate < today();
+      const late = isOverdue(item);
       const isToday = !item.done && item.dueDate === today();
-      bits.push('<span class="text-xs ' + (late ? "font-medium text-rose-600" : isToday ? "font-medium text-amber-600" : "t-faint") + '">📅 ' + esc(item.dueDate) +
+      bits.push('<span class="text-xs ' + (late ? "font-medium text-rose-600 dark:text-rose-400" : isToday ? "font-medium text-amber-600" : "t-faint") + '">📅 ' + esc(item.dueDate) +
         (late ? " · " + esc(t("overdue")) : isToday ? " · " + esc(t("dueToday")) : "") + "</span>");
     }
     EXTRA.forEach((f) => {
       const v = fmtValue(f, item.extra && item.extra[f.key]);
       if (v) bits.push('<span class="text-xs t-muted">' + esc(f.label) + esc(t("colon")) + esc(v) + "</span>");
     });
-    return bits.length ? '<div class="mt-1 flex flex-wrap items-center gap-2">' + bits.join("") + "</div>" : "";
+    const note = item.note ? '<p class="mt-1 line-clamp-2 text-xs whitespace-pre-line t-muted">' + esc(item.note) + "</p>" : "";
+    return (bits.length ? '<div class="mt-1 flex flex-wrap items-center gap-2">' + bits.join("") + "</div>" : "") + note;
   };
 
-  const habitCells = (item) => {
-    const set = new Set(item.checkins || []);
-    return '<div class="flex gap-1">' + Array.from({ length: 7 }, (_, k) => {
-      const d = addDays(today(), k - 6);
-      const on = set.has(d);
-      const isToday = k === 6;
-      return '<button type="button" data-act="checkin" data-id="' + item.id + '" data-d="' + d + '" title="' + d + '" class="flex h-9 w-8 cursor-pointer flex-col items-center justify-center rounded-lg text-[10px] leading-tight transition sm:w-9 ' +
-        (on ? "bg-[var(--p-600)] text-white" : "bg-slate-100 t-muted hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700") +
-        (isToday ? " ring-2 ring-[var(--p-500)] ring-offset-1 dark:ring-offset-slate-900" : "") + '"><span>' + esc(L.week[parseDate(d).getDay()]) + '</span><span class="font-semibold">' + parseDate(d).getDate() + "</span></button>";
-    }).join("") + "</div>";
+  const habitCell = (item, d, small) => {
+    const on = (item.checkins || []).includes(d);
+    const isToday = d === today();
+    const future = d > today();
+    return '<button type="button" data-act="checkin" data-id="' + item.id + '" data-d="' + d + '" title="' + d + '"' + (future ? " disabled" : "") +
+      ' class="flex ' + (small ? "h-8 w-full" : "h-9 w-8 sm:w-9") + ' cursor-pointer flex-col items-center justify-center rounded-lg text-[10px] leading-tight transition disabled:cursor-default disabled:opacity-30 ' +
+      (on ? "bg-[var(--p-600)] text-white" : "bg-slate-100 t-muted hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700") +
+      (isToday ? " ring-2 ring-[var(--p-500)] ring-offset-1 dark:ring-offset-slate-900" : "") + '">' +
+      (small ? '<span class="font-semibold">' + parseDate(d).getDate() + "</span>" : '<span>' + esc(L.week[parseDate(d).getDay()]) + '</span><span class="font-semibold">' + parseDate(d).getDate() + "</span>") + "</button>";
   };
+  const habitCells = (item) => '<div class="flex gap-1">' + Array.from({ length: 7 }, (_, k) => habitCell(item, addDays(today(), k - 6))).join("") + "</div>";
 
   const row = (item) => {
-    const del = '<button type="button" data-act="del" data-id="' + item.id + '" class="icon-btn shrink-0" aria-label="' + esc(t("delete")) + '">🗑</button>';
+    const tools = '<div class="flex shrink-0 items-center sm:opacity-60 sm:group-hover:opacity-100">' +
+      '<button type="button" data-act="' + (MODE === "habit" ? "habit" : "open") + '" data-id="' + item.id + '" class="icon-btn" aria-label="' + esc(t(MODE === "habit" ? "history" : "details")) + '">' + (MODE === "habit" ? "▦" : "✎") + "</button>" +
+      '<button type="button" data-act="del" data-id="' + item.id + '" class="icon-btn hover:!text-rose-600" aria-label="' + esc(t("delete")) + '">🗑</button></div>';
     if (MODE === "habit") {
       const n = streak(item);
-      return '<li class="flex flex-col gap-3 py-3 sm:flex-row sm:items-center"><div class="min-w-0 flex-1">' + titleHtml(item) +
+      return '<li class="group rise flex flex-col gap-3 py-3 sm:flex-row sm:items-center"><div class="min-w-0 flex-1">' + titleHtml(item) +
         '<div class="mt-1 flex flex-wrap items-center gap-2"><span class="text-xs ' + (n ? "font-medium t-primary" : "t-faint") + '">🔥 ' + esc(n ? t("streak", { n }) : t("noStreak")) + "</span>" +
         (catOf(item.category) ? '<span class="tag" style="' + chip(catOf(item.category).color) + '">' + esc(catOf(item.category).label) + "</span>" : "") + "</div></div>" +
-        '<div class="flex items-center justify-between gap-2">' + habitCells(item) + del + "</div></li>";
+        '<div class="flex items-center justify-between gap-2">' + habitCells(item) + tools + "</div></li>";
     }
-    return '<li class="group flex items-start gap-3 py-3"><button type="button" data-act="toggle" data-id="' + item.id + '" aria-label="toggle" class="mt-0.5 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 text-[11px] text-white transition ' +
+    return '<li class="group rise flex items-start gap-3 py-3"><button type="button" data-act="toggle" data-id="' + item.id + '" aria-label="toggle" class="mt-0.5 flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full border-2 text-[11px] text-white transition ' +
       (item.done ? "border-[var(--p-600)] bg-[var(--p-600)]" : "border-slate-300 hover:border-[var(--p-500)] dark:border-slate-600") + '">' + (item.done ? "✓" : "") + "</button>" +
-      '<div class="min-w-0 flex-1">' + titleHtml(item) + metaHtml(item) + "</div>" + del + "</li>";
+      '<div class="min-w-0 flex-1">' + titleHtml(item) + metaHtml(item) + "</div>" + tools + "</li>";
   };
 
   const listBlock = () => {
     const list = visible();
     const doneCount = data.items.filter((i) => i.done).length;
     let inner;
-    if (!data.items.length) inner = emptyState(CONFIG.emoji, CONFIG.emptyText, '<button type="button" data-act="focus-add" class="btn btn-primary mt-4">➕ ' + esc(t("addFirst")) + "</button>");
-    else if (!list.length) inner = emptyState("🔍", t("noMatch", { noun: NOUN }));
+    if (!data.items.length) inner = emptyState(CONFIG.emoji, CONFIG.emptyText, '<button type="button" data-act="focus-add" class="btn btn-primary mt-4">＋ ' + esc(t("addFirst")) + '</button><p class="mt-3 text-xs t-faint"><span class="kbd">N</span> ' + esc(t("keyAdd", { noun: NOUN })) + "</p>");
+    else if (!list.length) inner = emptyState("🔍", t("noMatch", { noun: NOUN }), '<button type="button" data-act="reset-view" class="btn btn-secondary mt-4">' + esc(t("resetView")) + "</button>");
     else inner = '<ul class="divide-y divide-slate-100 dark:divide-slate-800">' + list.map(row).join("") + "</ul>";
-    const foot = data.items.length ? '<div class="mt-2 flex items-center justify-between border-t line pt-3 text-xs t-faint"><span>' + esc(t("total", { n: data.items.length })) + "</span>" +
+    const foot = data.items.length ? '<div class="mt-2 flex items-center justify-between border-t line pt-3 text-xs t-faint"><span>' +
+      esc(list.length === data.items.length ? t("total", { n: data.items.length }) : t("shown", { n: list.length, total: data.items.length })) + "</span>" +
       (MODE !== "habit" && doneCount ? '<button type="button" data-act="clear-done" class="font-medium hover:text-rose-600">' + esc(t("clearDone", { n: doneCount })) + "</button>" : "") + "</div>" : "";
     return '<section class="card">' + inner + foot + "</section>";
   };
 
   const render = () => keepFocus(() => {
-    $("#app").innerHTML = header() + progressBlock() + addForm() + filters() + listBlock();
+    $("#app").innerHTML = header() + statsBlock() + addForm() + toolbar() + listBlock() + keysHint();
     const ei = $("#edit-input");
     if (ei) {
       ei.focus();
@@ -477,11 +571,62 @@
     render();
   };
 
+  /** 详情编辑弹窗：标题、分类、截止日期、优先级、扩展字段和备注一次改完。 */
+  const openDetail = (item) => {
+    const fields = labeled("d-title", t("titleLabel"), '<input id="d-title" class="input" maxlength="80" value="' + esc(item.title) + '">') +
+      '<div class="grid gap-3 sm:grid-cols-2">' +
+      (CATS.length ? labeled("d-cat", t("category"), catSelect("d-cat", item.category)) : "") +
+      (USE_PRI ? labeled("d-pri", t("priority"), priSelect("d-pri", item.priority)) : "") +
+      (USE_DUE ? labeled("d-due", t("dueDate"), '<input id="d-due" type="date" class="input" value="' + esc(item.dueDate) + '">') : "") +
+      EXTRA.map((f) => fieldBlock(f, item.extra && item.extra[f.key], "d-x-")).join("") + "</div>" +
+      labeled("d-note", t("note"), '<textarea id="d-note" rows="3" maxlength="500" class="input" placeholder="' + esc(t("notePh")) + '">' + esc(item.note || "") + "</textarea>");
+    openModal('<form data-submit="save-detail" data-id="' + item.id + '" class="space-y-4" novalidate><div class="text-lg font-semibold t-strong">' + esc(t("editTitle", { noun: NOUN })) + "</div>" + fields +
+      '<div class="flex items-center justify-between gap-2 pt-1"><span class="text-xs t-faint">' + esc(t("createdAt", { d: fmtDate(new Date(item.createdAt)) })) + '</span><div class="flex gap-2"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("cancel")) +
+      '</button><button type="submit" class="btn btn-primary">' + esc(t("save")) + "</button></div></div></form>");
+  };
+  ACTIONS.open = (el) => { const item = find(el.getAttribute("data-id")); if (item) openDetail(item); };
+  ACTIONS["save-detail"] = (form, e) => {
+    e.preventDefault();
+    const item = find(form.getAttribute("data-id"));
+    const title = $("#d-title").value.trim();
+    if (!item) return closeModal();
+    if (!title) { $("#d-title").focus(); return; }
+    let extra = item.extra || {};
+    if (EXTRA.length) { const vals = validateForm(EXTRA, form); if (!vals) return; extra = vals; }
+    item.title = title;
+    item.extra = extra;
+    item.note = $("#d-note").value.trim();
+    if ($("#d-cat")) item.category = $("#d-cat").value;
+    if ($("#d-pri")) item.priority = $("#d-pri").value;
+    if ($("#d-due")) item.dueDate = $("#d-due").value;
+    persist();
+    closeModal();
+    render();
+    toast(t("saved"));
+  };
+
+  /** 习惯详情：最近 5 周的打卡热力图，可补打卡。 */
+  const openHabit = (item) => {
+    state.detail = item.id;
+    const start = addDays(today(), -34 - parseDate(addDays(today(), -34)).getDay());
+    const days = [];
+    for (let d = start; days.length < 42 && (days.length % 7 !== 0 || d <= today()); d = addDays(d, 1)) days.push(d);
+    const total = (item.checkins || []).length;
+    const stat = (v, l) => '<div class="rounded-xl surface-2 px-3 py-2"><div class="num text-xl font-semibold t-strong">' + esc(v) + '</div><div class="text-xs t-muted">' + esc(l) + "</div></div>";
+    openModal('<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(item.title) + "</div>" +
+      '<div class="grid grid-cols-3 gap-2">' + stat(t("daysN", { n: streak(item) }), t("statNow")) + stat(t("daysN", { n: bestStreak(item) }), t("statBest")) + stat(t("timesN", { n: total }), t("statTotal")) + "</div>" +
+      '<div class="grid grid-cols-7 gap-1 text-center text-[10px] t-faint">' + L.week.map((w) => "<div>" + esc(w) + "</div>").join("") + "</div>" +
+      '<div class="grid grid-cols-7 gap-1">' + days.map((d) => habitCell(item, d, true)).join("") + "</div>" +
+      '<p class="text-xs t-faint">' + esc(t("habitHint")) + '</p><div class="flex justify-end"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + "</button></div></div>",
+    () => { state.detail = null; });
+  };
+  ACTIONS.habit = (el) => { const item = find(el.getAttribute("data-id")); if (item) openHabit(item); };
+
   ACTIONS.add = (form, e) => {
     e.preventDefault();
     const title = $("#new-title").value.trim();
     if (!title) { $("#new-title").focus(); return; }
-    const item = { id: uid(), title, category: $("#new-cat") ? $("#new-cat").value : "", done: false, dueDate: "", priority: "", extra: {}, checkins: [], createdAt: Date.now() };
+    const item = { id: uid(), title, category: $("#new-cat") ? $("#new-cat").value : "", done: false, dueDate: "", priority: "", extra: {}, note: "", checkins: [], createdAt: Date.now() };
     if (MODE === "task" && state.expanded) {
       if ($("#new-due")) item.dueDate = $("#new-due").value;
       if ($("#new-pri")) item.priority = $("#new-pri").value;
@@ -500,53 +645,63 @@
     toast(t("added"));
   };
   ACTIONS["toggle-more"] = () => { state.expanded = !state.expanded; render(); };
-  ACTIONS["focus-add"] = () => $("#new-title").focus();
+  ACTIONS["focus-add"] = () => { window.scrollTo({ top: 0, behavior: "smooth" }); $("#new-title").focus(); };
+  ACTIONS.q = (el) => { state.q = el.value; render(); };
+  ACTIONS.sort = (el) => { state.sort = el.value; meta.sort = state.sort; saveMeta(meta); render(); };
   ACTIONS.filter = (el) => { state.filter = el.getAttribute("data-v"); meta.filter = state.filter; saveMeta(meta); render(); };
   ACTIONS.cat = (el) => { state.cat = el.getAttribute("data-v"); meta.cat = state.cat; saveMeta(meta); render(); };
+  ACTIONS["reset-view"] = () => { state.q = ""; state.cat = ""; state.filter = "all"; meta.cat = ""; meta.filter = "all"; saveMeta(meta); render(); };
   ACTIONS.toggle = (el) => {
     const item = find(el.getAttribute("data-id"));
     if (!item) return;
     item.done = !item.done;
     persist();
     render();
+    if (item.done && FEAT.progressBar && data.items.every((i) => i.done)) toast(t("allDone"));
   };
   ACTIONS.edit = (el) => { state.editing = el.getAttribute("data-id"); render(); };
   ACTIONS["edit-key"] = (el, e) => {
     if (e.key === "Enter") { e.preventDefault(); commitEdit(true); }
     if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); commitEdit(false); }
   };
+  /** 删除不弹确认，改为 5 秒内可撤销（原位置恢复）。 */
   ACTIONS.del = (el) => {
     const item = find(el.getAttribute("data-id"));
     if (!item) return;
-    confirmBox(t("delConfirm", { title: item.title }), () => {
-      data.items = data.items.filter((i) => i.id !== item.id);
-      persist();
-      render();
-      toast(t("deleted"));
-    });
+    const idx = data.items.indexOf(item);
+    data.items.splice(idx, 1);
+    persist();
+    render();
+    toast(t("deletedOne", { title: item.title.length > 12 ? item.title.slice(0, 12) + "…" : item.title }), () => { data.items.splice(Math.min(idx, data.items.length), 0, item); persist(); render(); });
   };
   ACTIONS.checkin = (el) => {
     const item = find(el.getAttribute("data-id"));
     const d = el.getAttribute("data-d");
-    if (!item) return;
+    if (!item || d > today()) return;
     const set = new Set(item.checkins || []);
     const on = !set.has(d);
     if (on) set.add(d); else set.delete(d);
     item.checkins = Array.from(set).sort();
     persist();
     render();
+    if (state.detail === item.id) openHabit(item);
     toast(t(on ? "checkedIn" : "unchecked"));
   };
   ACTIONS["clear-done"] = () => {
     const n = data.items.filter((i) => i.done).length;
     confirmBox(t("clearConfirm", { n, noun: NOUN }), () => {
+      const before = data.items.slice();
       data.items = data.items.filter((i) => !i.done);
       persist();
       render();
-      toast(t("cleared"));
+      toast(t("cleared"), () => { data.items = before; persist(); render(); });
     }, t("clearDone", { n }));
   };
 
+  shortcut("n", t("keyAdd", { noun: NOUN }), () => ACTIONS["focus-add"]());
+  shortcut("/", t("keySearch"), () => { const q = $("#q"); if (q) q.focus(); });
+  if (MODE !== "habit") [["1", "all", "all"], ["2", "active", "active"], ["3", "done", "completed"]].forEach(([k, v, label]) =>
+    shortcut(k, t("keyFilter", { f: t(label) }), () => { state.filter = v; meta.filter = v; saveMeta(meta); render(); }));
   render();
 })();
 </script>

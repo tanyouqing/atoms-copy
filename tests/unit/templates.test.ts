@@ -32,12 +32,50 @@ describe("templates", () => {
       expect(html.startsWith("<!DOCTYPE html>")).toBe(true);
     });
 
-    it("模板 JS 不超过 600 行，契约文件存在", () => {
+    it("模板 JS 不超过 700 行，契约文件存在", () => {
       const tpl = fs.readFileSync(path.join(process.cwd(), "templates", id, "template.html"), "utf8");
       const js = tpl.slice(tpl.indexOf("<script>\n"), tpl.lastIndexOf("</script>"));
-      expect(js.split("\n").length).toBeLessThanOrEqual(600);
+      expect(js.split("\n").length).toBeLessThanOrEqual(700);
       expect(loadContract(id)).toContain("interface BaseConfig");
     });
+  });
+
+  describe.each(TEMPLATE_IDS)("%s 共享交互件", (id) => {
+    const tpl = fs.readFileSync(path.join(process.cwd(), "templates", id, "template.html"), "utf8");
+    it("暖色主题、可撤销提示与快捷键都在", () => {
+      expect(tpl).toContain("--color-slate-50: #f6f3ec");
+      expect(tpl).toContain('id="toast-undo"');
+      expect(tpl).toMatch(/const toast = \(msg, onUndo\)/);
+      expect(tpl).toContain("const shortcut = (key, label, fn)");
+      // 注册了快捷键的模板，页面上要有入口
+      if (/shortcut\("/.test(tpl)) expect(tpl).toMatch(/\+ keysHint\(\)/);
+      // 两种语言都要有撤销和快捷键文案
+      expect(tpl.match(/undo: "/g)).toHaveLength(2);
+      expect(tpl.match(/shortcuts: "/g)).toHaveLength(2);
+    });
+    it("只用白名单里的外部脚本，不引入新的网络资源", () => {
+      const srcs = [...tpl.matchAll(/<script[^>]*src="([^"]+)"/g)].map((m) => m[1]);
+      for (const s of srcs) expect(s).toMatch(/^https:\/\/cdn\.jsdelivr\.net\/npm\/(@tailwindcss\/browser|chart\.js)@/);
+      expect(tpl).not.toMatch(/fetch\(|XMLHttpRequest|<link[^>]+href="http/);
+    });
+  });
+
+  it("form.stepByStep 可选：缺省通过，非布尔值被拒绝", () => {
+    const c = loadExample("form") as Record<string, unknown>;
+    expect("stepByStep" in c).toBe(false);
+    expect(TEMPLATE_SCHEMAS.form.safeParse(c).success).toBe(true);
+    expect(TEMPLATE_SCHEMAS.form.safeParse({ ...c, stepByStep: true }).success).toBe(true);
+    expect(TEMPLATE_SCHEMAS.form.safeParse({ ...c, stepByStep: "yes" }).success).toBe(false);
+    expect(loadContract("form")).toContain("stepByStep?: boolean");
+  });
+
+  it("能力清单与新功能一致（PM 据此判断是否走模板）", () => {
+    const can = Object.fromEntries(TEMPLATES.map((t) => [t.id, t.can + "｜" + t.cannot]));
+    expect(can.form).toContain("一题一页");
+    expect(can.form).not.toContain("多步骤/分页表单");
+    expect(can.todo).toContain("5 周打卡热力图");
+    expect(can.crud).toContain("批量");
+    expect(can.game).toContain("难度");
   });
 
   describe.each(fixtures)("fixture $name", ({ id, config }) => {

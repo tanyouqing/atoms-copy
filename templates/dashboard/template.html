@@ -8,8 +8,18 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
 <style type="text/tailwindcss">
 @custom-variant dark (&:where(.dark, .dark *));
-@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
-@utility surface { @apply bg-white dark:bg-slate-900; }
+@theme {
+  --color-slate-50: #f6f3ec; --color-slate-100: #efeae0; --color-slate-200: #e4ded2; --color-slate-300: #d0c8b8; --color-slate-400: #a59c8a; --color-slate-500: #7b7364;
+  --color-slate-600: #5f584c; --color-slate-700: #474137; --color-slate-800: #2f2b24; --color-slate-900: #1f1c17; --color-slate-950: #15130f;
+  --font-display: Georgia, "Times New Roman", "Songti SC", "STSong", serif;
+}
+@utility kbd { @apply inline-flex h-5 min-w-5 items-center justify-center rounded-md border border-b-2 border-slate-300 bg-slate-50 px-1 font-mono text-[11px] text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400; }
+@utility num { @apply font-display tabular-nums; }
+@utility rise { animation: rise .28s ease-out both; }
+@keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .rise { animation: none; } }
+@utility card { @apply rounded-2xl border border-slate-200 bg-[#fffdf9] p-5 shadow-[0_1px_0_rgb(31_28_23/0.03),0_10px_30px_-20px_rgb(31_28_23/0.35)] md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-[#fffdf9] dark:bg-slate-900; }
 @utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
 @utility line { @apply border-slate-200 dark:border-slate-800; }
 @utility t-strong { @apply text-slate-900 dark:text-white; }
@@ -37,8 +47,8 @@
 </head>
 <body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
 <div id="app" class="mx-auto max-w-6xl space-y-6 px-4 py-8 md:px-8"></div>
-<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
-<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-slate-950/40 p-4 backdrop-blur-[2px]"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-[#fffdf9] p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] flex max-w-[calc(100%-2rem)] -translate-x-1/2 items-center gap-3 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-slate-100 dark:text-slate-900"><span id="toast-msg"></span><button type="button" id="toast-undo" class="hidden shrink-0 cursor-pointer font-semibold text-[var(--p-200)] hover:underline dark:text-[var(--p-700)]"></button></div>
 <script id="app-config" type="application/json">__APP_CONFIG__</script>
 <script>
 (function () {
@@ -49,11 +59,15 @@
       editData: "编辑数据", reset: "恢复默认", resetConfirm: "确定恢复为默认数据吗？你的修改会丢失。", resetDone: "已恢复默认数据",
       editTitle: "编辑仪表盘数据", editHint: "修改 metrics（指标卡）和 charts（图表）中的数值，保存后立即重绘。", jsonErr: "JSON 格式错误：{m}",
       shapeErr: "数据结构不正确：{m}", vsLast: "环比", currencySign: "¥", edited: "已编辑",
+      line: "折线图", bar: "柱状图", zoom: "放大查看", png: "下载图片", insights: "本期看点", bestMove: "表现最好：{m} {d}", watchOut: "需要关注：{m} {d}", total: "合计", totalAvg: "合计 / 均值",
+      searchPh: "搜索表格", noMatch: "没有匹配的行", updatedAt: "数据更新于 {d}", metricsLabel: "指标", addRow: "加一行", labelCol: "标签", jsonMode: "JSON 模式", gridErr: "请检查：数值必须是数字，标签不能为空",
     },
     en: {
       editData: "Edit data", reset: "Reset", resetConfirm: "Reset to the default data? Your edits will be lost.", resetDone: "Default data restored",
       editTitle: "Edit dashboard data", editHint: "Change the numbers in metrics and charts. The dashboard redraws as soon as you save.", jsonErr: "Invalid JSON: {m}",
       shapeErr: "Invalid data: {m}", vsLast: "vs last period", currencySign: "$", edited: "Edited",
+      line: "Line", bar: "Bar", zoom: "Expand", png: "Download PNG", insights: "Highlights", bestMove: "Best mover: {m} {d}", watchOut: "Watch: {m} {d}", total: "Total", totalAvg: "Total / avg",
+      searchPh: "Search table", noMatch: "No matching rows", updatedAt: "Data updated {d}", metricsLabel: "Metrics", addRow: "Add row", labelCol: "Label", jsonMode: "JSON mode", gridErr: "Values must be numbers and labels can't be empty",
     },
   };
   const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
@@ -70,7 +84,7 @@
     orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
     rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
     violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
-    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+    slate: ["#f8fafc", "#f1f5f9", "#e4ded2", "#7b7364", "#475569", "#334155"],
   };
   const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
   const pal = (name) => PALETTE[name] || PALETTE.indigo;
@@ -79,8 +93,8 @@
   document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
   if (DARK) document.documentElement.classList.add("dark");
   const BASE_I18N = {
-    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
-    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+    "zh-CN": { undo: "撤销", undone: "已撤销", shortcuts: "键盘快捷键", confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { undo: "Undo", undone: "Undone", shortcuts: "Keyboard shortcuts", confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
   };
   const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
   const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
@@ -110,7 +124,21 @@
   const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
   const saveMeta = (m) => save(META_KEY, m);
 
-  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+  let undoFn = null;
+  const hideToast = () => { const el = $("#toast"); el.style.opacity = "0"; el.classList.add("pointer-events-none"); undoFn = null; };
+  /** 轻提示；传 onUndo 时显示「撤销」按钮，5 秒内可撤销。 */
+  const toast = (msg, onUndo) => {
+    const el = $("#toast");
+    $("#toast-msg").textContent = msg;
+    undoFn = onUndo || null;
+    $("#toast-undo").textContent = t("undo");
+    $("#toast-undo").classList.toggle("hidden", !undoFn);
+    el.classList.toggle("pointer-events-none", !undoFn);
+    el.style.opacity = "1";
+    clearTimeout(el._h);
+    el._h = setTimeout(hideToast, undoFn ? 5000 : 2000);
+  };
+  $("#toast-undo").addEventListener("click", () => { const fn = undoFn; hideToast(); if (fn) { fn(); toast(t("undone")); } });
 
   let modalClose = null;
   const openModal = (html, onClose) => {
@@ -142,6 +170,21 @@
   };
   $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
   document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+  /** 单键快捷键（docs/08 §5.2）：焦点在输入框或弹窗打开时不触发；按 ? 查看全部。 */
+  const KEYS = [];
+  const shortcut = (key, label, fn) => KEYS.push({ key, label, fn });
+  const showKeys = () => openModal('<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("shortcuts")) + '</div><ul class="space-y-2 text-sm t-body">' +
+    KEYS.concat([{ key: "?", label: t("shortcuts") }, { key: "Esc", label: t("close") }]).map((k) => '<li class="flex items-center justify-between gap-4"><span>' + esc(k.label) + '</span><span class="kbd">' + esc(({ " ": "Space", ArrowLeft: "←", ArrowRight: "→", ArrowUp: "↑", ArrowDown: "↓", Enter: "Enter" })[k.key] || k.key.toUpperCase()) + "</span></li>").join("") +
+    '</ul><div class="flex justify-end"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("close")) + "</button></div></div>");
+  document.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing || !$("#modal").classList.contains("hidden")) return;
+    const tag = e.target && e.target.tagName;
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
+    if (e.key === "?" && KEYS.length) { e.preventDefault(); showKeys(); return; }
+    const k = KEYS.find((x) => x.key === e.key);
+    if (k) { e.preventDefault(); k.fn(e); }
+  });
+  const keysHint = () => KEYS.length ? '<footer class="pt-2 text-center text-xs t-faint"><button type="button" data-act="keys" class="cursor-pointer hover:text-[var(--p-600)]"><span class="kbd">?</span> ' + esc(t("shortcuts")) + "</button></footer>" : "";
 
   /** 整体重绘时保留输入框焦点与光标位置。 */
   const keepFocus = (fn) => {
@@ -158,7 +201,7 @@
   };
 
   /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
-  const ACTIONS = { "modal-close": () => closeModal() };
+  const ACTIONS = { "modal-close": () => closeModal(), keys: () => showKeys() };
   const delegate = (type) => document.addEventListener(type, (e) => {
     const el = e.target.closest && e.target.closest("[data-" + type + "]");
     if (!el) return;
@@ -176,7 +219,7 @@
   const header = (extra) =>
     '<header class="flex flex-wrap items-start justify-between gap-4">' +
     '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
-    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    '<div class="min-w-0"><h1 class="font-display text-[1.65rem] leading-tight font-semibold tracking-tight t-strong">' + esc(CONFIG.title) + "</h1>" +
     (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
     (extra || "") + "</header>";
   const emptyState = (emoji, text, btn) =>
@@ -188,15 +231,15 @@
   const seriesColors = (n) => Array.from({ length: n }, (_, i) => {
     const w = n <= 1 ? 0 : i / (n - 1);
     const c = mixHex(PRIMARY[5], PRIMARY[2], w);
-    return n > 6 && i % 2 === 1 ? mixHex(c, "#64748b", 0.45) : c;
+    return n > 6 && i % 2 === 1 ? mixHex(c, "#7b7364", 0.45) : c;
   });
-  const LINE_COLORS = [PRIMARY[4], "#94a3b8", PRIMARY[2]];
+  const LINE_COLORS = [PRIMARY[4], "#a59c8a", PRIMARY[2]];
   const charts = [];
   const destroyCharts = () => { while (charts.length) { try { charts.pop().destroy(); } catch (e) {} } };
   const makeChart = (canvas, cfg) => {
     if (typeof Chart === "undefined" || !canvas) return null;
-    Chart.defaults.color = DARK ? "#94a3b8" : "#64748b";
-    Chart.defaults.borderColor = DARK ? "#1e293b" : "#e2e8f0";
+    Chart.defaults.color = DARK ? "#a59c8a" : "#7b7364";
+    Chart.defaults.borderColor = DARK ? "#2f2b24" : "#e4ded2";
     Chart.defaults.font.family = "ui-sans-serif, system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif";
     const chart = new Chart(canvas, cfg);
     charts.push(chart);
@@ -215,7 +258,8 @@
   };
   let data = initData();
   const TABLE = CONFIG.table && Array.isArray(CONFIG.table.rows) ? CONFIG.table : null;
-  const state = { sortKey: null, sortDir: 1 };
+  const meta = loadMeta();
+  const state = { sortKey: null, sortDir: 1, q: "", types: meta.base === BASE && meta.types ? meta.types : {}, draft: null };
   const num = (v, d) => Number(v).toLocaleString(LOC, { maximumFractionDigits: d === undefined ? 2 : d });
 
   const metricCard = (m) => {
@@ -226,23 +270,47 @@
       delta = '<div class="mt-2 flex items-center gap-1 text-xs"><span class="font-semibold ' + (m.delta === 0 ? "t-muted" : good ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400") + '">' +
         (up ? "▲" : "▼") + " " + num(Math.abs(m.delta), 1) + '%</span><span class="t-faint">' + esc(t("vsLast")) + "</span></div>";
     }
-    return '<div class="card min-w-0 p-4 md:p-5"><div class="truncate text-xs t-faint">' + esc(m.label) + '</div><div class="mt-1 flex items-baseline gap-1"><span class="truncate text-2xl font-bold t-strong md:text-3xl">' + esc(num(m.value)) + "</span>" +
+    return '<div class="card rise min-w-0 p-4 md:p-5"><div class="truncate text-xs t-faint">' + esc(m.label) + '</div><div class="mt-1 flex items-baseline gap-1"><span class="num truncate text-2xl font-semibold t-strong md:text-3xl">' + esc(num(m.value)) + "</span>" +
       (m.unit ? '<span class="text-sm t-muted">' + esc(m.unit) + "</span>" : "") + "</div>" + delta + "</div>";
   };
 
-  const chartBox = (c, i) => '<section class="card min-w-0 ' + (c.span === 2 ? "md:col-span-2" : "") + '"><h2 class="mb-3 text-sm font-semibold t-strong">' + esc(c.title) + '</h2><div class="relative h-[260px]"><canvas id="chart-' + i + '"></canvas></div></section>';
+  const isRound = (type) => type === "pie" || type === "doughnut";
+  const typeOf = (c, i) => state.types[i] || c.type;
+  const chartBox = (c, i) => {
+    const cur = typeOf(c, i);
+    const swap = isRound(c.type) ? "" : '<div class="seg p-0.5">' + ["line", "bar"].map((k) => '<button type="button" data-act="ctype" data-i="' + i + '" data-v="' + k + '" class="' + (cur === k ? "seg-on" : "seg-btn") + ' px-2 py-1 text-xs" aria-label="' + esc(t(k)) + '">' + (k === "line" ? "⌇" : "▥") + "</button>").join("") + "</div>";
+    return '<section class="card min-w-0 ' + (c.span === 2 ? "md:col-span-2" : "") + '"><div class="mb-3 flex items-center gap-2"><h2 class="min-w-0 flex-1 truncate text-sm font-semibold t-strong">' + esc(c.title) + "</h2>" + swap +
+      '<button type="button" data-act="zoom" data-i="' + i + '" class="icon-btn h-7 w-7" aria-label="' + esc(t("zoom")) + '">⤢</button><button type="button" data-act="png" data-i="' + i + '" class="icon-btn h-7 w-7" aria-label="' + esc(t("png")) + '">↓</button></div>' +
+      '<div class="relative h-[260px]"><canvas id="chart-' + i + '"></canvas></div></section>';
+  };
+
+  /** 自动洞察：环比变化最好和最差的指标各一条。 */
+  const insights = () => {
+    const ms = data.metrics.filter((m) => typeof m.delta === "number" && m.delta !== 0).map((m) => ({ m, score: ((m.goodWhen || "up") === "up" ? 1 : -1) * m.delta }));
+    if (!ms.length) return "";
+    ms.sort((a, b) => b.score - a.score);
+    const best = ms[0], worst = ms[ms.length - 1];
+    const line = (x, good) => '<div class="flex min-w-0 items-center gap-2"><span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full ' + (good ? "bg-emerald-50 text-emerald-600 dark:bg-emerald-500/15" : "bg-rose-50 text-rose-600 dark:bg-rose-500/15") + '">' + (good ? "↗" : "⚠") + "</span>" +
+      '<span class="min-w-0 truncate t-body">' + esc(t(good ? "bestMove" : "watchOut", { m: x.m.label, d: (x.m.delta > 0 ? "▲" : "▼") + num(Math.abs(x.m.delta), 1) + "%" })) + "</span></div>";
+    return '<section class="card flex flex-col gap-3 py-4 text-sm sm:flex-row sm:items-center sm:gap-8 md:py-4"><span class="shrink-0 text-xs font-semibold tracking-wide t-faint uppercase">' + esc(t("insights")) + "</span>" +
+      (best.score > 0 ? line(best, true) : "") + (worst.score < 0 ? line(worst, false) : "") + "</section>";
+  };
 
   const drawCharts = () => {
     destroyCharts();
-    data.charts.forEach((c, i) => {
-      const round = c.type === "pie" || c.type === "doughnut";
+    data.charts.forEach((c, i) => drawOne(c, i, $("#chart-" + i)));
+  };
+  const drawOne = (c0, i, canvas) => {
+    const c = Object.assign({}, c0, { type: typeOf(c0, i) });
+    {
+      const round = isRound(c.type);
       const sets = (round ? c.datasets.slice(0, 1) : c.datasets).map((d, k) => {
         const color = LINE_COLORS[k % LINE_COLORS.length];
-        if (round) return { label: d.label, data: d.data, backgroundColor: seriesColors(c.labels.length), borderWidth: 2, borderColor: DARK ? "#0f172a" : "#fff" };
+        if (round) return { label: d.label, data: d.data, backgroundColor: seriesColors(c.labels.length), borderWidth: 2, borderColor: DARK ? "#1f1c17" : "#fffdf9" };
         if (c.type === "line") return { label: d.label, data: d.data, borderColor: color, backgroundColor: k === 0 ? color + "22" : "transparent", fill: k === 0, tension: 0.35, pointRadius: 2.5, borderWidth: 2 };
         return { label: d.label, data: d.data, backgroundColor: color, borderRadius: 6, maxBarThickness: 32 };
       });
-      makeChart($("#chart-" + i), {
+      makeChart(canvas, {
         type: c.type,
         data: { labels: c.labels, datasets: sets },
         options: {
@@ -252,7 +320,7 @@
           ...(c.type === "doughnut" ? { cutout: "62%" } : {}),
         },
       });
-    });
+    }
   };
 
   const fmtCell = (col, v) => {
@@ -265,19 +333,30 @@
 
   const tableBlock = () => {
     if (!TABLE) return "";
-    const rows = TABLE.rows.slice();
+    const q = state.q.trim().toLowerCase();
+    const rows = TABLE.rows.filter((r) => !q || TABLE.columns.some((c) => String(r[c.key] ?? "").toLowerCase().includes(q)));
     if (state.sortKey) rows.sort((a, b) => {
       const x = a[state.sortKey], y = b[state.sortKey];
       return (typeof x === "number" && typeof y === "number" ? x - y : String(x ?? "").localeCompare(String(y ?? ""), LOC)) * state.sortDir;
     });
-    return '<section class="card min-w-0"><h2 class="mb-3 text-sm font-semibold t-strong">' + esc(TABLE.title) + '</h2><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="text-left text-xs t-faint"><tr>' +
+    const numCols = TABLE.columns.filter((c) => c.format && c.format !== "text");
+    const total = rows.length > 1 && numCols.length ? '<tfoot class="border-t-2 line"><tr>' + TABLE.columns.map((c, i) => {
+      if (i === 0) return '<td class="py-2.5 pr-4 text-xs font-semibold t-muted">' + esc(t(numCols.some((x) => x.format === "percent") ? "totalAvg" : "total")) + "</td>";
+      if (!c.format || c.format === "text") return "<td></td>";
+      const vs = rows.map((r) => r[c.key]).filter((v) => typeof v === "number");
+      const v = c.format === "percent" ? vs.reduce((s2, x) => s2 + x, 0) / (vs.length || 1) : vs.reduce((s2, x) => s2 + x, 0);
+      return '<td class="num py-2.5 pr-4 text-right font-semibold whitespace-nowrap t-strong">' + esc(fmtCell(c, Math.round(v * 100) / 100)) + "</td>";
+    }).join("") + "</tr></tfoot>" : "";
+    return '<section class="card min-w-0"><div class="mb-3 flex flex-wrap items-center gap-2"><h2 class="min-w-0 flex-1 text-sm font-semibold t-strong">' + esc(TABLE.title) + "</h2>" +
+      '<div class="relative w-full sm:w-52"><span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm t-faint">⌕</span><input id="q" data-input="q" class="input py-1.5 pl-8" autocomplete="off" placeholder="' + esc(t("searchPh")) + '" value="' + esc(state.q) + '"></div>' +
+      '<button type="button" data-act="table-csv" class="btn btn-secondary py-1.5">↓ CSV</button></div><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="text-left text-xs t-faint"><tr>' +
       TABLE.columns.map((c) => {
         const numeric = c.format && c.format !== "text";
         const arrow = state.sortKey === c.key ? (state.sortDir > 0 ? " ▲" : " ▼") : "";
         return '<th class="py-2 pr-4 font-medium whitespace-nowrap ' + (numeric ? "text-right" : "") + '"><button type="button" data-act="sort" data-key="' + esc(c.key) + '" class="cursor-pointer hover:text-[var(--p-600)]">' + esc(c.label) + arrow + "</button></th>";
       }).join("") + '</tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">' +
       rows.map((r) => "<tr>" + TABLE.columns.map((c, i) => '<td class="py-2.5 pr-4 whitespace-nowrap ' + (c.format && c.format !== "text" ? "text-right tabular-nums " : "") + (i === 0 ? "font-medium t-strong" : "t-body") + '">' + esc(fmtCell(c, r[c.key])) + "</td>").join("") + "</tr>").join("") +
-      "</tbody></table></div></section>";
+      "</tbody>" + total + "</table></div>" + (rows.length ? "" : emptyState("🔍", t("noMatch"))) + "</section>";
   };
 
   const render = () => keepFocus(() => {
@@ -288,7 +367,8 @@
     const n = data.metrics.length;
     $("#app").innerHTML = header(tools) +
       '<div class="grid grid-cols-2 gap-3 md:gap-4 ' + (n % 3 === 0 ? "lg:grid-cols-3" : n >= 4 ? "lg:grid-cols-4" : "") + '">' + data.metrics.map(metricCard).join("") + "</div>" +
-      '<div class="grid gap-4 md:grid-cols-2">' + data.charts.map(chartBox).join("") + "</div>" + tableBlock();
+      insights() + '<div class="grid gap-4 md:grid-cols-2">' + data.charts.map(chartBox).join("") + "</div>" + tableBlock() +
+      (data.edited && data.at ? '<p class="text-center text-xs t-faint">' + esc(t("updatedAt", { d: fmtDate(new Date(data.at)) + " " + pad(new Date(data.at).getHours()) + ":" + pad(new Date(data.at).getMinutes()) })) + "</p>" : "") + keysHint();
     drawCharts();
   });
 
@@ -309,7 +389,48 @@
     else { state.sortKey = k; state.sortDir = -1; }
     render();
   };
-  ACTIONS["edit-data"] = () => {
+  /** 表格式编辑器：指标逐项改数值，图表按"行=标签、列=数据系列"编辑；高级用户可切到 JSON。 */
+  const gridEditor = () => {
+    const d = state.draft;
+    const cell = (attrs, v, cls) => '<input ' + attrs + ' class="input px-2 py-1 text-xs ' + (cls || "") + '" value="' + esc(v) + '">';
+    const metrics = '<div class="space-y-2"><div class="text-sm font-semibold t-strong">' + esc(t("metricsLabel")) + '</div><div class="grid gap-2 sm:grid-cols-2">' + d.metrics.map((m, i) =>
+      '<div class="flex items-center gap-2 rounded-xl surface-2 px-3 py-2"><span class="min-w-0 flex-1 truncate text-xs t-body">' + esc(m.label) + "</span>" + cell('data-input="g" data-m="' + i + '" data-f="value" inputmode="decimal" aria-label="' + esc(m.label) + '"', m.value, "num w-24 text-right") +
+      (typeof m.delta === "number" ? cell('data-input="g" data-m="' + i + '" data-f="delta" inputmode="decimal" aria-label="' + esc(t("vsLast")) + '"', m.delta, "w-16 text-right") + '<span class="text-xs t-faint">%</span>' : "") + "</div>").join("") + "</div></div>";
+    const charts = d.charts.map((c, ci) => '<div class="space-y-2"><div class="flex items-center justify-between"><div class="text-sm font-semibold t-strong">' + esc(c.title) + '</div><button type="button" data-act="g-add" data-c="' + ci + '" class="btn btn-ghost py-1 text-xs"' + (c.labels.length >= 31 ? " disabled" : "") + ">＋ " + esc(t("addRow")) + "</button></div>" +
+      '<div class="overflow-x-auto"><table class="w-full text-xs"><thead class="t-faint"><tr><th class="py-1 pr-2 text-left font-medium">' + esc(t("labelCol")) + "</th>" + c.datasets.map((ds) => '<th class="py-1 pr-2 text-right font-medium">' + esc(ds.label) + "</th>").join("") + "<th></th></tr></thead><tbody>" +
+      c.labels.map((l, r) => "<tr><td class=\"py-0.5 pr-2\">" + cell('data-input="g" data-c="' + ci + '" data-r="' + r + '" data-f="label" aria-label="' + esc(t("labelCol")) + '"', l, "min-w-20") + "</td>" +
+        c.datasets.map((ds, k) => '<td class="py-0.5 pr-2">' + cell('data-input="g" data-c="' + ci + '" data-r="' + r + '" data-k="' + k + '" inputmode="decimal" aria-label="' + esc(ds.label) + '"', ds.data[r], "num min-w-16 text-right") + "</td>").join("") +
+        '<td><button type="button" data-act="g-del" data-c="' + ci + '" data-r="' + r + '" class="icon-btn h-7 w-7"' + (c.labels.length <= 2 ? " disabled" : "") + ' aria-label="' + esc(t("delete")) + '">✕</button></td></tr>').join("") + "</tbody></table></div></div>").join("");
+    return metrics + charts;
+  };
+  const openGrid = () => {
+    const modal = $("#modal-body");
+    modal.classList.replace("max-w-md", "max-w-2xl");
+    openModal('<form data-submit="save-grid" class="space-y-5" novalidate><div class="flex flex-wrap items-center justify-between gap-2"><h3 class="text-lg font-semibold t-strong">' + esc(t("editTitle")) + '</h3><button type="button" data-act="edit-json" class="btn btn-ghost py-1 text-xs">{ } ' + esc(t("jsonMode")) + "</button></div>" +
+      gridEditor() + '<div id="grid-err" class="err-text" hidden></div><div class="flex justify-end gap-2"><button type="button" data-act="modal-close" class="btn btn-secondary">' + esc(t("cancel")) + '</button><button type="submit" class="btn btn-primary">' + esc(t("save")) + "</button></div></form>",
+    () => modal.classList.replace("max-w-2xl", "max-w-md"));
+  };
+  ACTIONS["edit-data"] = () => { state.draft = JSON.parse(JSON.stringify({ metrics: data.metrics, charts: data.charts })); openGrid(); };
+  ACTIONS.g = (el) => {
+    const d = state.draft, f = el.getAttribute("data-f"), v = el.value.trim();
+    if (el.hasAttribute("data-m")) { d.metrics[Number(el.getAttribute("data-m"))][f] = v === "" ? NaN : Number(v); return; }
+    const c = d.charts[Number(el.getAttribute("data-c"))], r = Number(el.getAttribute("data-r"));
+    if (f === "label") c.labels[r] = v; else c.datasets[Number(el.getAttribute("data-k"))].data[r] = v === "" ? NaN : Number(v);
+  };
+  ACTIONS["g-add"] = (el) => { const c = state.draft.charts[Number(el.getAttribute("data-c"))]; c.labels.push(String(c.labels.length + 1)); c.datasets.forEach((ds) => ds.data.push(0)); openGrid(); };
+  ACTIONS["g-del"] = (el) => { const c = state.draft.charts[Number(el.getAttribute("data-c"))], r = Number(el.getAttribute("data-r")); c.labels.splice(r, 1); c.datasets.forEach((ds) => ds.data.splice(r, 1)); openGrid(); };
+  ACTIONS["save-grid"] = (form, e) => {
+    e.preventDefault();
+    const d = state.draft;
+    const bad = d.metrics.some((m) => !isFinite(m.value) || (m.delta !== undefined && !isFinite(m.delta))) || d.charts.some((c) => c.labels.some((l) => !l) || c.datasets.some((ds) => ds.data.some((x) => !isFinite(x))));
+    if (bad) { const er = $("#grid-err"); er.textContent = t("gridErr"); er.hidden = false; return; }
+    data = { version: 1, base: BASE, edited: true, at: Date.now(), metrics: d.metrics, charts: d.charts };
+    save(KEY, data);
+    closeModal();
+    render();
+    toast(t("saved"));
+  };
+  ACTIONS["edit-json"] = () => {
     const modal = $("#modal-body");
     modal.classList.replace("max-w-md", "max-w-2xl");
     openModal('<form data-submit="save-data" class="space-y-4" novalidate><h3 class="text-lg font-semibold t-strong">' + esc(t("editTitle")) + '</h3><p class="text-sm t-muted">' + esc(t("editHint")) + "</p>" +
@@ -324,12 +445,44 @@
     try { v = JSON.parse($("#json").value); } catch (ex) { err.textContent = t("jsonErr", { m: ex.message }); err.hidden = false; return; }
     const bad = checkShape(v);
     if (bad) { err.textContent = t("shapeErr", { m: bad }); err.hidden = false; return; }
-    data = { version: 1, base: BASE, edited: true, metrics: v.metrics, charts: v.charts };
+    data = { version: 1, base: BASE, edited: true, at: Date.now(), metrics: v.metrics, charts: v.charts };
     save(KEY, data);
     closeModal();
     render();
     toast(t("saved"));
   };
+  ACTIONS.q = (el) => { state.q = el.value; render(); };
+  ACTIONS.ctype = (el) => { const i = el.getAttribute("data-i"); state.types[i] = el.getAttribute("data-v"); meta.types = state.types; meta.base = BASE; saveMeta(meta); render(); };
+  ACTIONS.zoom = (el) => {
+    const i = Number(el.getAttribute("data-i"));
+    const modal = $("#modal-body");
+    modal.classList.replace("max-w-md", "max-w-4xl");
+    openModal('<div class="space-y-3"><div class="flex items-center justify-between"><h3 class="text-lg font-semibold t-strong">' + esc(data.charts[i].title) + '</h3><button type="button" data-act="modal-close" class="icon-btn" aria-label="' + esc(t("close")) + '">✕</button></div><div class="relative h-[60vh]"><canvas id="chart-zoom"></canvas></div></div>',
+      () => { modal.classList.replace("max-w-4xl", "max-w-md"); render(); });
+    drawOne(data.charts[i], i, $("#chart-zoom"));
+  };
+  ACTIONS.png = (el) => {
+    const cv = $("#chart-" + el.getAttribute("data-i"));
+    if (!cv) return;
+    const a = document.createElement("a");
+    a.href = cv.toDataURL("image/png");
+    a.download = data.charts[Number(el.getAttribute("data-i"))].title + ".png";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 500);
+  };
+  ACTIONS["table-csv"] = () => {
+    const cell = (v) => { const x = String(v ?? ""); return /[",\n]/.test(x) ? '"' + x.replace(/"/g, '""') + '"' : x; };
+    const text = [TABLE.columns.map((c) => c.label)].concat(TABLE.rows.map((r) => TABLE.columns.map((c) => r[c.key]))).map((r) => r.map(cell).join(",")).join("\r\n");
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\uFEFF" + text], { type: "text/csv;charset=utf-8" }));
+    a.download = TABLE.title + ".csv";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1000);
+  };
+  if (CONFIG.editable) shortcut("e", t("editData"), () => ACTIONS["edit-data"]());
+  if (TABLE) shortcut("/", t("searchPh"), () => $("#q").focus());
   ACTIONS.reset = () => confirmBox(t("resetConfirm"), () => {
     data = { version: 1, base: BASE, edited: false, metrics: DEFAULTS.metrics, charts: DEFAULTS.charts };
     save(KEY, data);

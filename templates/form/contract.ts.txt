@@ -5,6 +5,7 @@ interface FormConfig extends BaseConfig {
   successTitle: string;             // ≤20 字
   successText: string;              // ≤100 字
   allowMultiple: boolean;           // 提交成功后是否显示"再填一份"
+  stepByStep?: boolean;             // 可选，默认 false；true 时一题一页（问卷 / 测评类），带进度条和上一题 / 下一题
   adminView: {
     enabled: boolean;               // 是否提供"查看已收集"页
     title: string;                  // ≤20 字
