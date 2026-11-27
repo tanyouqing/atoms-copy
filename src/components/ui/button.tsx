@@ -5,8 +5,8 @@ type Variant = "primary" | "secondary" | "ghost" | "danger";
 type Size = "sm" | "md" | "icon";
 
 const VARIANTS: Record<Variant, string> = {
-  primary: "bg-[var(--brand)] text-white hover:bg-indigo-700 disabled:bg-indigo-300",
-  secondary: "border border-[var(--border)] bg-white text-zinc-800 hover:bg-zinc-50 disabled:text-zinc-400",
+  primary: "bg-[var(--ink)] text-white hover:bg-black disabled:bg-zinc-300 disabled:text-zinc-50",
+  secondary: "border border-[var(--border)] bg-[var(--panel)] text-zinc-800 hover:bg-zinc-50 disabled:text-zinc-400",
   ghost: "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900 disabled:text-zinc-300",
   danger: "bg-[var(--danger)] text-white hover:bg-red-700 disabled:bg-red-300",
 };
@@ -17,7 +17,7 @@ export function Button({ variant = "secondary", size = "md", className, ...props
     <button
       type="button"
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-lg font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 disabled:cursor-not-allowed",
+        "inline-flex shrink-0 items-center gap-1.5 rounded-lg font-medium transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand)] focus-visible:ring-offset-1 disabled:cursor-not-allowed",
         VARIANTS[variant],
         SIZES[size],
         className,

@@ -18,14 +18,14 @@ function VersionCard({ m, version, isCurrent, isViewing, onSelect }: { m: Messag
       type="button"
       data-testid="version-card"
       onClick={onSelect}
-      className={cn("flex w-full items-center gap-2 rounded-lg border bg-white px-3 py-2 text-left text-sm transition-colors hover:border-[var(--brand)]", isViewing ? "border-[var(--warning)]" : "border-[var(--border)]")}
+      className={cn("atoms-in flex w-full items-center gap-2 rounded-lg border bg-[var(--panel)] px-3 py-2 text-left text-sm transition-colors hover:border-zinc-800", isViewing ? "border-[var(--warning)]" : "border-[var(--border)]")}
     >
       <span className="rounded-md bg-zinc-900 px-1.5 py-0.5 text-xs font-semibold text-white">v{version?.seq ?? meta.seq}</span>
       <span className="min-w-0 flex-1 truncate font-medium">{version?.label ?? m.content}</span>
       {source && <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-xs text-zinc-600">{SOURCE_LABELS[source]}</span>}
       {version?.status === "error" && <span className="rounded-full bg-red-50 px-2 py-0.5 text-xs text-[var(--danger)]">有问题</span>}
       <span className="text-xs text-[var(--muted)]">{mounted ? clockTime(m.createdAt) : ""}</span>
-      {isCurrent && <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-xs font-medium text-indigo-700">当前</span>}
+      {isCurrent && <span className="rounded-full bg-[var(--brand-soft)] px-2 py-0.5 text-xs font-medium text-[var(--brand-ink)]">当前</span>}
     </button>
   );
 }
@@ -77,7 +77,7 @@ export function ChatPanel(props: {
           if (m.role === "user")
             return (
               <div key={m.id} className="flex justify-end">
-                <div className="max-w-[85%] whitespace-pre-wrap break-words rounded-xl rounded-br-sm bg-[var(--brand)] px-3 py-2 text-sm text-white" data-testid="user-message">
+                <div className="max-w-[85%] whitespace-pre-wrap break-words atoms-in rounded-xl rounded-br-sm bg-[var(--ink)] px-3 py-2 text-sm text-white" data-testid="user-message">
                   {m.content}
                 </div>
               </div>

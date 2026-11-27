@@ -25,7 +25,7 @@ export function Composer(props: { busy: boolean; notice: string | null; onSend: 
   };
 
   return (
-    <div className="border-t border-[var(--border)] bg-white p-3">
+    <div className="border-t border-[var(--border)] bg-[var(--panel)] p-3">
       {props.notice && (
         <div className="mb-2 rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-800" role="status" data-testid="composer-notice">
           {props.notice}
@@ -37,7 +37,7 @@ export function Composer(props: { busy: boolean; notice: string | null; onSend: 
           <RotateCcw size={14} /> 重新生成
         </Button>
       )}
-      <div className="flex items-end gap-2 rounded-xl border border-[var(--border)] px-3 py-2 focus-within:border-[var(--brand)]">
+      <div className="flex items-end gap-2 rounded-xl border border-[var(--border)] bg-white px-3 py-2 transition-colors focus-within:border-zinc-800">
         <textarea
           ref={ref}
           rows={1}

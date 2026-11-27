@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { useAutoFix } from "@/hooks/useAutoFix";
 import { useGeneration, type RunResult } from "@/hooks/useGeneration";
+import type { AgentRole } from "@/lib/agents";
 import { api, ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import type { ProjectDetail, QaMeta, VersionFull } from "@/types/api";
@@ -143,6 +144,8 @@ export function Workspace({ initial }: { initial: ProjectDetail }) {
 
   // ---------- 预览 ----------
   const shown = shownVersion(s);
+  const runningAgent = [...s.messages].reverse().find((m) => m.status === "running" && (m.role === "pm" || m.role === "engineer" || m.role === "qa"));
+  const activeRole = runningAgent ? (runningAgent.role as AgentRole) : null;
   const lastEngineer = [...s.messages].reverse().find((m) => m.role === "engineer");
   const freeStreaming = !!s.running && s.stream.active && lastEngineer?.kind === "engineer_code" && lastEngineer.status === "running";
   useEffect(() => {
@@ -304,6 +307,7 @@ export function Workspace({ initial }: { initial: ProjectDetail }) {
       hideCodeTab={!desktop}
       onRemount={() => setRuntimeErrors([])}
       downloadName={s.project.title}
+      activeRole={activeRole}
     />
   );
 
@@ -326,12 +330,12 @@ export function Workspace({ initial }: { initial: ProjectDetail }) {
           <Panel defaultSize={32} minSize={24} maxSize={50} className="border-r border-[var(--border)]">
             {chat}
           </Panel>
-          <PanelResizeHandle className="w-1 bg-transparent transition-colors hover:bg-indigo-200 data-[resize-handle-state=drag]:bg-indigo-300" />
+          <PanelResizeHandle className="w-1 bg-transparent transition-colors hover:bg-[var(--brand-soft)] data-[resize-handle-state=drag]:bg-[#f3c2ad]" />
           <Panel minSize={40}>{preview}</Panel>
         </PanelGroup>
       ) : (
         <>
-          <div className="flex shrink-0 gap-1 border-b border-[var(--border)] bg-white p-1.5" role="tablist">
+          <div className="flex shrink-0 gap-1 border-b border-[var(--border)] bg-[var(--panel)] p-1.5" role="tablist">
             {(["chat", "preview"] as const).map((t) => (
               <button
                 key={t}
@@ -342,7 +346,7 @@ export function Workspace({ initial }: { initial: ProjectDetail }) {
                   setMobileTab(t);
                   if (t === "preview") setPreviewDot(false);
                 }}
-                className={cn("relative flex-1 rounded-lg py-1.5 text-sm", mobileTab === t ? "bg-zinc-900 font-medium text-white" : "text-zinc-600")}
+                className={cn("relative flex-1 rounded-lg py-1.5 text-sm transition-colors", mobileTab === t ? "bg-zinc-900 font-medium text-white" : "text-zinc-600")}
               >
                 {t === "chat" ? "对话" : "预览"}
                 {t === "preview" && previewDot && mobileTab === "chat" && <span className="absolute right-3 top-2 h-2 w-2 rounded-full bg-[var(--danger)]" data-testid="preview-dot" />}

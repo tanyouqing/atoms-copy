@@ -4,6 +4,7 @@ import { Download, ExternalLink, Eraser, Monitor, RotateCw, Smartphone } from "l
 import dynamic from "next/dynamic";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { AgentAvatar } from "@/components/ui/avatar";
+import { AGENTS, type AgentRole } from "@/lib/agents";
 import { Button } from "@/components/ui/button";
 import { ConfirmDialog } from "@/components/ui/dialog";
 import { useMounted } from "@/hooks/useMounted";
@@ -18,23 +19,37 @@ const CodeView = dynamic(() => import("./CodeView"), { ssr: false, loading: () =
 
 export type PreviewTab = "preview" | "code";
 
-function EmptyPreview({ working }: { working: boolean }) {
-  return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 text-sm text-[var(--muted)]">
-      {working ? (
-        <>
-          <div className="flex gap-3">
-            {(["pm", "engineer", "qa"] as const).map((r, i) => (
-              <span key={r} className="atoms-bounce" style={{ animationDelay: `${i * 0.2}s` }}>
-                <AgentAvatar role={r} className="h-10 w-10" />
-              </span>
-            ))}
-          </div>
-          <p>团队正在为你搭建应用…</p>
-        </>
-      ) : (
+const ORDER = ["pm", "engineer", "qa"] as const;
+
+function EmptyPreview({ working, activeRole }: { working: boolean; activeRole?: AgentRole | null }) {
+  if (!working)
+    return (
+      <div className="paper-dots flex h-full flex-col items-center justify-center gap-2 text-sm text-[var(--muted)]">
+        <div className="flex -space-x-2 opacity-60 grayscale">
+          {ORDER.map((r) => (
+            <AgentAvatar key={r} role={r} className="h-9 w-9 ring-2 ring-white" />
+          ))}
+        </div>
         <p>还没有可预览的版本</p>
-      )}
+      </div>
+    );
+  const active = activeRole ?? "pm";
+  const idx = ORDER.indexOf(active);
+  return (
+    <div className="paper-dots flex h-full flex-col items-center justify-center gap-5 text-sm text-[var(--muted)]">
+      <div className="flex items-center gap-3">
+        {ORDER.map((r, i) => (
+          <div key={r} className="flex items-center gap-3">
+            <span className={cn("transition-all duration-300", r === active ? "atoms-bounce" : i < idx ? "opacity-80" : "opacity-40 grayscale")}>
+              <AgentAvatar role={r} className={cn("transition-all duration-300", r === active ? "h-14 w-14" : "h-10 w-10")} active={r === active} />
+            </span>
+            {i < ORDER.length - 1 && <span className={cn("h-px w-6 transition-colors duration-300", i < idx ? "bg-zinc-500" : "bg-zinc-300")} />}
+          </div>
+        ))}
+      </div>
+      <p className="text-zinc-600" aria-live="polite">
+        {AGENTS[active].busy}…
+      </p>
     </div>
   );
 }
@@ -57,6 +72,7 @@ export function PreviewPane(props: {
   hideCodeTab?: boolean;
   onRemount?: () => void;
   downloadName?: string;
+  activeRole?: AgentRole | null;
 }) {
   const { version, projectId } = props;
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -98,12 +114,12 @@ export function PreviewPane(props: {
   const codeText = props.showStream ? props.stream.text : (version?.html ?? "");
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-white">
+    <div className="flex h-full min-h-0 flex-col bg-[var(--panel)]">
       <div className="flex h-11 shrink-0 items-center gap-1 border-b border-[var(--border)] px-2">
         {!props.hideCodeTab && (
           <div className="flex rounded-lg bg-zinc-100 p-0.5 text-sm" role="tablist">
             {(["preview", "code"] as const).map((t) => (
-              <button key={t} type="button" role="tab" aria-selected={props.tab === t} onClick={() => props.onTab(t)} className={cn("rounded-md px-3 py-1", props.tab === t ? "bg-white font-medium shadow-sm" : "text-zinc-500")}>
+              <button key={t} type="button" role="tab" aria-selected={props.tab === t} onClick={() => props.onTab(t)} className={cn("rounded-md px-3 py-1", props.tab === t ? "bg-white font-medium text-zinc-900 shadow-sm" : "text-zinc-500 hover:text-zinc-800")}>
                 {t === "preview" ? "预览" : "代码"}
               </button>
             ))}
@@ -151,12 +167,12 @@ export function PreviewPane(props: {
               </div>
             </div>
           ) : (
-            <EmptyPreview working={props.working} />
+            <EmptyPreview working={props.working} activeRole={props.activeRole} />
           )}
         </div>
         {props.tab === "code" && (
           <div className="absolute inset-0">
-            {codeText ? <CodeView code={codeText} config={props.showStream ? null : (version?.config ?? null)} streaming={props.showStream} /> : <EmptyPreview working={props.working} />}
+            {codeText ? <CodeView code={codeText} config={props.showStream ? null : (version?.config ?? null)} streaming={props.showStream} /> : <EmptyPreview working={props.working} activeRole={props.activeRole} />}
           </div>
         )}
         {props.tab === "preview" && props.errorBar}
