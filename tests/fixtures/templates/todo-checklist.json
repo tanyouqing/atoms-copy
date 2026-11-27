@@ -1,0 +1,18 @@
+{
+  "title": "周末采购清单",
+  "emoji": "🛒",
+  "locale": "zh-CN",
+  "theme": { "primary": "orange", "mode": "light" },
+  "mode": "checklist",
+  "itemNoun": "商品",
+  "categories": [],
+  "extraFields": [],
+  "features": { "dueDate": false, "priority": false, "progressBar": false },
+  "emptyText": "购物车空空的，先加点什么吧",
+  "seedItems": [
+    { "title": "牛奶 2 盒" },
+    { "title": "鸡蛋一打", "done": true },
+    { "title": "全麦面包" },
+    { "title": "苹果 1 斤" }
+  ]
+}

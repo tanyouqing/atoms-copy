@@ -176,7 +176,7 @@ atoms-demo/
 
 ## 7. 安全边界
 
-- 生成代码只在 `sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox"` 的 iframe 中运行，**永不**加 `allow-same-origin`。iframe 内拿不到主站 cookie、localStorage 和 DOM。
+- 生成代码只在 `sandbox="allow-scripts allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-downloads"` 的 iframe 中运行，**永不**加 `allow-same-origin`。iframe 内拿不到主站 cookie、localStorage 和 DOM。
 - iframe ↔ 父页面消息：父页面只处理 `event.source === iframe.contentWindow` 且 `data.channel === <本次渲染的随机 nonce>` 的消息。
 - API Key 只存在服务端环境变量，不进任何响应、日志或前端打包。
 - 所有接口入参 zod 校验；请求体上限 1 MB（Next 默认 + Nginx `client_max_body_size 2m`）。

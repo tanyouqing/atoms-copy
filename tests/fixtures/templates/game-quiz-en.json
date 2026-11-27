@@ -1,0 +1,19 @@
+{
+  "title": "Space Quiz",
+  "emoji": "🚀",
+  "locale": "en",
+  "theme": { "primary": "indigo", "mode": "light" },
+  "game": {
+    "kind": "quiz",
+    "shuffle": false,
+    "timePerQuestionSec": 20,
+    "questions": [
+      { "q": "Which planet is known as the Red Planet?", "options": ["Venus", "Mars", "Jupiter"], "answer": 1, "explain": "Iron oxide on its surface gives Mars its red color." },
+      { "q": "How long does sunlight take to reach Earth?", "options": ["8 seconds", "8 minutes", "8 hours"], "answer": 1 },
+      { "q": "What is the largest planet in our solar system?", "options": ["Saturn", "Neptune", "Jupiter", "Earth"], "answer": 2, "explain": "Jupiter is more than twice as massive as all other planets combined." }
+    ]
+  },
+  "rulesText": "Answer 3 questions. You have 20 seconds for each one.",
+  "winText": "Great job, astronaut!",
+  "loseText": "Keep exploring!"
+}

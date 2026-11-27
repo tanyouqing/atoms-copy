@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__APP_TITLE__</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
+<style type="text/tailwindcss">
+@custom-variant dark (&:where(.dark, .dark *));
+@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-white dark:bg-slate-900; }
+@utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
+@utility line { @apply border-slate-200 dark:border-slate-800; }
+@utility t-strong { @apply text-slate-900 dark:text-white; }
+@utility t-body { @apply text-slate-600 dark:text-slate-300; }
+@utility t-muted { @apply text-slate-500 dark:text-slate-400; }
+@utility t-faint { @apply text-slate-400 dark:text-slate-500; }
+@utility t-primary { @apply text-[var(--p-600)] dark:text-[var(--p-500)]; }
+@utility btn { @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-50; }
+@utility btn-primary { @apply bg-[var(--p-600)] text-white hover:bg-[var(--p-700)]; }
+@utility btn-secondary { @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800; }
+@utility btn-danger { @apply bg-rose-600 text-white hover:bg-rose-700; }
+@utility btn-ghost { @apply text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100; }
+@utility icon-btn { @apply inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200; }
+@utility input { @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-[var(--p-500)] focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:[color-scheme:dark]; }
+@utility field-label { @apply text-sm font-medium text-slate-700 dark:text-slate-300; }
+@utility tag { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap; }
+@utility tag-primary { @apply bg-[var(--p-50)] text-[var(--p-700)] dark:bg-[var(--p-700)]/30 dark:text-[var(--p-200)]; }
+@utility tag-muted { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300; }
+@utility seg { @apply inline-flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800; }
+@utility seg-btn { @apply cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100; }
+@utility seg-on { @apply cursor-pointer rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-900 shadow-sm transition dark:bg-slate-950 dark:text-white; }
+@utility err-text { @apply mt-1 text-xs text-rose-600 dark:text-rose-400; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+<div id="app" class="mx-auto max-w-6xl space-y-6 px-4 py-8 md:px-8"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<script id="app-config" type="application/json">__APP_CONFIG__</script>
+<script>
+(function () {
+  "use strict";
+  const TID = "kanban";
+  const I18N = {
+    "zh-CN": {
+      addCard: "添加{noun}", addPh: "{noun}标题，回车添加", moveTo: "移到", menu: "更多操作", title: "标题", column: "所在列",
+      editCard: "编辑{noun}", newCard: "新建{noun}", delConfirm: "确定删除{noun}「{title}」吗？", moved: "已移到「{col}」", wip: "超出上限 {n}",
+      emptyCol: "拖动卡片到这里", total: "共 {n} 张卡片", hint: "拖动卡片可换列和排序，手机上用 ⋯ 菜单移动",
+    },
+    en: {
+      addCard: "Add {noun}", addPh: "{noun} title, press Enter", moveTo: "Move to", menu: "More actions", title: "Title", column: "Column",
+      editCard: "Edit {noun}", newCard: "New {noun}", delConfirm: "Delete {noun} \"{title}\"?", moved: "Moved to \"{col}\"", wip: "Over limit of {n}",
+      emptyCol: "Drop cards here", total: "{n} cards", hint: "Drag cards between columns, or use the ⋯ menu on mobile",
+    },
+  };
+  const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
+  const KEY = "app:" + TID + ":data";
+  const META_KEY = "app:" + TID + ":meta";
+  const SHADES = [50, 100, 200, 500, 600, 700];
+  const PALETTE = {
+    indigo: ["#eef2ff", "#e0e7ff", "#c7d2fe", "#6366f1", "#4f46e5", "#4338ca"],
+    blue: ["#eff6ff", "#dbeafe", "#bfdbfe", "#3b82f6", "#2563eb", "#1d4ed8"],
+    sky: ["#f0f9ff", "#e0f2fe", "#bae6fd", "#0ea5e9", "#0284c7", "#0369a1"],
+    teal: ["#f0fdfa", "#ccfbf1", "#99f6e4", "#14b8a6", "#0d9488", "#0f766e"],
+    emerald: ["#ecfdf5", "#d1fae5", "#a7f3d0", "#10b981", "#059669", "#047857"],
+    amber: ["#fffbeb", "#fef3c7", "#fde68a", "#f59e0b", "#d97706", "#b45309"],
+    orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
+    rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
+    violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
+    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+  };
+  const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
+  const pal = (name) => PALETTE[name] || PALETTE.indigo;
+  const PRIMARY = pal(CONFIG.theme && CONFIG.theme.primary);
+  SHADES.forEach((s, i) => document.documentElement.style.setProperty("--p-" + s, PRIMARY[i]));
+  document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
+  if (DARK) document.documentElement.classList.add("dark");
+  const BASE_I18N = {
+    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+  };
+  const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
+  const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
+  const t = (k, vars) => String(L[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => (vars && vars[n] !== undefined ? vars[n] : ""));
+
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const load = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } };
+  const save = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const pad = (n) => String(n).padStart(2, "0");
+  const fmtDate = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const parseDate = (s) => { const p = String(s || "").split("-").map(Number); return new Date(p[0] || 1970, (p[1] || 1) - 1, p[2] || 1); };
+  const today = () => fmtDate(new Date());
+  const addDays = (date, n) => { const d = parseDate(date); d.setDate(d.getDate() + n); return fmtDate(d); };
+  const chip = (color) => { const c = pal(color); return DARK ? "background:" + c[4] + "33;color:" + c[2] : "background:" + c[0] + ";color:" + c[5]; };
+
+  /** 先读存储；键不存在（或结构不对）时用 seed 初始化并写入。 */
+  const loadData = (seed) => {
+    const d = load(KEY, null);
+    if (d && d.version === 1 && Array.isArray(d.items)) return d;
+    const fresh = { version: 1, items: seed() };
+    save(KEY, fresh);
+    return fresh;
+  };
+  const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
+  const saveMeta = (m) => save(META_KEY, m);
+
+  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+
+  let modalClose = null;
+  const openModal = (html, onClose) => {
+    const m = $("#modal");
+    $("#modal-body").innerHTML = html;
+    m.classList.remove("hidden");
+    m.classList.add("flex");
+    modalClose = onClose || null;
+    const first = $("input, textarea, select", $("#modal-body"));
+    if (first) setTimeout(() => first.focus(), 30);
+  };
+  const closeModal = () => {
+    const m = $("#modal");
+    m.classList.add("hidden");
+    m.classList.remove("flex");
+    $("#modal-body").innerHTML = "";
+    const fn = modalClose;
+    modalClose = null;
+    if (fn) fn();
+  };
+  const confirmBox = (text, onOk, okText) => {
+    openModal(
+      '<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("confirmTitle")) + "</div>" +
+      '<p class="text-sm t-body">' + esc(text) + "</p>" +
+      '<div class="flex justify-end gap-2"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("cancel")) + "</button>" +
+      '<button type="button" class="btn btn-danger" id="confirm-ok">' + esc(okText || t("delete")) + "</button></div></div>"
+    );
+    $("#confirm-ok").addEventListener("click", () => { closeModal(); onOk(); });
+  };
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+
+  /** 整体重绘时保留输入框焦点与光标位置。 */
+  const keepFocus = (fn) => {
+    const a = document.activeElement;
+    const id = a && a.id;
+    let s = null, en = null;
+    try { s = a.selectionStart; en = a.selectionEnd; } catch (e) {}
+    fn();
+    if (!id) return;
+    const n = document.getElementById(id);
+    if (!n || n === a) return;
+    n.focus();
+    try { if (s !== null) n.setSelectionRange(s, en); } catch (e) {}
+  };
+
+  /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
+  const ACTIONS = { "modal-close": () => closeModal() };
+  const delegate = (type) => document.addEventListener(type, (e) => {
+    const el = e.target.closest && e.target.closest("[data-" + type + "]");
+    if (!el) return;
+    const fn = ACTIONS[el.getAttribute("data-" + type)];
+    if (fn) fn(el, e);
+  });
+  ["change", "input", "submit", "keydown"].forEach(delegate);
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest && e.target.closest("[data-act]");
+    if (!el) return;
+    const fn = ACTIONS[el.getAttribute("data-act")];
+    if (fn) { if (el.tagName === "A") e.preventDefault(); fn(el, e); }
+  });
+
+  const header = (extra) =>
+    '<header class="flex flex-wrap items-start justify-between gap-4">' +
+    '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
+    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
+    (extra || "") + "</header>";
+  const emptyState = (emoji, text, btn) =>
+    '<div class="py-12 text-center"><div class="text-4xl">' + esc(emoji) + '</div><p class="mt-2 text-sm t-muted">' + esc(text) + "</p>" + (btn || "") + "</div>";
+  // ---- 字段渲染与校验（Field 契约，docs/08 §4.0） ----
+  const INPUT_TYPES = { text: "text", email: "email", tel: "tel", url: "url", number: "number", date: "date" };
+  const isEmpty = (v) => v === undefined || v === null || v === "";
+  const fieldControl = (f, value, idp) => {
+    const id = idp + f.key;
+    const v = isEmpty(value) ? "" : value;
+    const ph = f.placeholder ? ' placeholder="' + esc(f.placeholder) + '"' : "";
+    const base = ' id="' + id + '" name="' + esc(f.key) + '"';
+    if (f.type === "textarea") return "<textarea" + base + ' rows="3" class="input"' + ph + ">" + esc(v) + "</textarea>";
+    if (f.type === "select")
+      return "<select" + base + ' class="input"><option value="">' + esc(t("choose")) + "</option>" +
+        (f.options || []).map((o) => '<option value="' + esc(o) + '"' + (o === v ? " selected" : "") + ">" + esc(o) + "</option>").join("") + "</select>";
+    if (f.type === "checkbox")
+      return '<label class="inline-flex cursor-pointer items-center gap-2 text-sm t-body"><input type="checkbox"' + base + ' class="h-4 w-4 accent-[var(--p-600)]"' + (v === true || v === "true" ? " checked" : "") + "> " + esc(f.placeholder || f.label) + "</label>";
+    if (f.type === "rating") {
+      const n = Number(v) || 0;
+      return '<div class="flex gap-1" data-rating>' + [1, 2, 3, 4, 5].map((i) =>
+        '<button type="button" data-act="rate" data-v="' + i + '" aria-label="' + i + '" class="cursor-pointer text-2xl leading-none transition ' + (i <= n ? "text-amber-400" : "text-slate-300 dark:text-slate-600") + '">★</button>').join("") +
+        '<input type="hidden"' + base + ' value="' + (n || "") + '"></div>';
+    }
+    const extra = f.type === "number" ? ' step="any"' + (f.min !== undefined ? ' min="' + f.min + '"' : "") + (f.max !== undefined ? ' max="' + f.max + '"' : "") : "";
+    return '<input type="' + (INPUT_TYPES[f.type] || "text") + '"' + base + ' class="input" value="' + esc(v) + '"' + ph + extra + ">";
+  };
+  ACTIONS.rate = (el) => {
+    const wrap = el.closest("[data-rating]");
+    const v = Number(el.getAttribute("data-v"));
+    $("input", wrap).value = String(v);
+    $$("button", wrap).forEach((b) => {
+      const on = Number(b.getAttribute("data-v")) <= v;
+      b.classList.toggle("text-amber-400", on);
+      b.classList.toggle("text-slate-300", !on);
+      b.classList.toggle("dark:text-slate-600", !on);
+    });
+  };
+  const fieldBlock = (f, value, idp) =>
+    '<div class="space-y-1"><label class="field-label block" for="' + idp + f.key + '">' + esc(f.label) + (f.required ? ' <span class="text-rose-500">*</span>' : "") + "</label>" +
+    fieldControl(f, value, idp) + '<div class="err-text" data-err="' + esc(f.key) + '" hidden></div></div>';
+  const readFields = (fields, root) => {
+    const out = {};
+    fields.forEach((f) => {
+      const el = root.querySelector('[name="' + f.key + '"]');
+      if (!el) return;
+      if (f.type === "checkbox") out[f.key] = el.checked;
+      else if (f.type === "number" || f.type === "rating") out[f.key] = el.value.trim() === "" ? "" : Number(el.value);
+      else out[f.key] = el.value.trim();
+    });
+    return out;
+  };
+  const validateField = (f, v) => {
+    if (isEmpty(v) || (f.type === "checkbox" && v === false) || (f.type === "rating" && !v)) return f.required ? t("errRequired") : "";
+    const s = String(v);
+    if (f.type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s)) return t("errEmail");
+    if (f.type === "tel" && !/^(\d{11}|\+\d[\d\s-]{5,19})$/.test(s)) return t("errTel");
+    if (f.type === "url" && !/^https?:\/\/[^\s.]+\.\S+$/.test(s)) return t("errUrl");
+    if (f.type === "number") {
+      if (typeof v !== "number" || isNaN(v)) return t("errNumber");
+      if (f.min !== undefined && v < f.min) return t("errMin", { n: f.min });
+      if (f.max !== undefined && v > f.max) return t("errMax", { n: f.max });
+    }
+    return "";
+  };
+  /** 校验 root 中的表单；通过返回值对象，否则在字段下方显示错误并返回 null。 */
+  const validateForm = (fields, root) => {
+    const vals = readFields(fields, root);
+    let firstBad = null;
+    fields.forEach((f) => {
+      const msg = validateField(f, vals[f.key]);
+      const el = root.querySelector('[data-err="' + f.key + '"]');
+      if (el) { el.textContent = msg; el.hidden = !msg; }
+      if (msg && !firstBad) firstBad = root.querySelector('[name="' + f.key + '"]');
+    });
+    if (firstBad) { if (firstBad.type !== "hidden") firstBad.focus(); return null; }
+    return vals;
+  };
+  const fmtValue = (f, v) => {
+    if (!f || isEmpty(v)) return "";
+    if (f.type === "checkbox") return v === true || v === "true" ? "✓" : "";
+    if (f.type === "rating") return "★".repeat(Math.max(0, Math.min(5, Number(v) || 0)));
+    return String(v);
+  };
+  // ---- CSV ----
+  const csvCell = (v) => { const s = String(v ?? ""); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const toCsv = (rows) => rows.map((r) => r.map(csvCell).join(",")).join("\r\n");
+  const parseCsv = (text) => {
+    const rows = [];
+    let row = [], cell = "", q = false;
+    const s = String(text).replace(/^\uFEFF/, "");
+    for (let i = 0; i < s.length; i++) {
+      const c = s[i];
+      if (q) {
+        if (c === '"' && s[i + 1] === '"') { cell += '"'; i++; }
+        else if (c === '"') q = false;
+        else cell += c;
+      } else if (c === '"') q = true;
+      else if (c === ",") { row.push(cell); cell = ""; }
+      else if (c === "\n" || c === "\r") {
+        if (c === "\r" && s[i + 1] === "\n") i++;
+        row.push(cell); rows.push(row); row = []; cell = "";
+      } else cell += c;
+    }
+    if (cell !== "" || row.length) { row.push(cell); rows.push(row); }
+    return rows.filter((r) => r.some((c) => c.trim() !== ""));
+  };
+  const downloadFile = (name, text, type) => {
+    const blob = new Blob(["\uFEFF" + text], { type: type || "text/csv;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 1000);
+  };
+  const COLS = Array.isArray(CONFIG.columns) && CONFIG.columns.length ? CONFIG.columns : [{ id: "todo", label: "To do", color: "slate" }];
+  const FIELDS = Array.isArray(CONFIG.cardFields) ? CONFIG.cardFields : [];
+  const SHOW = (CONFIG.showOnCard || []).map((k) => FIELDS.find((f) => f.key === k)).filter(Boolean);
+  const NOUN = CONFIG.cardNoun || "";
+  const colOf = (id) => COLS.find((c) => c.id === id);
+
+  const seed = () => (CONFIG.seedCards || []).map((c, i) => ({ id: uid() + i, column: c.column, title: c.title, fields: c.fields || {} }));
+  const data = loadData(seed);
+  const persist = () => save(KEY, data);
+  const state = { menu: null, adding: null, dragId: null };
+  // 配置改动删掉了某列时，把孤儿卡片放到第一列
+  data.items.forEach((c) => { if (!colOf(c.column)) c.column = COLS[0].id; });
+  const find = (id) => data.items.find((c) => c.id === id);
+
+  const cardHtml = (c) => {
+    const vals = SHOW.map((f) => {
+      const v = fmtValue(f, c.fields && c.fields[f.key]);
+      if (!v) return "";
+      if (f.type === "select") return '<span class="tag tag-muted">' + esc(v) + "</span>";
+      return '<span class="text-xs t-muted">' + (f.type === "rating" ? '<span class="text-amber-400">' + esc(v) + "</span>" : esc(f.label) + esc(t("colon")) + esc(v)) + "</span>";
+    }).filter(Boolean);
+    const menu = state.menu === c.id
+      ? '<div data-menu class="absolute top-9 right-2 z-20 w-44 rounded-xl border line surface p-1 shadow-lg"><div class="px-3 py-1.5 text-xs t-faint">' + esc(t("moveTo")) + "</div>" +
+        COLS.filter((col) => col.id !== c.column).map((col) => '<button type="button" data-act="move" data-id="' + c.id + '" data-col="' + esc(col.id) + '" class="flex w-full cursor-pointer items-center gap-2 rounded-lg px-3 py-1.5 text-left text-sm t-body hover:bg-slate-100 dark:hover:bg-slate-800"><span class="h-2 w-2 rounded-full" style="background:' + pal(col.color)[3] + '"></span>' + esc(col.label) + "</button>").join("") +
+        '<div class="my-1 border-t line"></div><button type="button" data-act="open" data-id="' + c.id + '" class="w-full cursor-pointer rounded-lg px-3 py-1.5 text-left text-sm t-body hover:bg-slate-100 dark:hover:bg-slate-800">✏️ ' + esc(t("edit")) + "</button>" +
+        '<button type="button" data-act="del" data-id="' + c.id + '" class="w-full cursor-pointer rounded-lg px-3 py-1.5 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10">🗑 ' + esc(t("delete")) + "</button></div>"
+      : "";
+    return '<li draggable="true" data-card="' + c.id + '" class="group relative cursor-grab rounded-xl border line surface p-3 shadow-sm transition hover:border-[var(--p-200)] hover:shadow active:cursor-grabbing' + (state.dragId === c.id ? " opacity-40" : "") + '">' +
+      '<div class="flex items-start gap-2"><button type="button" data-act="open" data-id="' + c.id + '" class="min-w-0 flex-1 cursor-pointer text-left text-sm font-medium break-words t-strong">' + esc(c.title) + "</button>" +
+      '<button type="button" data-act="menu" data-id="' + c.id + '" class="icon-btn -mt-1 -mr-1 h-7 w-7 shrink-0" aria-label="' + esc(t("menu")) + '">⋯</button></div>' +
+      (vals.length ? '<div class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">' + vals.join("") + "</div>" : "") + menu + "</li>";
+  };
+
+  const columnHtml = (col) => {
+    const cards = data.items.filter((c) => c.column === col.id);
+    const over = col.wipLimit && cards.length > col.wipLimit;
+    const adding = state.adding === col.id;
+    return '<section data-col="' + esc(col.id) + '" class="flex w-72 shrink-0 flex-col rounded-2xl border line bg-slate-100/70 p-3 dark:bg-slate-900/60">' +
+      '<div class="mb-3 flex items-center gap-2 px-1"><span class="h-2.5 w-2.5 rounded-full" style="background:' + pal(col.color)[3] + '"></span><h2 class="text-sm font-semibold t-strong">' + esc(col.label) + "</h2>" +
+      '<span class="ml-auto rounded-full px-2 py-0.5 text-xs font-medium ' + (over ? "bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-300" : "bg-white t-muted dark:bg-slate-800") + '"' + (over ? ' title="' + esc(t("wip", { n: col.wipLimit })) + '"' : "") + ">" +
+      cards.length + (col.wipLimit ? " / " + col.wipLimit : "") + "</span></div>" +
+      '<ul data-drop="' + esc(col.id) + '" class="flex min-h-24 flex-1 flex-col gap-2 rounded-xl transition">' + (cards.length ? cards.map(cardHtml).join("") : '<li class="flex flex-1 items-center justify-center rounded-xl border-2 border-dashed line py-6 text-xs t-faint">' + esc(t("emptyCol")) + "</li>") + "</ul>" +
+      (adding
+        ? '<form data-submit="quick-add" data-col="' + esc(col.id) + '" class="mt-2 space-y-2"><input id="quick-' + esc(col.id) + '" data-keydown="quick-key" class="input" maxlength="40" placeholder="' + esc(t("addPh", { noun: NOUN })) + '">' +
+          '<div class="flex gap-2"><button type="submit" class="btn btn-primary flex-1 py-1.5">' + esc(t("add")) + '</button><button type="button" data-act="cancel-add" class="btn btn-secondary py-1.5">' + esc(t("cancel")) + "</button></div></form>"
+        : '<button type="button" data-act="start-add" data-col="' + esc(col.id) + '" class="mt-2 w-full cursor-pointer rounded-xl px-3 py-2 text-left text-sm t-muted transition hover:bg-white hover:text-slate-800 dark:hover:bg-slate-800 dark:hover:text-slate-100">＋ ' + esc(t("addCard", { noun: NOUN })) + "</button>") +
+      "</section>";
+  };
+
+  const render = () => keepFocus(() => {
+    $("#app").innerHTML = header('<span class="self-center text-xs t-faint">' + esc(t("total", { n: data.items.length })) + "</span>") +
+      '<p class="hidden text-xs t-faint sm:block">💡 ' + esc(t("hint")) + "</p>" +
+      '<div class="-mx-4 overflow-x-auto px-4 pb-4 md:-mx-8 md:px-8"><div class="flex items-start gap-4">' + COLS.map(columnHtml).join("") + "</div></div>";
+    if (state.adding) { const q = document.getElementById("quick-" + state.adding); if (q) q.focus(); }
+  });
+
+  const moveCard = (id, colId, beforeId) => {
+    const card = find(id);
+    if (!card || !colOf(colId)) return;
+    data.items = data.items.filter((c) => c.id !== id);
+    card.column = colId;
+    const idx = beforeId ? data.items.findIndex((c) => c.id === beforeId) : -1;
+    if (idx >= 0) data.items.splice(idx, 0, card);
+    else data.items.push(card);
+    persist();
+  };
+
+  const openEditor = (card, colId) => {
+    const isNew = !card;
+    const c = card || { title: "", column: colId || COLS[0].id, fields: {} };
+    openModal('<form id="card-form" data-submit="save-card" data-id="' + (isNew ? "" : c.id) + '" class="space-y-4" novalidate><h3 class="text-lg font-semibold t-strong">' + esc(t(isNew ? "newCard" : "editCard", { noun: NOUN })) + "</h3>" +
+      '<div class="space-y-1"><label class="field-label block" for="e-title">' + esc(t("title")) + ' <span class="text-rose-500">*</span></label><input id="e-title" class="input" maxlength="40" value="' + esc(c.title) + '"><div class="err-text" id="err-title" hidden></div></div>' +
+      '<div class="space-y-1"><label class="field-label block" for="e-col">' + esc(t("column")) + '</label><select id="e-col" class="input">' + COLS.map((col) => '<option value="' + esc(col.id) + '"' + (col.id === c.column ? " selected" : "") + ">" + esc(col.label) + "</option>").join("") + "</select></div>" +
+      FIELDS.map((f) => fieldBlock(f, c.fields && c.fields[f.key], "e-")).join("") +
+      '<div class="flex items-center gap-2 pt-2">' + (isNew ? "" : '<button type="button" data-act="del" data-id="' + c.id + '" class="btn btn-ghost text-rose-600">🗑 ' + esc(t("delete")) + "</button>") +
+      '<div class="ml-auto flex gap-2"><button type="button" data-act="modal-close" class="btn btn-secondary">' + esc(t("cancel")) + '</button><button type="submit" class="btn btn-primary">' + esc(t("save")) + "</button></div></div></form>");
+  };
+
+  ACTIONS.menu = (el, e) => { e.stopPropagation(); const id = el.getAttribute("data-id"); state.menu = state.menu === id ? null : id; render(); };
+  ACTIONS.move = (el) => {
+    const col = el.getAttribute("data-col");
+    moveCard(el.getAttribute("data-id"), col);
+    state.menu = null;
+    render();
+    toast(t("moved", { col: colOf(col).label }));
+  };
+  ACTIONS.open = (el) => { state.menu = null; render(); const c = find(el.getAttribute("data-id")); if (c) openEditor(c); };
+  ACTIONS["start-add"] = (el) => { state.adding = el.getAttribute("data-col"); state.menu = null; render(); };
+  ACTIONS["cancel-add"] = () => { state.adding = null; render(); };
+  ACTIONS["quick-key"] = (el, e) => { if (e.key === "Escape") { e.preventDefault(); state.adding = null; render(); } };
+  ACTIONS["quick-add"] = (form, e) => {
+    e.preventDefault();
+    const input = $("input", form);
+    const title = input.value.trim();
+    if (!title) { input.focus(); return; }
+    data.items.push({ id: uid(), column: form.getAttribute("data-col"), title, fields: {} });
+    persist();
+    render();
+    toast(t("added"));
+  };
+  ACTIONS["save-card"] = (form, e) => {
+    e.preventDefault();
+    const title = $("#e-title").value.trim();
+    $("#err-title").hidden = !!title;
+    $("#err-title").textContent = t("errRequired");
+    const vals = validateForm(FIELDS, form);
+    if (!title) { $("#e-title").focus(); return; }
+    if (!vals) return;
+    const id = form.getAttribute("data-id");
+    const col = $("#e-col").value;
+    if (id) {
+      const c = find(id);
+      if (c) { c.title = title; c.fields = vals; if (c.column !== col) moveCard(c.id, col); }
+    } else data.items.push({ id: uid(), column: col, title, fields: vals });
+    persist();
+    closeModal();
+    render();
+    toast(t("saved"));
+  };
+  ACTIONS.del = (el) => {
+    const c = find(el.getAttribute("data-id"));
+    if (!c) return;
+    state.menu = null;
+    confirmBox(t("delConfirm", { noun: NOUN, title: c.title }), () => {
+      data.items = data.items.filter((x) => x.id !== c.id);
+      persist();
+      render();
+      toast(t("deleted"));
+    });
+  };
+  document.addEventListener("click", (e) => {
+    if (state.menu && !e.target.closest("[data-act=menu]") && !e.target.closest("[data-menu]")) { state.menu = null; render(); }
+  });
+
+  // ---- HTML5 拖拽 ----
+  const clearDrop = () => $$("[data-drop]").forEach((u) => u.classList.remove("bg-[var(--p-50)]", "dark:bg-[var(--p-700)]/20", "ring-2", "ring-[var(--p-200)]"));
+  document.addEventListener("dragstart", (e) => {
+    const li = e.target.closest && e.target.closest("[data-card]");
+    if (!li) return;
+    state.dragId = li.getAttribute("data-card");
+    e.dataTransfer.effectAllowed = "move";
+    try { e.dataTransfer.setData("text/plain", state.dragId); } catch (err) {}
+    setTimeout(() => li.classList.add("opacity-40"), 0);
+  });
+  document.addEventListener("dragend", () => { state.dragId = null; clearDrop(); render(); });
+  document.addEventListener("dragover", (e) => {
+    const ul = e.target.closest && e.target.closest("[data-col]");
+    if (!ul || !state.dragId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    clearDrop();
+    $("[data-drop]", ul).classList.add("bg-[var(--p-50)]", "dark:bg-[var(--p-700)]/20", "ring-2", "ring-[var(--p-200)]");
+  });
+  document.addEventListener("drop", (e) => {
+    const sec = e.target.closest && e.target.closest("[data-col]");
+    if (!sec || !state.dragId) return;
+    e.preventDefault();
+    const colId = sec.getAttribute("data-col");
+    // 落点：鼠标下方第一张卡片之前
+    const before = $$("[data-card]", sec).find((li) => {
+      const r = li.getBoundingClientRect();
+      return li.getAttribute("data-card") !== state.dragId && e.clientY < r.top + r.height / 2;
+    });
+    const moved = find(state.dragId);
+    const fromCol = moved && moved.column;
+    moveCard(state.dragId, colId, before ? before.getAttribute("data-card") : null);
+    state.dragId = null;
+    clearDrop();
+    render();
+    if (fromCol !== colId) toast(t("moved", { col: colOf(colId).label }));
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>

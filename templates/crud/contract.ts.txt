@@ -1,0 +1,11 @@
+interface CrudConfig extends BaseConfig {
+  entity: { singular: string; plural: string };     // 如 { singular: "联系人", plural: "通讯录" }，各 ≤8 字
+  fields: Field[];                  // 1-10 个
+  titleField: string;               // 用作记录标题的字段 key（必须是 text 类型且 required）
+  subtitleField?: string;           // 副标题字段 key
+  searchFields: string[];           // 参与搜索的字段 key，1-4 个
+  filterField?: string;             // 用于筛选的 select 字段 key
+  sortOptions: { key: string; label: string; dir: "asc" | "desc" }[];  // 1-4 个
+  defaultView: "table" | "cards";
+  seedRecords: Record<string, string | number | boolean>[];  // 3-10 条
+}

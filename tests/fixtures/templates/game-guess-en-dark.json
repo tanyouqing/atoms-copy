@@ -1,0 +1,10 @@
+{
+  "title": "Number Hunt",
+  "emoji": "🔢",
+  "locale": "en",
+  "theme": { "primary": "sky", "mode": "dark" },
+  "game": { "kind": "guessNumber", "min": 1, "max": 100, "maxAttempts": 7 },
+  "rulesText": "I'm thinking of a number between 1 and 100. You have 7 tries. After each guess I'll tell you if it's too high or too low.",
+  "winText": "You got it!",
+  "loseText": "Out of tries!"
+}

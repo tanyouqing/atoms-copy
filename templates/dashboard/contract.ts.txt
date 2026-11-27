@@ -1,0 +1,23 @@
+interface DashboardConfig extends BaseConfig {
+  periodLabel: string;              // 如"2026 年 11 月""本周"，≤20 字
+  metrics: {                        // 2-6 个
+    label: string;                  // ≤12 字
+    value: number;
+    unit?: string;                  // ≤6 字，如"元""次""%"
+    delta?: number;                 // 环比变化百分比，如 12.5 或 -3
+    goodWhen?: "up" | "down";       // delta 正负的好坏，默认 up
+  }[];
+  charts: {                         // 1-4 个
+    type: "line" | "bar" | "pie" | "doughnut";
+    title: string;                  // ≤20 字
+    labels: string[];               // 2-31 个
+    datasets: { label: string; data: number[] }[];   // 1-3 组，data 长度等于 labels；pie/doughnut 只取第 1 组
+    span: 1 | 2;                    // 桌面端占 1 列或 2 列（2 列网格）
+  }[];
+  table?: {
+    title: string;
+    columns: { key: string; label: string; format?: "text" | "number" | "percent" | "currency" }[];  // 2-6 列
+    rows: Record<string, string | number>[];         // 3-20 行
+  };
+  editable: boolean;                // 是否提供"编辑数据"弹窗（JSON 文本框编辑 metrics/charts 数据并保存到 localStorage）
+}

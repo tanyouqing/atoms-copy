@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__APP_TITLE__</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+<style type="text/tailwindcss">
+@custom-variant dark (&:where(.dark, .dark *));
+@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-white dark:bg-slate-900; }
+@utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
+@utility line { @apply border-slate-200 dark:border-slate-800; }
+@utility t-strong { @apply text-slate-900 dark:text-white; }
+@utility t-body { @apply text-slate-600 dark:text-slate-300; }
+@utility t-muted { @apply text-slate-500 dark:text-slate-400; }
+@utility t-faint { @apply text-slate-400 dark:text-slate-500; }
+@utility t-primary { @apply text-[var(--p-600)] dark:text-[var(--p-500)]; }
+@utility btn { @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-50; }
+@utility btn-primary { @apply bg-[var(--p-600)] text-white hover:bg-[var(--p-700)]; }
+@utility btn-secondary { @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800; }
+@utility btn-danger { @apply bg-rose-600 text-white hover:bg-rose-700; }
+@utility btn-ghost { @apply text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100; }
+@utility icon-btn { @apply inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200; }
+@utility input { @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-[var(--p-500)] focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:[color-scheme:dark]; }
+@utility field-label { @apply text-sm font-medium text-slate-700 dark:text-slate-300; }
+@utility tag { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap; }
+@utility tag-primary { @apply bg-[var(--p-50)] text-[var(--p-700)] dark:bg-[var(--p-700)]/30 dark:text-[var(--p-200)]; }
+@utility tag-muted { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300; }
+@utility seg { @apply inline-flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800; }
+@utility seg-btn { @apply cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100; }
+@utility seg-on { @apply cursor-pointer rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-900 shadow-sm transition dark:bg-slate-950 dark:text-white; }
+@utility err-text { @apply mt-1 text-xs text-rose-600 dark:text-rose-400; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+<div id="app" class="mx-auto max-w-3xl space-y-6 px-4 py-8 md:px-8"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<script id="app-config" type="application/json">__APP_CONFIG__</script>
+<script>
+(function () {
+  "use strict";
+  const TID = "ledger";
+  const I18N = {
+    "zh-CN": {
+      expense: "支出", income: "收入", balance: "结余", monthExpense: "本月支出", monthIncome: "本月收入", monthBalance: "本月结余",
+      budget: "本月预算", budgetLeft: "还可以花 {v}", budgetOver: "已超支 {v}", newEntry: "记一笔", amount: "金额", category: "分类", date: "日期",
+      submit: "保存这笔", amountErr: "请输入大于 0 的金额", catErr: "请选择分类", monthLabel: "{y} 年 {m} 月", prev: "上个月", next: "下个月", thisMonth: "回到本月",
+      records: "流水", emptyMonth: "这个月还没有记录，记下第一笔吧", byCategory: "支出构成", dailyTrend: "每日支出", delConfirm: "确定删除这笔 {v} 的记录吗？",
+      noExpense: "本月暂无支出", count: "{n} 笔", week: ["周日", "周一", "周二", "周三", "周四", "周五", "周六"], todayTag: "今天",
+    },
+    en: {
+      expense: "Expense", income: "Income", balance: "Balance", monthExpense: "Spent", monthIncome: "Income", monthBalance: "Net",
+      budget: "Monthly budget", budgetLeft: "{v} left to spend", budgetOver: "Over budget by {v}", newEntry: "New entry", amount: "Amount", category: "Category", date: "Date",
+      submit: "Save entry", amountErr: "Enter an amount greater than 0", catErr: "Pick a category", monthLabel: "{mn} {y}", prev: "Previous month", next: "Next month", thisMonth: "This month",
+      records: "Transactions", emptyMonth: "No entries this month yet", byCategory: "Spending by category", dailyTrend: "Daily spending", delConfirm: "Delete this {v} entry?",
+      noExpense: "No spending this month", count: "{n} entries", week: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], todayTag: "Today",
+    },
+  };
+  const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
+  const KEY = "app:" + TID + ":data";
+  const META_KEY = "app:" + TID + ":meta";
+  const SHADES = [50, 100, 200, 500, 600, 700];
+  const PALETTE = {
+    indigo: ["#eef2ff", "#e0e7ff", "#c7d2fe", "#6366f1", "#4f46e5", "#4338ca"],
+    blue: ["#eff6ff", "#dbeafe", "#bfdbfe", "#3b82f6", "#2563eb", "#1d4ed8"],
+    sky: ["#f0f9ff", "#e0f2fe", "#bae6fd", "#0ea5e9", "#0284c7", "#0369a1"],
+    teal: ["#f0fdfa", "#ccfbf1", "#99f6e4", "#14b8a6", "#0d9488", "#0f766e"],
+    emerald: ["#ecfdf5", "#d1fae5", "#a7f3d0", "#10b981", "#059669", "#047857"],
+    amber: ["#fffbeb", "#fef3c7", "#fde68a", "#f59e0b", "#d97706", "#b45309"],
+    orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
+    rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
+    violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
+    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+  };
+  const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
+  const pal = (name) => PALETTE[name] || PALETTE.indigo;
+  const PRIMARY = pal(CONFIG.theme && CONFIG.theme.primary);
+  SHADES.forEach((s, i) => document.documentElement.style.setProperty("--p-" + s, PRIMARY[i]));
+  document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
+  if (DARK) document.documentElement.classList.add("dark");
+  const BASE_I18N = {
+    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+  };
+  const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
+  const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
+  const t = (k, vars) => String(L[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => (vars && vars[n] !== undefined ? vars[n] : ""));
+
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const load = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } };
+  const save = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const pad = (n) => String(n).padStart(2, "0");
+  const fmtDate = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const parseDate = (s) => { const p = String(s || "").split("-").map(Number); return new Date(p[0] || 1970, (p[1] || 1) - 1, p[2] || 1); };
+  const today = () => fmtDate(new Date());
+  const addDays = (date, n) => { const d = parseDate(date); d.setDate(d.getDate() + n); return fmtDate(d); };
+  const chip = (color) => { const c = pal(color); return DARK ? "background:" + c[4] + "33;color:" + c[2] : "background:" + c[0] + ";color:" + c[5]; };
+
+  /** 先读存储；键不存在（或结构不对）时用 seed 初始化并写入。 */
+  const loadData = (seed) => {
+    const d = load(KEY, null);
+    if (d && d.version === 1 && Array.isArray(d.items)) return d;
+    const fresh = { version: 1, items: seed() };
+    save(KEY, fresh);
+    return fresh;
+  };
+  const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
+  const saveMeta = (m) => save(META_KEY, m);
+
+  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+
+  let modalClose = null;
+  const openModal = (html, onClose) => {
+    const m = $("#modal");
+    $("#modal-body").innerHTML = html;
+    m.classList.remove("hidden");
+    m.classList.add("flex");
+    modalClose = onClose || null;
+    const first = $("input, textarea, select", $("#modal-body"));
+    if (first) setTimeout(() => first.focus(), 30);
+  };
+  const closeModal = () => {
+    const m = $("#modal");
+    m.classList.add("hidden");
+    m.classList.remove("flex");
+    $("#modal-body").innerHTML = "";
+    const fn = modalClose;
+    modalClose = null;
+    if (fn) fn();
+  };
+  const confirmBox = (text, onOk, okText) => {
+    openModal(
+      '<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("confirmTitle")) + "</div>" +
+      '<p class="text-sm t-body">' + esc(text) + "</p>" +
+      '<div class="flex justify-end gap-2"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("cancel")) + "</button>" +
+      '<button type="button" class="btn btn-danger" id="confirm-ok">' + esc(okText || t("delete")) + "</button></div></div>"
+    );
+    $("#confirm-ok").addEventListener("click", () => { closeModal(); onOk(); });
+  };
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+
+  /** 整体重绘时保留输入框焦点与光标位置。 */
+  const keepFocus = (fn) => {
+    const a = document.activeElement;
+    const id = a && a.id;
+    let s = null, en = null;
+    try { s = a.selectionStart; en = a.selectionEnd; } catch (e) {}
+    fn();
+    if (!id) return;
+    const n = document.getElementById(id);
+    if (!n || n === a) return;
+    n.focus();
+    try { if (s !== null) n.setSelectionRange(s, en); } catch (e) {}
+  };
+
+  /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
+  const ACTIONS = { "modal-close": () => closeModal() };
+  const delegate = (type) => document.addEventListener(type, (e) => {
+    const el = e.target.closest && e.target.closest("[data-" + type + "]");
+    if (!el) return;
+    const fn = ACTIONS[el.getAttribute("data-" + type)];
+    if (fn) fn(el, e);
+  });
+  ["change", "input", "submit", "keydown"].forEach(delegate);
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest && e.target.closest("[data-act]");
+    if (!el) return;
+    const fn = ACTIONS[el.getAttribute("data-act")];
+    if (fn) { if (el.tagName === "A") e.preventDefault(); fn(el, e); }
+  });
+
+  const header = (extra) =>
+    '<header class="flex flex-wrap items-start justify-between gap-4">' +
+    '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
+    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
+    (extra || "") + "</header>";
+  const emptyState = (emoji, text, btn) =>
+    '<div class="py-12 text-center"><div class="text-4xl">' + esc(emoji) + '</div><p class="mt-2 text-sm t-muted">' + esc(text) + "</p>" + (btn || "") + "</div>";
+  // ---- Chart.js 辅助：颜色取主色系不同深浅 + slate ----
+  const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const mixHex = (a, b, w) => "#" + hexRgb(a).map((x, i) => Math.round(x + (hexRgb(b)[i] - x) * w).toString(16).padStart(2, "0")).join("");
+  /** n 个颜色：从主色 700 渐变到 200；超过 6 个时穿插 slate。 */
+  const seriesColors = (n) => Array.from({ length: n }, (_, i) => {
+    const w = n <= 1 ? 0 : i / (n - 1);
+    const c = mixHex(PRIMARY[5], PRIMARY[2], w);
+    return n > 6 && i % 2 === 1 ? mixHex(c, "#64748b", 0.45) : c;
+  });
+  const LINE_COLORS = [PRIMARY[4], "#94a3b8", PRIMARY[2]];
+  const charts = [];
+  const destroyCharts = () => { while (charts.length) { try { charts.pop().destroy(); } catch (e) {} } };
+  const makeChart = (canvas, cfg) => {
+    if (typeof Chart === "undefined" || !canvas) return null;
+    Chart.defaults.color = DARK ? "#94a3b8" : "#64748b";
+    Chart.defaults.borderColor = DARK ? "#1e293b" : "#e2e8f0";
+    Chart.defaults.font.family = "ui-sans-serif, system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif";
+    const chart = new Chart(canvas, cfg);
+    charts.push(chart);
+    return chart;
+  };
+  const CUR = CONFIG.currency || "¥";
+  const CATS = { expense: (CONFIG.categories && CONFIG.categories.expense) || [], income: (CONFIG.categories && CONFIG.categories.income) || [] };
+  const ALL_CATS = CATS.expense.concat(CATS.income);
+  const BUDGET = typeof CONFIG.monthlyBudget === "number" && CONFIG.monthlyBudget > 0 ? CONFIG.monthlyBudget : null;
+  const CHARTS = Array.isArray(CONFIG.charts) ? CONFIG.charts : [];
+  const catOf = (id) => ALL_CATS.find((c) => c.id === id) || { id, label: id, emoji: "💸" };
+  const money = (n) => CUR + Number(n || 0).toLocaleString(LOC, { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  const round2 = (n) => Math.round(n * 100) / 100;
+  const ym = (d) => String(d).slice(0, 7);
+  const shiftMonth = (m, n) => { const p = m.split("-").map(Number); const d = new Date(p[0], p[1] - 1 + n, 1); return d.getFullYear() + "-" + pad(d.getMonth() + 1); };
+  const monthName = (m) => { const p = m.split("-").map(Number); return t("monthLabel", { y: p[0], m: p[1], mn: new Date(p[0], p[1] - 1, 1).toLocaleString("en", { month: "long" }) }); };
+
+  const seed = () => (CONFIG.seedEntries || []).map((e, i) => ({
+    id: uid() + i, type: e.type === "income" ? "income" : "expense", amount: round2(Number(e.amount) || 0),
+    category: e.category, date: e.date || today(), note: e.note || "", createdAt: Date.now() + i,
+  }));
+  const data = loadData(seed);
+  const persist = () => save(KEY, data);
+  // 本月没有记录时，默认打开最近一个有记录的月份
+  const latest = data.items.reduce((m, e) => (e.date > m ? e.date : m), "");
+  const startMonth = data.items.some((e) => ym(e.date) === ym(today())) || !latest ? ym(today()) : ym(latest);
+  const state = { month: startMonth, type: "expense", category: (CATS.expense[0] || {}).id || "" };
+
+  const monthItems = () => data.items.filter((e) => ym(e.date) === state.month);
+  const sum = (list, type) => round2(list.filter((e) => e.type === type).reduce((s, e) => s + e.amount, 0));
+
+  const statCard = (label, value, cls) =>
+    '<div class="card min-w-0 p-3 sm:p-5"><div class="truncate text-xs t-faint">' + esc(label) + '</div><div class="mt-1 truncate text-base font-bold sm:text-3xl ' + cls + '" title="' + esc(value) + '">' + esc(value) + "</div></div>";
+
+  const statsBlock = (list) => {
+    const out = sum(list, "expense"), inc = sum(list, "income"), bal = round2(inc - out);
+    let budget = "";
+    if (BUDGET && state.month === ym(today())) {
+      const pct = Math.min(100, Math.round((out / BUDGET) * 100));
+      const ratio = out / BUDGET;
+      const bar = ratio > 1 ? "bg-rose-500" : ratio > 0.8 ? "bg-orange-500" : "bg-[var(--p-500)]";
+      budget = '<section class="card space-y-3"><div class="flex flex-wrap items-end justify-between gap-2"><div><div class="text-xs t-faint">' + esc(t("budget")) + '</div><div class="mt-1 text-lg font-semibold t-strong">' +
+        esc(money(out)) + ' <span class="text-sm font-normal t-faint">/ ' + esc(money(BUDGET)) + '</span></div></div><div class="text-sm ' + (ratio > 1 ? "font-medium text-rose-600" : ratio > 0.8 ? "font-medium text-orange-600" : "t-muted") + '">' +
+        esc(ratio > 1 ? t("budgetOver", { v: money(round2(out - BUDGET)) }) : t("budgetLeft", { v: money(round2(BUDGET - out)) })) + "</div></div>" +
+        '<div class="h-2.5 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"><div class="h-full rounded-full transition-all ' + bar + '" style="width:' + pct + '%"></div></div></section>';
+    }
+    return '<div class="grid grid-cols-3 gap-2 sm:gap-3">' + statCard(t("monthExpense"), money(out), "t-strong") + statCard(t("monthIncome"), money(inc), "text-emerald-600 dark:text-emerald-400") +
+      statCard(t("monthBalance"), (bal < 0 ? "-" : "") + money(Math.abs(bal)), bal < 0 ? "text-rose-600" : "t-strong") + "</div>" + budget;
+  };
+
+  const monthBar = () => {
+    const isNow = state.month === ym(today());
+    return '<div class="flex items-center justify-between gap-2"><div class="flex items-center gap-1"><button type="button" data-act="month" data-n="-1" class="icon-btn" aria-label="' + esc(t("prev")) + '">‹</button>' +
+      '<div class="min-w-28 text-center text-lg font-semibold t-strong">' + esc(monthName(state.month)) + '</div><button type="button" data-act="month" data-n="1" class="icon-btn" aria-label="' + esc(t("next")) + '">›</button></div>' +
+      (isNow ? "" : '<button type="button" data-act="month" data-n="0" class="btn btn-ghost">' + esc(t("thisMonth")) + "</button>") + "</div>";
+  };
+
+  const formBlock = () => {
+    const cats = CATS[state.type];
+    return '<section class="card space-y-4"><div class="flex items-center justify-between gap-3"><h2 class="text-lg font-semibold t-strong">✍️ ' + esc(t("newEntry")) + "</h2>" +
+      '<div class="seg">' + ["expense", "income"].map((k) => '<button type="button" data-act="type" data-v="' + k + '" class="' + (state.type === k ? "seg-on" : "seg-btn") + '">' + esc(t(k)) + "</button>").join("") + "</div></div>" +
+      '<form id="entry-form" data-submit="add" class="space-y-4" novalidate>' +
+      '<div class="grid gap-3 sm:grid-cols-2"><div class="space-y-1"><label class="field-label block" for="f-amount">' + esc(t("amount")) + '</label><div class="relative"><span class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-sm t-faint">' + esc(CUR) + "</span>" +
+      '<input id="f-amount" type="number" inputmode="decimal" step="0.01" min="0" class="input pl-12 text-lg font-semibold" placeholder="0.00"></div><div class="err-text" id="err-amount" hidden></div></div>' +
+      '<div class="space-y-1"><label class="field-label block" for="f-date">' + esc(t("date")) + '</label><input id="f-date" type="date" class="input" value="' + today() + '"></div></div>' +
+      '<div class="space-y-1"><div class="field-label">' + esc(t("category")) + '</div><div class="flex flex-wrap gap-2">' +
+      cats.map((c) => '<button type="button" data-act="pick" data-v="' + esc(c.id) + '" class="inline-flex cursor-pointer items-center gap-1 rounded-xl border px-3 py-1.5 text-sm transition ' +
+        (state.category === c.id ? "border-[var(--p-500)] bg-[var(--p-50)] font-medium text-[var(--p-700)] dark:bg-[var(--p-700)]/30 dark:text-[var(--p-200)]" : "line t-body hover:border-slate-300") + '">' + esc(c.emoji) + " " + esc(c.label) + "</button>").join("") +
+      '</div><div class="err-text" id="err-cat" hidden></div></div>' +
+      '<div class="flex flex-col gap-3 sm:flex-row"><input id="f-note" class="input" maxlength="30" placeholder="' + esc(CONFIG.noteLabel || "") + '"><button type="submit" class="btn btn-primary shrink-0">💾 ' + esc(t("submit")) + "</button></div></form></section>";
+  };
+
+  const chartsBlock = (list) => {
+    if (!CHARTS.length) return "";
+    const hasExp = list.some((e) => e.type === "expense");
+    const box = (id, title) => '<section class="card min-w-0"><h2 class="mb-3 text-sm font-semibold t-strong">' + esc(title) + "</h2>" +
+      (hasExp ? '<div class="relative h-56"><canvas id="' + id + '"></canvas></div>' : emptyState("📊", t("noExpense"))) + "</section>";
+    return '<div class="grid gap-4 ' + (CHARTS.length > 1 ? "md:grid-cols-2" : "") + '">' +
+      CHARTS.map((c) => (c === "expenseByCategory" ? box("chart-cat", t("byCategory")) : box("chart-daily", t("dailyTrend")))).join("") + "</div>";
+  };
+
+  const drawCharts = (list) => {
+    destroyCharts();
+    const exp = list.filter((e) => e.type === "expense");
+    if (!exp.length) return;
+    const byCat = {};
+    exp.forEach((e) => { byCat[e.category] = round2((byCat[e.category] || 0) + e.amount); });
+    const keys = Object.keys(byCat).sort((a, b) => byCat[b] - byCat[a]);
+    makeChart($("#chart-cat"), {
+      type: "doughnut",
+      data: { labels: keys.map((k) => catOf(k).emoji + " " + catOf(k).label), datasets: [{ data: keys.map((k) => byCat[k]), backgroundColor: seriesColors(keys.length), borderWidth: 2, borderColor: DARK ? "#0f172a" : "#fff" }] },
+      options: { responsive: true, maintainAspectRatio: false, cutout: "62%", plugins: { legend: { position: window.innerWidth < 640 ? "bottom" : "right", labels: { boxWidth: 10, boxHeight: 10 } }, tooltip: { callbacks: { label: (c) => " " + c.label + " " + money(c.raw) } } } },
+    });
+    const p = state.month.split("-").map(Number);
+    const days = new Date(p[0], p[1], 0).getDate();
+    const daily = Array.from({ length: days }, () => 0);
+    exp.forEach((e) => { const d = Number(e.date.slice(8, 10)); if (d >= 1 && d <= days) daily[d - 1] = round2(daily[d - 1] + e.amount); });
+    makeChart($("#chart-daily"), {
+      type: "bar",
+      data: { labels: daily.map((_, i) => String(i + 1)), datasets: [{ data: daily, backgroundColor: PRIMARY[3], hoverBackgroundColor: PRIMARY[5], borderRadius: 4, maxBarThickness: 18 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { title: (c) => state.month + "-" + pad(c[0].label), label: (c) => " " + money(c.raw) } } },
+        scales: { x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 8 } }, y: { beginAtZero: true, ticks: { callback: (v) => CUR + v } } } },
+    });
+  };
+
+  const listBlock = (list) => {
+    if (!list.length) return '<section class="card">' + emptyState("🧾", t("emptyMonth")) + "</section>";
+    const groups = {};
+    list.forEach((e) => { (groups[e.date] = groups[e.date] || []).push(e); });
+    const dates = Object.keys(groups).sort().reverse();
+    return '<section class="card space-y-5"><div class="flex items-center justify-between"><h2 class="text-lg font-semibold t-strong">' + esc(t("records")) + '</h2><span class="text-xs t-faint">' + esc(t("count", { n: list.length })) + "</span></div>" +
+      dates.map((d) => {
+        const g = groups[d].sort((a, b) => b.createdAt - a.createdAt);
+        const out = sum(g, "expense"), inc = sum(g, "income");
+        return '<div><div class="mb-1 flex items-center justify-between text-xs t-faint"><span>' + esc(d.slice(5)) + " " + esc(L.week[parseDate(d).getDay()]) + (d === today() ? " · " + esc(t("todayTag")) : "") + "</span><span>" +
+          (out ? esc(t("expense")) + " " + esc(money(out)) : "") + (out && inc ? " · " : "") + (inc ? esc(t("income")) + " " + esc(money(inc)) : "") + "</span></div>" +
+          '<ul class="divide-y divide-slate-100 dark:divide-slate-800">' + g.map((e) => {
+            const c = catOf(e.category);
+            return '<li class="group flex items-center gap-3 py-2.5"><div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-lg dark:bg-slate-800">' + esc(c.emoji) + "</div>" +
+              '<div class="min-w-0 flex-1"><div class="text-sm font-medium t-strong">' + esc(c.label) + "</div>" + (e.note ? '<div class="truncate text-xs t-muted">' + esc(e.note) + "</div>" : "") + "</div>" +
+              '<div class="shrink-0 text-sm font-semibold ' + (e.type === "income" ? "text-emerald-600 dark:text-emerald-400" : "t-strong") + '">' + (e.type === "income" ? "+" : "-") + esc(money(e.amount)) + "</div>" +
+              '<button type="button" data-act="del" data-id="' + e.id + '" class="icon-btn shrink-0" aria-label="' + esc(t("delete")) + '">🗑</button></li>';
+          }).join("") + "</ul></div>";
+      }).join("") + "</section>";
+  };
+
+  const render = () => keepFocus(() => {
+    const list = monthItems();
+    const note = $("#f-note") ? $("#f-note").value : "";
+    const amount = $("#f-amount") ? $("#f-amount").value : "";
+    const date = $("#f-date") ? $("#f-date").value : "";
+    destroyCharts();
+    $("#app").innerHTML = header() + monthBar() + statsBlock(list) + formBlock() + chartsBlock(list) + listBlock(list);
+    if (note) $("#f-note").value = note;
+    if (amount) $("#f-amount").value = amount;
+    if (date) $("#f-date").value = date;
+    drawCharts(list);
+  });
+
+  ACTIONS.type = (el) => {
+    state.type = el.getAttribute("data-v");
+    state.category = (CATS[state.type][0] || {}).id || "";
+    render();
+  };
+  ACTIONS.pick = (el) => { state.category = el.getAttribute("data-v"); render(); };
+  ACTIONS.month = (el) => {
+    const n = Number(el.getAttribute("data-n"));
+    state.month = n === 0 ? ym(today()) : shiftMonth(state.month, n);
+    render();
+  };
+  ACTIONS.add = (form, e) => {
+    e.preventDefault();
+    const amount = round2(Number($("#f-amount").value));
+    const errA = $("#err-amount"), errC = $("#err-cat");
+    errA.hidden = amount > 0;
+    errA.textContent = t("amountErr");
+    errC.hidden = !!state.category;
+    errC.textContent = t("catErr");
+    if (!(amount > 0)) { $("#f-amount").focus(); return; }
+    if (!state.category) return;
+    const date = $("#f-date").value || today();
+    data.items.push({ id: uid(), type: state.type, amount, category: state.category, date, note: $("#f-note").value.trim().slice(0, 30), createdAt: Date.now() });
+    persist();
+    $("#f-amount").value = "";
+    $("#f-note").value = "";
+    state.month = ym(date);
+    render();
+    toast(t("saved") + " · " + (state.type === "income" ? "+" : "-") + money(amount));
+  };
+  ACTIONS.del = (el) => {
+    const item = data.items.find((e) => e.id === el.getAttribute("data-id"));
+    if (!item) return;
+    confirmBox(t("delConfirm", { v: money(item.amount) }), () => {
+      data.items = data.items.filter((e) => e.id !== item.id);
+      persist();
+      render();
+      toast(t("deleted"));
+    });
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>

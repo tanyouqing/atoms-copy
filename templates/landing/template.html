@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__APP_TITLE__</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
+<style type="text/tailwindcss">
+@custom-variant dark (&:where(.dark, .dark *));
+@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-white dark:bg-slate-900; }
+@utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
+@utility line { @apply border-slate-200 dark:border-slate-800; }
+@utility t-strong { @apply text-slate-900 dark:text-white; }
+@utility t-body { @apply text-slate-600 dark:text-slate-300; }
+@utility t-muted { @apply text-slate-500 dark:text-slate-400; }
+@utility t-faint { @apply text-slate-400 dark:text-slate-500; }
+@utility t-primary { @apply text-[var(--p-600)] dark:text-[var(--p-500)]; }
+@utility btn { @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-50; }
+@utility btn-primary { @apply bg-[var(--p-600)] text-white hover:bg-[var(--p-700)]; }
+@utility btn-secondary { @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800; }
+@utility btn-danger { @apply bg-rose-600 text-white hover:bg-rose-700; }
+@utility btn-ghost { @apply text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100; }
+@utility icon-btn { @apply inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200; }
+@utility input { @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-[var(--p-500)] focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:[color-scheme:dark]; }
+@utility field-label { @apply text-sm font-medium text-slate-700 dark:text-slate-300; }
+@utility tag { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap; }
+@utility tag-primary { @apply bg-[var(--p-50)] text-[var(--p-700)] dark:bg-[var(--p-700)]/30 dark:text-[var(--p-200)]; }
+@utility tag-muted { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300; }
+@utility seg { @apply inline-flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800; }
+@utility seg-btn { @apply cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100; }
+@utility seg-on { @apply cursor-pointer rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-900 shadow-sm transition dark:bg-slate-950 dark:text-white; }
+@utility err-text { @apply mt-1 text-xs text-rose-600 dark:text-rose-400; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+<div id="app"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<script id="app-config" type="application/json">__APP_CONFIG__</script>
+<script>
+(function () {
+  "use strict";
+  const TID = "landing";
+  const I18N = {
+    "zh-CN": { menu: "菜单", recommended: "推荐", emailPh: "输入你的邮箱", subscribed: "提交成功，我们会尽快联系你", dup: "这个邮箱已经提交过啦", collected: "已有 {n} 人留下了邮箱", thanks: "感谢关注！", rights: "保留所有权利" },
+    en: { menu: "Menu", recommended: "Popular", emailPh: "Enter your email", subscribed: "Thanks! We'll be in touch soon", dup: "This email is already on the list", collected: "{n} people have signed up", thanks: "Thanks for your interest!", rights: "All rights reserved" },
+  };
+  const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
+  const KEY = "app:" + TID + ":data";
+  const META_KEY = "app:" + TID + ":meta";
+  const SHADES = [50, 100, 200, 500, 600, 700];
+  const PALETTE = {
+    indigo: ["#eef2ff", "#e0e7ff", "#c7d2fe", "#6366f1", "#4f46e5", "#4338ca"],
+    blue: ["#eff6ff", "#dbeafe", "#bfdbfe", "#3b82f6", "#2563eb", "#1d4ed8"],
+    sky: ["#f0f9ff", "#e0f2fe", "#bae6fd", "#0ea5e9", "#0284c7", "#0369a1"],
+    teal: ["#f0fdfa", "#ccfbf1", "#99f6e4", "#14b8a6", "#0d9488", "#0f766e"],
+    emerald: ["#ecfdf5", "#d1fae5", "#a7f3d0", "#10b981", "#059669", "#047857"],
+    amber: ["#fffbeb", "#fef3c7", "#fde68a", "#f59e0b", "#d97706", "#b45309"],
+    orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
+    rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
+    violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
+    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+  };
+  const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
+  const pal = (name) => PALETTE[name] || PALETTE.indigo;
+  const PRIMARY = pal(CONFIG.theme && CONFIG.theme.primary);
+  SHADES.forEach((s, i) => document.documentElement.style.setProperty("--p-" + s, PRIMARY[i]));
+  document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
+  if (DARK) document.documentElement.classList.add("dark");
+  const BASE_I18N = {
+    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+  };
+  const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
+  const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
+  const t = (k, vars) => String(L[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => (vars && vars[n] !== undefined ? vars[n] : ""));
+
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const load = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } };
+  const save = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const pad = (n) => String(n).padStart(2, "0");
+  const fmtDate = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const parseDate = (s) => { const p = String(s || "").split("-").map(Number); return new Date(p[0] || 1970, (p[1] || 1) - 1, p[2] || 1); };
+  const today = () => fmtDate(new Date());
+  const addDays = (date, n) => { const d = parseDate(date); d.setDate(d.getDate() + n); return fmtDate(d); };
+  const chip = (color) => { const c = pal(color); return DARK ? "background:" + c[4] + "33;color:" + c[2] : "background:" + c[0] + ";color:" + c[5]; };
+
+  /** 先读存储；键不存在（或结构不对）时用 seed 初始化并写入。 */
+  const loadData = (seed) => {
+    const d = load(KEY, null);
+    if (d && d.version === 1 && Array.isArray(d.items)) return d;
+    const fresh = { version: 1, items: seed() };
+    save(KEY, fresh);
+    return fresh;
+  };
+  const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
+  const saveMeta = (m) => save(META_KEY, m);
+
+  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+
+  let modalClose = null;
+  const openModal = (html, onClose) => {
+    const m = $("#modal");
+    $("#modal-body").innerHTML = html;
+    m.classList.remove("hidden");
+    m.classList.add("flex");
+    modalClose = onClose || null;
+    const first = $("input, textarea, select", $("#modal-body"));
+    if (first) setTimeout(() => first.focus(), 30);
+  };
+  const closeModal = () => {
+    const m = $("#modal");
+    m.classList.add("hidden");
+    m.classList.remove("flex");
+    $("#modal-body").innerHTML = "";
+    const fn = modalClose;
+    modalClose = null;
+    if (fn) fn();
+  };
+  const confirmBox = (text, onOk, okText) => {
+    openModal(
+      '<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("confirmTitle")) + "</div>" +
+      '<p class="text-sm t-body">' + esc(text) + "</p>" +
+      '<div class="flex justify-end gap-2"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("cancel")) + "</button>" +
+      '<button type="button" class="btn btn-danger" id="confirm-ok">' + esc(okText || t("delete")) + "</button></div></div>"
+    );
+    $("#confirm-ok").addEventListener("click", () => { closeModal(); onOk(); });
+  };
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+
+  /** 整体重绘时保留输入框焦点与光标位置。 */
+  const keepFocus = (fn) => {
+    const a = document.activeElement;
+    const id = a && a.id;
+    let s = null, en = null;
+    try { s = a.selectionStart; en = a.selectionEnd; } catch (e) {}
+    fn();
+    if (!id) return;
+    const n = document.getElementById(id);
+    if (!n || n === a) return;
+    n.focus();
+    try { if (s !== null) n.setSelectionRange(s, en); } catch (e) {}
+  };
+
+  /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
+  const ACTIONS = { "modal-close": () => closeModal() };
+  const delegate = (type) => document.addEventListener(type, (e) => {
+    const el = e.target.closest && e.target.closest("[data-" + type + "]");
+    if (!el) return;
+    const fn = ACTIONS[el.getAttribute("data-" + type)];
+    if (fn) fn(el, e);
+  });
+  ["change", "input", "submit", "keydown"].forEach(delegate);
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest && e.target.closest("[data-act]");
+    if (!el) return;
+    const fn = ACTIONS[el.getAttribute("data-act")];
+    if (fn) { if (el.tagName === "A") e.preventDefault(); fn(el, e); }
+  });
+
+  const header = (extra) =>
+    '<header class="flex flex-wrap items-start justify-between gap-4">' +
+    '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
+    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
+    (extra || "") + "</header>";
+  const emptyState = (emoji, text, btn) =>
+    '<div class="py-12 text-center"><div class="text-4xl">' + esc(emoji) + '</div><p class="mt-2 text-sm t-muted">' + esc(text) + "</p>" + (btn || "") + "</div>";
+  const HERO = CONFIG.hero || {};
+  const SECTIONS = Array.isArray(CONFIG.sections) ? CONFIG.sections : [];
+  const TITLED = SECTIONS.map((s, i) => ({ s, i })).filter((x) => x.s.title);
+  const NAV = (CONFIG.nav || []).slice(0, TITLED.length).map((label, j) => ({ label, target: "sec-" + TITLED[j].i }));
+  const findIdx = (type) => SECTIONS.findIndex((s) => s.type === type);
+  const CTA_TARGET = findIdx("contact") >= 0 ? "sec-" + findIdx("contact") : findIdx("pricing") >= 0 ? "sec-" + findIdx("pricing") : SECTIONS.length ? "sec-0" : "";
+  const data = loadData(() => []);
+  const state = { menuOpen: false };
+  const persist = () => save(KEY, data);
+  const TILE_PALETTES = [CONFIG.theme && CONFIG.theme.primary, "sky", "violet", "amber", "rose", "emerald", "orange", "teal", "blue"];
+  const tileBg = (i) => { const a = pal(TILE_PALETTES[i % TILE_PALETTES.length]); return "background:linear-gradient(135deg," + (DARK ? a[5] + "," + a[3] : a[1] + "," + a[3]) + ")"; };
+  const wrap = (inner) => '<div class="mx-auto max-w-6xl px-4 md:px-8">' + inner + "</div>";
+  const sectionTitle = (title) => '<h2 class="text-center text-2xl font-bold tracking-tight t-strong md:text-4xl">' + esc(title) + "</h2>";
+  const goto = (target, cls, label) => '<button type="button" data-act="goto" data-target="' + esc(target) + '" class="' + cls + '">' + esc(label) + "</button>";
+
+  const navBar = () =>
+    '<nav id="nav" class="sticky top-0 z-40 border-b border-transparent transition">' + wrap(
+      '<div class="flex h-16 items-center justify-between gap-4"><button type="button" data-act="goto" data-target="top" class="flex cursor-pointer items-center gap-2 text-lg font-bold t-strong"><span class="text-2xl">' + esc(CONFIG.emoji) + "</span>" + esc(CONFIG.brand || CONFIG.title) + "</button>" +
+      '<div class="hidden items-center gap-1 md:flex">' + NAV.map((n) => goto(n.target, "cursor-pointer rounded-lg px-3 py-2 text-sm font-medium t-body transition hover:text-[var(--p-600)]", n.label)).join("") + "</div>" +
+      '<div class="flex items-center gap-2">' + (CTA_TARGET ? goto(CTA_TARGET, "btn btn-primary hidden sm:inline-flex", HERO.primaryCta) : "") +
+      (NAV.length ? '<button type="button" data-act="menu" class="icon-btn h-10 w-10 text-xl md:hidden" aria-label="' + esc(t("menu")) + '">' + (state.menuOpen ? "✕" : "☰") + "</button>" : "") + "</div></div>" +
+      (state.menuOpen ? '<div class="space-y-1 border-t line pb-4 pt-2 md:hidden">' + NAV.map((n) => goto(n.target, "block w-full cursor-pointer rounded-lg px-3 py-2.5 text-left text-sm font-medium t-body hover:bg-slate-100 dark:hover:bg-slate-800", n.label)).join("") +
+        (CTA_TARGET ? goto(CTA_TARGET, "btn btn-primary mt-2 w-full", HERO.primaryCta) : "") + "</div>" : "")) + "</nav>";
+
+  const heroVisual = () => {
+    if (HERO.visual === "emojiGrid") {
+      const em = (HERO.visualEmojis && HERO.visualEmojis.length ? HERO.visualEmojis : [CONFIG.emoji]).slice(0, 9);
+      return '<div class="grid grid-cols-3 gap-3 sm:gap-4">' + em.map((e, i) =>
+        '<div class="flex aspect-square items-center justify-center rounded-3xl text-4xl shadow-sm transition hover:-translate-y-1 sm:text-5xl" style="' + tileBg(i) + '">' + esc(e) + "</div>").join("") + "</div>";
+    }
+    if (HERO.visual === "mockup") {
+      const feats = (SECTIONS.find((s) => s.type === "features") || { items: [] }).items.slice(0, 4);
+      return '<div class="mx-auto w-64 rounded-[2.5rem] border-8 border-slate-900 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900"><div class="mx-auto mt-2 h-1.5 w-16 rounded-full bg-slate-200 dark:bg-slate-700"></div>' +
+        '<div class="space-y-3 p-4"><div class="rounded-2xl p-4 text-white" style="background:linear-gradient(135deg,' + PRIMARY[4] + "," + PRIMARY[3] + ')"><div class="text-2xl">' + esc(CONFIG.emoji) + '</div><div class="mt-2 text-sm font-semibold">' + esc(CONFIG.brand || CONFIG.title) + '</div><div class="mt-1 text-xs opacity-80">' + esc(HERO.eyebrow || "") + "</div></div>" +
+        feats.map((f) => '<div class="flex items-center gap-3 rounded-xl surface-2 p-3"><span class="text-xl">' + esc(f.emoji) + '</span><div class="min-w-0"><div class="truncate text-xs font-semibold t-strong">' + esc(f.title) + '</div><div class="mt-1 h-1.5 w-20 rounded-full bg-slate-200 dark:bg-slate-700"></div></div></div>').join("") +
+        "</div></div>";
+    }
+    return '<div class="relative mx-auto aspect-square w-full max-w-sm"><div class="absolute inset-6 rounded-full opacity-70 blur-3xl" style="background:' + PRIMARY[3] + '"></div>' +
+      '<div class="absolute top-0 right-4 h-40 w-40 rounded-full opacity-60 blur-2xl" style="background:' + pal("sky")[2] + '"></div><div class="absolute bottom-4 left-0 h-44 w-44 rounded-full opacity-60 blur-2xl" style="background:' + pal("violet")[2] + '"></div>' +
+      '<div class="absolute inset-0 flex items-center justify-center text-8xl drop-shadow-xl">' + esc(CONFIG.emoji) + "</div></div>";
+  };
+
+  const hero = () =>
+    '<header id="sec-top" class="relative overflow-hidden"><div class="pointer-events-none absolute inset-x-0 -top-40 h-80 opacity-40 blur-3xl" style="background:radial-gradient(closest-side,' + PRIMARY[2] + ',transparent)"></div>' +
+    wrap('<div class="relative grid items-center gap-12 py-16 md:grid-cols-2 md:py-24"><div class="space-y-6 text-center md:text-left">' +
+      (HERO.eyebrow ? '<span class="tag tag-primary px-3 py-1">' + esc(HERO.eyebrow) + "</span>" : "") +
+      '<h1 class="text-4xl font-extrabold tracking-tight t-strong md:text-6xl">' + esc(HERO.headline) + "</h1>" +
+      '<p class="text-base leading-relaxed t-body md:text-lg">' + esc(HERO.subheadline) + "</p>" +
+      '<div class="flex flex-col justify-center gap-3 sm:flex-row md:justify-start">' + (CTA_TARGET ? goto(CTA_TARGET, "btn btn-primary px-6 py-3 text-base", HERO.primaryCta) : "") +
+      (HERO.secondaryCta && SECTIONS.length ? goto("sec-0", "btn btn-secondary px-6 py-3 text-base", HERO.secondaryCta) : "") + "</div></div>" +
+      "<div>" + heroVisual() + "</div></div>") + "</header>";
+
+  const R = {
+    features: (s) => sectionTitle(s.title) + '<div class="mt-10 grid gap-4 sm:grid-cols-2 ' + (s.items.length === 4 ? "" : "lg:grid-cols-3") + '">' + s.items.map((it) =>
+      '<div class="card transition hover:-translate-y-0.5 hover:shadow-md"><div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(it.emoji) + '</div><h3 class="mt-4 text-lg font-semibold t-strong">' + esc(it.title) + '</h3><p class="mt-2 text-sm leading-relaxed t-body">' + esc(it.desc) + "</p></div>").join("") + "</div>",
+    stats: (s) => '<div class="grid grid-cols-2 gap-4 rounded-3xl p-6 md:p-10 ' + (s.items.length > 2 ? "md:grid-cols-" + s.items.length : "") + '" style="background:linear-gradient(135deg,' + PRIMARY[5] + "," + PRIMARY[3] + ')">' + s.items.map((it) =>
+      '<div class="text-center text-white"><div class="text-3xl font-extrabold md:text-5xl">' + esc(it.value) + '</div><div class="mt-1 text-sm opacity-80">' + esc(it.label) + "</div></div>").join("") + "</div>",
+    steps: (s) => sectionTitle(s.title) + '<ol class="mt-10 grid gap-4 md:grid-cols-' + Math.min(s.items.length, 3) + '">' + s.items.map((it, i) =>
+      '<li class="card relative"><div class="flex h-10 w-10 items-center justify-center rounded-full bg-[var(--p-600)] text-sm font-bold text-white">' + (i + 1) + '</div><h3 class="mt-4 text-lg font-semibold t-strong">' + esc(it.title) + '</h3><p class="mt-2 text-sm leading-relaxed t-body">' + esc(it.desc) + "</p></li>").join("") + "</ol>",
+    testimonials: (s) => sectionTitle(s.title) + '<div class="mt-10 grid gap-4 md:grid-cols-2">' + s.items.map((it, i) =>
+      '<figure class="card flex flex-col"><div class="text-3xl leading-none t-primary">“</div><blockquote class="mt-2 flex-1 text-sm leading-relaxed t-body">' + esc(it.quote) + "</blockquote>" +
+      '<figcaption class="mt-5 flex items-center gap-3"><div class="flex h-10 w-10 items-center justify-center rounded-full text-sm font-bold text-white" style="' + tileBg(i + 1) + '">' + esc(String(it.name).slice(0, 1)) + '</div><div><div class="text-sm font-semibold t-strong">' + esc(it.name) + '</div><div class="text-xs t-muted">' + esc(it.role) + "</div></div></figcaption></figure>").join("") + "</div>",
+    pricing: (s) => sectionTitle(s.title) + '<div class="mx-auto mt-10 grid max-w-5xl items-stretch gap-4 md:grid-cols-' + s.plans.length + '">' + s.plans.map((p) =>
+      '<div class="relative flex flex-col rounded-2xl border p-6 shadow-sm ' + (p.highlight ? "border-[var(--p-500)] bg-white ring-2 ring-[var(--p-500)] dark:bg-slate-900 md:-translate-y-2" : "line surface") + '">' +
+      (p.highlight ? '<span class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-[var(--p-600)] px-3 py-1 text-xs font-semibold text-white">' + esc(t("recommended")) + "</span>" : "") +
+      '<h3 class="text-lg font-semibold t-strong">' + esc(p.name) + '</h3><div class="mt-3 flex items-baseline gap-1"><span class="text-4xl font-extrabold t-strong">' + esc(p.price) + '</span><span class="text-sm t-muted">' + esc(p.period) + "</span></div>" +
+      '<ul class="mt-6 flex-1 space-y-2">' + p.features.map((f) => '<li class="flex gap-2 text-sm t-body"><span class="t-primary">✓</span>' + esc(f) + "</li>").join("") + "</ul>" +
+      '<button type="button" data-act="plan" data-plan="' + esc(p.name) + '" class="btn mt-6 w-full ' + (p.highlight ? "btn-primary" : "btn-secondary") + '">' + esc(p.cta) + "</button></div>").join("") + "</div>",
+    faq: (s) => sectionTitle(s.title) + '<div class="mx-auto mt-10 max-w-3xl space-y-3">' + s.items.map((it) =>
+      '<details class="group card p-0 md:p-0"><summary class="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-left font-medium t-strong [&::-webkit-details-marker]:hidden">' + esc(it.q) +
+      '<span class="shrink-0 text-xl t-faint transition group-open:rotate-45">＋</span></summary><p class="px-5 pb-5 text-sm leading-relaxed t-body">' + esc(it.a) + "</p></details>").join("") + "</div>",
+    gallery: (s) => sectionTitle(s.title) + '<div class="mt-10 grid grid-cols-2 gap-4 md:grid-cols-3">' + s.items.map((it, i) =>
+      '<div class="group overflow-hidden rounded-2xl border line surface shadow-sm"><div class="flex aspect-[4/3] items-center justify-center text-5xl transition group-hover:scale-105" style="' + tileBg(i) + '">' + esc(it.emoji) + "</div>" +
+      '<div class="p-4"><h3 class="text-sm font-semibold t-strong">' + esc(it.title) + '</h3><p class="mt-1 text-xs t-muted">' + esc(it.caption) + "</p></div></div>").join("") + "</div>",
+    contact: (s) => '<div class="relative overflow-hidden rounded-3xl px-6 py-12 text-center text-white md:px-12 md:py-16" style="background:linear-gradient(135deg,' + PRIMARY[5] + "," + PRIMARY[3] + ')">' +
+      '<h2 class="text-2xl font-bold md:text-4xl">' + esc(s.title) + '</h2><p class="mx-auto mt-3 max-w-xl text-sm opacity-90 md:text-base">' + esc(s.text) + "</p>" +
+      (s.collectEmail
+        ? '<form data-submit="email" class="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row" novalidate><input id="email" type="email" autocomplete="email" class="w-full rounded-xl border-0 bg-white px-4 py-3 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-white/60 focus:outline-none" placeholder="' + esc(t("emailPh")) + '">' +
+          '<button type="submit" class="btn shrink-0 bg-slate-900 px-6 py-3 text-white hover:bg-slate-800">' + esc(s.buttonText) + "</button></form>" +
+          '<p id="email-err" class="mt-2 text-xs text-white/90" hidden></p>' + (data.items.length ? '<p class="mt-4 text-xs opacity-80">' + esc(t("collected", { n: data.items.length })) + "</p>" : "")
+        : '<button type="button" data-act="contact-btn" class="btn mt-8 bg-white px-6 py-3 text-base text-slate-900 hover:bg-slate-100">' + esc(s.buttonText) + "</button>") + "</div>",
+  };
+
+  const footer = () => '<footer class="mt-8 border-t line py-10">' + wrap('<div class="flex flex-col items-center justify-between gap-4 text-sm t-muted md:flex-row"><div class="flex items-center gap-2"><span>' + esc(CONFIG.emoji) + '</span><span class="font-semibold t-strong">' + esc(CONFIG.brand || CONFIG.title) + "</span><span>· " + esc((CONFIG.footer && CONFIG.footer.text) || "") + "</span></div>" +
+    '<div class="flex flex-wrap justify-center gap-4">' + ((CONFIG.footer && CONFIG.footer.links) || []).map((l) => '<span class="cursor-default hover:text-[var(--p-600)]">' + esc(l) + "</span>").join("") + "</div></div>" +
+    '<p class="mt-6 text-center text-xs t-faint">© ' + new Date().getFullYear() + " " + esc(CONFIG.brand || CONFIG.title) + " · " + esc(t("rights")) + "</p>") + "</footer>";
+
+  const render = () => keepFocus(() => {
+    $("#app").innerHTML = navBar() + hero() + SECTIONS.map((s, i) => R[s.type]
+      ? '<section id="sec-' + i + '" class="scroll-mt-20 py-12 md:py-20' + (s.type === "testimonials" || s.type === "faq" ? " surface-2" : "") + '">' + wrap(R[s.type](s)) + "</section>" : "").join("") + footer();
+    onScroll();
+  });
+
+  function onScroll() {
+    const nav = $("#nav");
+    if (!nav) return;
+    const on = window.scrollY > 8 || state.menuOpen;
+    ["bg-white/85", "dark:bg-slate-950/85", "shadow-sm", "backdrop-blur", "line"].forEach((c) => nav.classList.toggle(c, on));
+    nav.classList.toggle("border-transparent", !on);
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+
+  ACTIONS.goto = (el) => {
+    state.menuOpen = false;
+    const target = el.getAttribute("data-target");
+    render();
+    if (target === "top") { window.scrollTo({ top: 0, behavior: "smooth" }); return; }
+    const sec = document.getElementById(target);
+    if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  ACTIONS.menu = () => { state.menuOpen = !state.menuOpen; render(); };
+  ACTIONS.plan = (el) => {
+    const contact = findIdx("contact");
+    if (contact >= 0) document.getElementById("sec-" + contact).scrollIntoView({ behavior: "smooth" });
+    toast("✓ " + el.getAttribute("data-plan"));
+  };
+  ACTIONS["contact-btn"] = () => toast(t("thanks"));
+  ACTIONS.email = (form, e) => {
+    e.preventDefault();
+    const input = $("#email");
+    const email = input.value.trim().toLowerCase();
+    const err = $("#email-err");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { err.textContent = t("errEmail"); err.hidden = false; input.focus(); return; }
+    if (data.items.some((x) => x.email === email)) { err.hidden = true; toast(t("dup")); return; }
+    data.items.push({ email, at: Date.now() });
+    persist();
+    render();
+    toast(t("subscribed"));
+  };
+
+  render();
+})();
+</script>
+</body>
+</html>

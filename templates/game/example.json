@@ -1,0 +1,11 @@
+{
+  "title": "水果记忆翻牌",
+  "subtitle": "考考你的记忆力，用最少的步数配对所有水果",
+  "emoji": "🍓",
+  "locale": "zh-CN",
+  "theme": { "primary": "rose", "mode": "light" },
+  "game": { "kind": "memory", "pairs": 8, "symbols": ["🍎", "🍌", "🍇", "🍉", "🍓", "🍑", "🍍", "🥝", "🍒", "🥭"], "timeLimitSec": null },
+  "rulesText": "点击卡片翻开，每次翻两张。两张水果相同就配对成功并保持翻开，不同则会自动翻回。配对全部 8 组水果即可获胜，步数越少成绩越好。",
+  "winText": "全部配对成功，记忆力满分！",
+  "loseText": "时间到了，再挑战一次吧"
+}

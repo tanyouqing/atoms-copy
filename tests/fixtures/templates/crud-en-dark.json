@@ -1,0 +1,27 @@
+{
+  "title": "Client Book",
+  "emoji": "🤝",
+  "locale": "en",
+  "theme": { "primary": "teal", "mode": "dark" },
+  "entity": { "singular": "client", "plural": "clients" },
+  "fields": [
+    { "key": "name", "label": "Name", "type": "text", "required": true },
+    { "key": "company", "label": "Company", "type": "text" },
+    { "key": "email", "label": "Email", "type": "email", "required": true },
+    { "key": "phone", "label": "Phone", "type": "tel" },
+    { "key": "website", "label": "Website", "type": "url" },
+    { "key": "tier", "label": "Tier", "type": "select", "options": ["Gold", "Silver", "Bronze"] },
+    { "key": "active", "label": "Active", "type": "checkbox", "placeholder": "Currently active" }
+  ],
+  "titleField": "name",
+  "subtitleField": "company",
+  "searchFields": ["name", "company", "email"],
+  "filterField": "tier",
+  "sortOptions": [{ "key": "name", "label": "Name A-Z", "dir": "asc" }],
+  "defaultView": "table",
+  "seedRecords": [
+    { "name": "Ana Silva", "company": "Northwind", "email": "ana@northwind.example", "phone": "+44 20 7946 0958", "website": "https://northwind.example", "tier": "Gold", "active": true },
+    { "name": "Ben Carter", "company": "Lumen Labs", "email": "ben@lumen.example", "tier": "Silver", "active": true },
+    { "name": "Chloe Wu", "company": "Pine & Co", "email": "chloe@pine.example", "tier": "Bronze", "active": false }
+  ]
+}

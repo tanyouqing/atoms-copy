@@ -1,0 +1,59 @@
+{
+  "title": "门店经营看板",
+  "subtitle": "三家门店的销售、客流与会员数据",
+  "emoji": "📊",
+  "locale": "zh-CN",
+  "theme": { "primary": "blue", "mode": "light" },
+  "periodLabel": "2026 年 11 月",
+  "metrics": [
+    { "label": "销售额", "value": 486320, "unit": "元", "delta": 12.4 },
+    { "label": "订单数", "value": 9218, "unit": "单", "delta": 8.1 },
+    { "label": "客单价", "value": 52.8, "unit": "元", "delta": 3.9 },
+    { "label": "退款率", "value": 1.6, "unit": "%", "delta": -0.4, "goodWhen": "down" }
+  ],
+  "charts": [
+    {
+      "type": "line",
+      "title": "近 8 周销售趋势",
+      "labels": ["第1周", "第2周", "第3周", "第4周", "第5周", "第6周", "第7周", "第8周"],
+      "datasets": [
+        { "label": "今年", "data": [98, 105, 112, 108, 121, 118, 130, 126] },
+        { "label": "去年同期", "data": [88, 92, 95, 99, 101, 104, 107, 110] }
+      ],
+      "span": 2
+    },
+    {
+      "type": "doughnut",
+      "title": "品类销售占比",
+      "labels": ["咖啡", "茶饮", "烘焙", "轻食", "周边"],
+      "datasets": [{ "label": "占比", "data": [42, 23, 18, 12, 5] }],
+      "span": 1
+    },
+    {
+      "type": "bar",
+      "title": "各门店客流（千人）",
+      "labels": ["望京店", "国贸店", "中关村店"],
+      "datasets": [
+        { "label": "工作日", "data": [18.2, 24.6, 15.1] },
+        { "label": "周末", "data": [12.4, 9.8, 13.3] }
+      ],
+      "span": 1
+    }
+  ],
+  "table": {
+    "title": "门店明细",
+    "columns": [
+      { "key": "store", "label": "门店", "format": "text" },
+      { "key": "revenue", "label": "销售额", "format": "currency" },
+      { "key": "orders", "label": "订单数", "format": "number" },
+      { "key": "growth", "label": "环比", "format": "percent" },
+      { "key": "members", "label": "新增会员", "format": "number" }
+    ],
+    "rows": [
+      { "store": "望京店", "revenue": 172400, "orders": 3310, "growth": 15.2, "members": 412 },
+      { "store": "国贸店", "revenue": 198760, "orders": 3624, "growth": 9.8, "members": 365 },
+      { "store": "中关村店", "revenue": 115160, "orders": 2284, "growth": 11.6, "members": 298 }
+    ]
+  },
+  "editable": true
+}

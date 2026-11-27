@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__APP_TITLE__</title>
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.3.5"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
+<style type="text/tailwindcss">
+@custom-variant dark (&:where(.dark, .dark *));
+@utility card { @apply rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6 dark:border-slate-800 dark:bg-slate-900; }
+@utility surface { @apply bg-white dark:bg-slate-900; }
+@utility surface-2 { @apply bg-slate-50 dark:bg-slate-800/60; }
+@utility line { @apply border-slate-200 dark:border-slate-800; }
+@utility t-strong { @apply text-slate-900 dark:text-white; }
+@utility t-body { @apply text-slate-600 dark:text-slate-300; }
+@utility t-muted { @apply text-slate-500 dark:text-slate-400; }
+@utility t-faint { @apply text-slate-400 dark:text-slate-500; }
+@utility t-primary { @apply text-[var(--p-600)] dark:text-[var(--p-500)]; }
+@utility btn { @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-4 py-2 text-sm font-medium whitespace-nowrap transition disabled:cursor-not-allowed disabled:opacity-50; }
+@utility btn-primary { @apply bg-[var(--p-600)] text-white hover:bg-[var(--p-700)]; }
+@utility btn-secondary { @apply border border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800; }
+@utility btn-danger { @apply bg-rose-600 text-white hover:bg-rose-700; }
+@utility btn-ghost { @apply text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100; }
+@utility icon-btn { @apply inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200; }
+@utility input { @apply w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:ring-2 focus:ring-[var(--p-500)] focus:outline-none dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100 dark:[color-scheme:dark]; }
+@utility field-label { @apply text-sm font-medium text-slate-700 dark:text-slate-300; }
+@utility tag { @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium whitespace-nowrap; }
+@utility tag-primary { @apply bg-[var(--p-50)] text-[var(--p-700)] dark:bg-[var(--p-700)]/30 dark:text-[var(--p-200)]; }
+@utility tag-muted { @apply bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300; }
+@utility seg { @apply inline-flex rounded-xl bg-slate-100 p-1 dark:bg-slate-800; }
+@utility seg-btn { @apply cursor-pointer rounded-lg px-3 py-1.5 text-sm font-medium text-slate-500 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-100; }
+@utility seg-on { @apply cursor-pointer rounded-lg bg-white px-3 py-1.5 text-sm font-medium text-slate-900 shadow-sm transition dark:bg-slate-950 dark:text-white; }
+@utility err-text { @apply mt-1 text-xs text-rose-600 dark:text-rose-400; }
+[hidden] { display: none !important; }
+</style>
+</head>
+<body class="min-h-screen bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100">
+<div id="app" class="mx-auto max-w-6xl space-y-6 px-4 py-8 md:px-8"></div>
+<div id="modal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 p-4"><div id="modal-body" class="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-900"></div></div>
+<div id="toast" class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-xl bg-slate-900 px-4 py-2 text-sm text-white opacity-0 shadow-lg transition dark:bg-white dark:text-slate-900"></div>
+<script id="app-config" type="application/json">__APP_CONFIG__</script>
+<script>
+(function () {
+  "use strict";
+  const TID = "dashboard";
+  const I18N = {
+    "zh-CN": {
+      editData: "编辑数据", reset: "恢复默认", resetConfirm: "确定恢复为默认数据吗？你的修改会丢失。", resetDone: "已恢复默认数据",
+      editTitle: "编辑仪表盘数据", editHint: "修改 metrics（指标卡）和 charts（图表）中的数值，保存后立即重绘。", jsonErr: "JSON 格式错误：{m}",
+      shapeErr: "数据结构不正确：{m}", vsLast: "环比", currencySign: "¥", edited: "已编辑",
+    },
+    en: {
+      editData: "Edit data", reset: "Reset", resetConfirm: "Reset to the default data? Your edits will be lost.", resetDone: "Default data restored",
+      editTitle: "Edit dashboard data", editHint: "Change the numbers in metrics and charts. The dashboard redraws as soon as you save.", jsonErr: "Invalid JSON: {m}",
+      shapeErr: "Invalid data: {m}", vsLast: "vs last period", currencySign: "$", edited: "Edited",
+    },
+  };
+  const CONFIG = JSON.parse(document.getElementById("app-config").textContent);
+  const KEY = "app:" + TID + ":data";
+  const META_KEY = "app:" + TID + ":meta";
+  const SHADES = [50, 100, 200, 500, 600, 700];
+  const PALETTE = {
+    indigo: ["#eef2ff", "#e0e7ff", "#c7d2fe", "#6366f1", "#4f46e5", "#4338ca"],
+    blue: ["#eff6ff", "#dbeafe", "#bfdbfe", "#3b82f6", "#2563eb", "#1d4ed8"],
+    sky: ["#f0f9ff", "#e0f2fe", "#bae6fd", "#0ea5e9", "#0284c7", "#0369a1"],
+    teal: ["#f0fdfa", "#ccfbf1", "#99f6e4", "#14b8a6", "#0d9488", "#0f766e"],
+    emerald: ["#ecfdf5", "#d1fae5", "#a7f3d0", "#10b981", "#059669", "#047857"],
+    amber: ["#fffbeb", "#fef3c7", "#fde68a", "#f59e0b", "#d97706", "#b45309"],
+    orange: ["#fff7ed", "#ffedd5", "#fed7aa", "#f97316", "#ea580c", "#c2410c"],
+    rose: ["#fff1f2", "#ffe4e6", "#fecdd3", "#f43f5e", "#e11d48", "#be123c"],
+    violet: ["#f5f3ff", "#ede9fe", "#ddd6fe", "#8b5cf6", "#7c3aed", "#6d28d9"],
+    slate: ["#f8fafc", "#f1f5f9", "#e2e8f0", "#64748b", "#475569", "#334155"],
+  };
+  const DARK = CONFIG.theme && CONFIG.theme.mode === "dark";
+  const pal = (name) => PALETTE[name] || PALETTE.indigo;
+  const PRIMARY = pal(CONFIG.theme && CONFIG.theme.primary);
+  SHADES.forEach((s, i) => document.documentElement.style.setProperty("--p-" + s, PRIMARY[i]));
+  document.documentElement.lang = CONFIG.locale === "en" ? "en" : "zh-CN";
+  if (DARK) document.documentElement.classList.add("dark");
+  const BASE_I18N = {
+    "zh-CN": { confirmTitle: "确认操作", cancel: "取消", delete: "删除", save: "保存", close: "关闭", edit: "编辑", add: "添加", choose: "请选择", saved: "已保存", deleted: "已删除", added: "已添加", errRequired: "此项为必填", errEmail: "邮箱格式不正确", errTel: "请输入 11 位手机号或带 + 号的国际号码", errUrl: "请输入以 http:// 或 https:// 开头的网址", errNumber: "请输入数字", errMin: "不能小于 {n}", errMax: "不能大于 {n}", yes: "是", no: "否", colon: "：" },
+    en: { confirmTitle: "Please confirm", cancel: "Cancel", delete: "Delete", save: "Save", close: "Close", edit: "Edit", add: "Add", choose: "Select…", saved: "Saved", deleted: "Deleted", added: "Added", errRequired: "This field is required", errEmail: "Invalid email address", errTel: "Enter an 11-digit number or an international number starting with +", errUrl: "Enter a URL starting with http:// or https://", errNumber: "Enter a number", errMin: "Must be at least {n}", errMax: "Must be at most {n}", yes: "Yes", no: "No", colon: ": " },
+  };
+  const LOC = CONFIG.locale === "en" ? "en" : "zh-CN";
+  const L = Object.assign({}, BASE_I18N[LOC], I18N[LOC]);
+  const t = (k, vars) => String(L[k] ?? k).replace(/\{(\w+)\}/g, (_, n) => (vars && vars[n] !== undefined ? vars[n] : ""));
+
+  const $ = (sel, root) => (root || document).querySelector(sel);
+  const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
+  const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+  const load = (key, fallback) => { try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch (e) { return fallback; } };
+  const save = (key, val) => { try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) {} };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const pad = (n) => String(n).padStart(2, "0");
+  const fmtDate = (d) => d.getFullYear() + "-" + pad(d.getMonth() + 1) + "-" + pad(d.getDate());
+  const parseDate = (s) => { const p = String(s || "").split("-").map(Number); return new Date(p[0] || 1970, (p[1] || 1) - 1, p[2] || 1); };
+  const today = () => fmtDate(new Date());
+  const addDays = (date, n) => { const d = parseDate(date); d.setDate(d.getDate() + n); return fmtDate(d); };
+  const chip = (color) => { const c = pal(color); return DARK ? "background:" + c[4] + "33;color:" + c[2] : "background:" + c[0] + ";color:" + c[5]; };
+
+  /** 先读存储；键不存在（或结构不对）时用 seed 初始化并写入。 */
+  const loadData = (seed) => {
+    const d = load(KEY, null);
+    if (d && d.version === 1 && Array.isArray(d.items)) return d;
+    const fresh = { version: 1, items: seed() };
+    save(KEY, fresh);
+    return fresh;
+  };
+  const loadMeta = () => { const m = load(META_KEY, null); return m && typeof m === "object" ? m : {}; };
+  const saveMeta = (m) => save(META_KEY, m);
+
+  const toast = (msg) => { const el = $("#toast"); el.textContent = msg; el.style.opacity = "1"; clearTimeout(el._h); el._h = setTimeout(() => { el.style.opacity = "0"; }, 2000); };
+
+  let modalClose = null;
+  const openModal = (html, onClose) => {
+    const m = $("#modal");
+    $("#modal-body").innerHTML = html;
+    m.classList.remove("hidden");
+    m.classList.add("flex");
+    modalClose = onClose || null;
+    const first = $("input, textarea, select", $("#modal-body"));
+    if (first) setTimeout(() => first.focus(), 30);
+  };
+  const closeModal = () => {
+    const m = $("#modal");
+    m.classList.add("hidden");
+    m.classList.remove("flex");
+    $("#modal-body").innerHTML = "";
+    const fn = modalClose;
+    modalClose = null;
+    if (fn) fn();
+  };
+  const confirmBox = (text, onOk, okText) => {
+    openModal(
+      '<div class="space-y-4"><div class="text-lg font-semibold t-strong">' + esc(t("confirmTitle")) + "</div>" +
+      '<p class="text-sm t-body">' + esc(text) + "</p>" +
+      '<div class="flex justify-end gap-2"><button type="button" class="btn btn-secondary" data-act="modal-close">' + esc(t("cancel")) + "</button>" +
+      '<button type="button" class="btn btn-danger" id="confirm-ok">' + esc(okText || t("delete")) + "</button></div></div>"
+    );
+    $("#confirm-ok").addEventListener("click", () => { closeModal(); onOk(); });
+  };
+  $("#modal").addEventListener("click", (e) => { if (e.target.id === "modal") closeModal(); });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#modal").classList.contains("hidden")) closeModal(); });
+
+  /** 整体重绘时保留输入框焦点与光标位置。 */
+  const keepFocus = (fn) => {
+    const a = document.activeElement;
+    const id = a && a.id;
+    let s = null, en = null;
+    try { s = a.selectionStart; en = a.selectionEnd; } catch (e) {}
+    fn();
+    if (!id) return;
+    const n = document.getElementById(id);
+    if (!n || n === a) return;
+    n.focus();
+    try { if (s !== null) n.setSelectionRange(s, en); } catch (e) {}
+  };
+
+  /** 事件委托：元素上写 data-act="xxx"，在 ACTIONS 中处理。 */
+  const ACTIONS = { "modal-close": () => closeModal() };
+  const delegate = (type) => document.addEventListener(type, (e) => {
+    const el = e.target.closest && e.target.closest("[data-" + type + "]");
+    if (!el) return;
+    const fn = ACTIONS[el.getAttribute("data-" + type)];
+    if (fn) fn(el, e);
+  });
+  ["change", "input", "submit", "keydown"].forEach(delegate);
+  document.addEventListener("click", (e) => {
+    const el = e.target.closest && e.target.closest("[data-act]");
+    if (!el) return;
+    const fn = ACTIONS[el.getAttribute("data-act")];
+    if (fn) { if (el.tagName === "A") e.preventDefault(); fn(el, e); }
+  });
+
+  const header = (extra) =>
+    '<header class="flex flex-wrap items-start justify-between gap-4">' +
+    '<div class="flex items-center gap-3"><div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[var(--p-50)] text-2xl dark:bg-[var(--p-700)]/30">' + esc(CONFIG.emoji) + "</div>" +
+    '<div class="min-w-0"><h1 class="text-2xl font-bold t-strong">' + esc(CONFIG.title) + "</h1>" +
+    (CONFIG.subtitle ? '<p class="mt-0.5 text-sm t-muted">' + esc(CONFIG.subtitle) + "</p>" : "") + "</div></div>" +
+    (extra || "") + "</header>";
+  const emptyState = (emoji, text, btn) =>
+    '<div class="py-12 text-center"><div class="text-4xl">' + esc(emoji) + '</div><p class="mt-2 text-sm t-muted">' + esc(text) + "</p>" + (btn || "") + "</div>";
+  // ---- Chart.js 辅助：颜色取主色系不同深浅 + slate ----
+  const hexRgb = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+  const mixHex = (a, b, w) => "#" + hexRgb(a).map((x, i) => Math.round(x + (hexRgb(b)[i] - x) * w).toString(16).padStart(2, "0")).join("");
+  /** n 个颜色：从主色 700 渐变到 200；超过 6 个时穿插 slate。 */
+  const seriesColors = (n) => Array.from({ length: n }, (_, i) => {
+    const w = n <= 1 ? 0 : i / (n - 1);
+    const c = mixHex(PRIMARY[5], PRIMARY[2], w);
+    return n > 6 && i % 2 === 1 ? mixHex(c, "#64748b", 0.45) : c;
+  });
+  const LINE_COLORS = [PRIMARY[4], "#94a3b8", PRIMARY[2]];
+  const charts = [];
+  const destroyCharts = () => { while (charts.length) { try { charts.pop().destroy(); } catch (e) {} } };
+  const makeChart = (canvas, cfg) => {
+    if (typeof Chart === "undefined" || !canvas) return null;
+    Chart.defaults.color = DARK ? "#94a3b8" : "#64748b";
+    Chart.defaults.borderColor = DARK ? "#1e293b" : "#e2e8f0";
+    Chart.defaults.font.family = "ui-sans-serif, system-ui, -apple-system, 'PingFang SC', 'Microsoft YaHei', sans-serif";
+    const chart = new Chart(canvas, cfg);
+    charts.push(chart);
+    return chart;
+  };
+  const DEFAULTS = { metrics: CONFIG.metrics || [], charts: CONFIG.charts || [] };
+  const hash = (s) => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return String(h); };
+  // 存储中的数据只在基于同一份配置时有效；配置被修改（新版本）后以配置为准
+  const BASE = hash(JSON.stringify(DEFAULTS));
+  const initData = () => {
+    const d = load(KEY, null);
+    if (d && d.version === 1 && d.base === BASE && Array.isArray(d.metrics) && Array.isArray(d.charts)) return d;
+    const fresh = { version: 1, base: BASE, edited: false, metrics: DEFAULTS.metrics, charts: DEFAULTS.charts };
+    save(KEY, fresh);
+    return fresh;
+  };
+  let data = initData();
+  const TABLE = CONFIG.table && Array.isArray(CONFIG.table.rows) ? CONFIG.table : null;
+  const state = { sortKey: null, sortDir: 1 };
+  const num = (v, d) => Number(v).toLocaleString(LOC, { maximumFractionDigits: d === undefined ? 2 : d });
+
+  const metricCard = (m) => {
+    let delta = "";
+    if (typeof m.delta === "number") {
+      const up = m.delta >= 0;
+      const good = (m.goodWhen || "up") === "up" ? up : !up;
+      delta = '<div class="mt-2 flex items-center gap-1 text-xs"><span class="font-semibold ' + (m.delta === 0 ? "t-muted" : good ? "text-emerald-600 dark:text-emerald-400" : "text-rose-600 dark:text-rose-400") + '">' +
+        (up ? "▲" : "▼") + " " + num(Math.abs(m.delta), 1) + '%</span><span class="t-faint">' + esc(t("vsLast")) + "</span></div>";
+    }
+    return '<div class="card min-w-0 p-4 md:p-5"><div class="truncate text-xs t-faint">' + esc(m.label) + '</div><div class="mt-1 flex items-baseline gap-1"><span class="truncate text-2xl font-bold t-strong md:text-3xl">' + esc(num(m.value)) + "</span>" +
+      (m.unit ? '<span class="text-sm t-muted">' + esc(m.unit) + "</span>" : "") + "</div>" + delta + "</div>";
+  };
+
+  const chartBox = (c, i) => '<section class="card min-w-0 ' + (c.span === 2 ? "md:col-span-2" : "") + '"><h2 class="mb-3 text-sm font-semibold t-strong">' + esc(c.title) + '</h2><div class="relative h-[260px]"><canvas id="chart-' + i + '"></canvas></div></section>';
+
+  const drawCharts = () => {
+    destroyCharts();
+    data.charts.forEach((c, i) => {
+      const round = c.type === "pie" || c.type === "doughnut";
+      const sets = (round ? c.datasets.slice(0, 1) : c.datasets).map((d, k) => {
+        const color = LINE_COLORS[k % LINE_COLORS.length];
+        if (round) return { label: d.label, data: d.data, backgroundColor: seriesColors(c.labels.length), borderWidth: 2, borderColor: DARK ? "#0f172a" : "#fff" };
+        if (c.type === "line") return { label: d.label, data: d.data, borderColor: color, backgroundColor: k === 0 ? color + "22" : "transparent", fill: k === 0, tension: 0.35, pointRadius: 2.5, borderWidth: 2 };
+        return { label: d.label, data: d.data, backgroundColor: color, borderRadius: 6, maxBarThickness: 32 };
+      });
+      makeChart($("#chart-" + i), {
+        type: c.type,
+        data: { labels: c.labels, datasets: sets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: round || sets.length > 1, position: round ? (window.innerWidth < 640 ? "bottom" : "right") : "top", align: "end", labels: { boxWidth: 10, boxHeight: 10 } } },
+          scales: round ? {} : { x: { grid: { display: false }, ticks: { maxRotation: 0, autoSkipPadding: 10 } }, y: { beginAtZero: true } },
+          ...(c.type === "doughnut" ? { cutout: "62%" } : {}),
+        },
+      });
+    });
+  };
+
+  const fmtCell = (col, v) => {
+    if (v === undefined || v === null || v === "") return "—";
+    if (typeof v !== "number") return String(v);
+    if (col.format === "percent") return num(v, 1) + "%";
+    if (col.format === "currency") return t("currencySign") + num(v);
+    return num(v);
+  };
+
+  const tableBlock = () => {
+    if (!TABLE) return "";
+    const rows = TABLE.rows.slice();
+    if (state.sortKey) rows.sort((a, b) => {
+      const x = a[state.sortKey], y = b[state.sortKey];
+      return (typeof x === "number" && typeof y === "number" ? x - y : String(x ?? "").localeCompare(String(y ?? ""), LOC)) * state.sortDir;
+    });
+    return '<section class="card min-w-0"><h2 class="mb-3 text-sm font-semibold t-strong">' + esc(TABLE.title) + '</h2><div class="overflow-x-auto"><table class="w-full text-sm"><thead class="text-left text-xs t-faint"><tr>' +
+      TABLE.columns.map((c) => {
+        const numeric = c.format && c.format !== "text";
+        const arrow = state.sortKey === c.key ? (state.sortDir > 0 ? " ▲" : " ▼") : "";
+        return '<th class="py-2 pr-4 font-medium whitespace-nowrap ' + (numeric ? "text-right" : "") + '"><button type="button" data-act="sort" data-key="' + esc(c.key) + '" class="cursor-pointer hover:text-[var(--p-600)]">' + esc(c.label) + arrow + "</button></th>";
+      }).join("") + '</tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">' +
+      rows.map((r) => "<tr>" + TABLE.columns.map((c, i) => '<td class="py-2.5 pr-4 whitespace-nowrap ' + (c.format && c.format !== "text" ? "text-right tabular-nums " : "") + (i === 0 ? "font-medium t-strong" : "t-body") + '">' + esc(fmtCell(c, r[c.key])) + "</td>").join("") + "</tr>").join("") +
+      "</tbody></table></div></section>";
+  };
+
+  const render = () => keepFocus(() => {
+    destroyCharts();
+    const tools = '<div class="flex flex-wrap items-center gap-2"><span class="tag tag-primary px-3 py-1">📅 ' + esc(CONFIG.periodLabel) + "</span>" +
+      (data.edited ? '<span class="tag tag-muted">' + esc(t("edited")) + "</span>" : "") +
+      (CONFIG.editable ? '<button type="button" data-act="edit-data" class="btn btn-secondary">✏️ ' + esc(t("editData")) + "</button>" + (data.edited ? '<button type="button" data-act="reset" class="btn btn-ghost">↺ ' + esc(t("reset")) + "</button>" : "") : "") + "</div>";
+    const n = data.metrics.length;
+    $("#app").innerHTML = header(tools) +
+      '<div class="grid grid-cols-2 gap-3 md:gap-4 ' + (n % 3 === 0 ? "lg:grid-cols-3" : n >= 4 ? "lg:grid-cols-4" : "") + '">' + data.metrics.map(metricCard).join("") + "</div>" +
+      '<div class="grid gap-4 md:grid-cols-2">' + data.charts.map(chartBox).join("") + "</div>" + tableBlock();
+    drawCharts();
+  });
+
+  /** 校验编辑后的数据，返回错误文案或空字符串。 */
+  const checkShape = (v) => {
+    if (!v || !Array.isArray(v.metrics) || !Array.isArray(v.charts)) return "metrics / charts";
+    for (const m of v.metrics) if (!m || typeof m.label !== "string" || typeof m.value !== "number") return "metrics[].label / value";
+    for (const c of v.charts) {
+      if (!c || !["line", "bar", "pie", "doughnut"].includes(c.type) || !Array.isArray(c.labels) || !Array.isArray(c.datasets) || !c.datasets.length) return "charts[].type / labels / datasets";
+      for (const d of c.datasets) if (!Array.isArray(d.data) || d.data.length !== c.labels.length || d.data.some((x) => typeof x !== "number")) return "datasets[].data";
+    }
+    return "";
+  };
+
+  ACTIONS.sort = (el) => {
+    const k = el.getAttribute("data-key");
+    if (state.sortKey === k) state.sortDir = -state.sortDir;
+    else { state.sortKey = k; state.sortDir = -1; }
+    render();
+  };
+  ACTIONS["edit-data"] = () => {
+    const modal = $("#modal-body");
+    modal.classList.replace("max-w-md", "max-w-2xl");
+    openModal('<form data-submit="save-data" class="space-y-4" novalidate><h3 class="text-lg font-semibold t-strong">' + esc(t("editTitle")) + '</h3><p class="text-sm t-muted">' + esc(t("editHint")) + "</p>" +
+      '<textarea id="json" rows="16" spellcheck="false" class="input font-mono text-xs leading-relaxed">' + esc(JSON.stringify({ metrics: data.metrics, charts: data.charts }, null, 2)) + "</textarea>" +
+      '<div id="json-err" class="err-text" hidden></div><div class="flex justify-end gap-2"><button type="button" data-act="modal-close" class="btn btn-secondary">' + esc(t("cancel")) + '</button><button type="submit" class="btn btn-primary">' + esc(t("save")) + "</button></div></form>",
+      () => modal.classList.replace("max-w-2xl", "max-w-md"));
+  };
+  ACTIONS["save-data"] = (form, e) => {
+    e.preventDefault();
+    const err = $("#json-err");
+    let v;
+    try { v = JSON.parse($("#json").value); } catch (ex) { err.textContent = t("jsonErr", { m: ex.message }); err.hidden = false; return; }
+    const bad = checkShape(v);
+    if (bad) { err.textContent = t("shapeErr", { m: bad }); err.hidden = false; return; }
+    data = { version: 1, base: BASE, edited: true, metrics: v.metrics, charts: v.charts };
+    save(KEY, data);
+    closeModal();
+    render();
+    toast(t("saved"));
+  };
+  ACTIONS.reset = () => confirmBox(t("resetConfirm"), () => {
+    data = { version: 1, base: BASE, edited: false, metrics: DEFAULTS.metrics, charts: DEFAULTS.charts };
+    save(KEY, data);
+    render();
+    toast(t("resetDone"));
+  }, t("reset"));
+
+  render();
+})();
+</script>
+</body>
+</html>
