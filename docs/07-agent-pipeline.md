@@ -160,6 +160,8 @@ async function callJson<T>(opts: {
 6. 再失败 → 抛出 `AppError("LLM_BAD_OUTPUT")`。
 7. 超时 → `AppError("LLM_TIMEOUT")`；用户取消 → `AppError("ABORTED")`（内部码，不发 error 事件，按"已停止"处理）；其他 API 错误 → `AppError("LLM_ERROR")`。
 
+> 实现说明：实际代码用 `generateText` + `response_format: json_object`（`deepseekFetch` 对非流式请求补上）+ `extractJson` + zod 校验实现上述算法，没有用 `generateObject`（模板 schema 含 refine/default，转 JSON Schema 不可靠）。重试语义不变，见 README"设计说明"。
+
 实现时第一次联调需打印一次实际请求体，确认 `response_format` 为 `{"type":"json_object"}` 且含 `thinking: {type: "disabled"}`。若 SDK 未发送 `response_format`，在 `deepseekFetch` 中对没有 `stream: true` 且没有 `response_format` 的请求补上 `response_format: { type: "json_object" }`。
 
 ## 5. 模板配置步骤（`config`）
